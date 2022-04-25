@@ -36,11 +36,14 @@ ItemTable MastarTable;
 
 GL4 gl;
 
+HashSet<Integer>moveKeyCode=new HashSet<Integer>(Arrays.asList(createArray(UP,DOWN,RIGHT,LEFT,87,119,65,97,83,115,68,100)));
+
 java.util.List<Particle>Particles=Collections.synchronizedList(new ArrayList<Particle>());
 java.util.List<Bullet>eneBullets=Collections.synchronizedList(new ArrayList<Bullet>());
 java.util.List<Bullet>Bullets=Collections.synchronizedList(new ArrayList<Bullet>());
 java.util.List<Enemy>Enemies=Collections.synchronizedList(new ArrayList<Enemy>());
 java.util.List<Exp>Exps=Collections.synchronizedList(new ArrayList<Exp>());
+ArrayList<String>PressedKeyCode=new ArrayList<String>();
 ArrayList<String>PressedKey=new ArrayList<String>();
 ArrayList<Long>Times=new ArrayList<Long>();
 PVector scroll;
@@ -115,17 +118,19 @@ void draw() {
     break;
   }
   eventProcess();
-  try {
-    enemyFuture.get();
-    bulletFuture.get();
-    particleFuture.get();
-  }
-  catch(ConcurrentModificationException e) {
-    e.printStackTrace();
-  }
-  catch(InterruptedException|ExecutionException f) {
-  }
-  catch(NullPointerException g) {
+  if(scene==2){
+    try {
+      bulletFuture.get();
+      particleFuture.get();
+      enemyFuture.get();
+    }
+    catch(ConcurrentModificationException e) {
+      e.printStackTrace();exit();
+    }
+    catch(InterruptedException|ExecutionException f) {println(f);f.printStackTrace();exit();
+    }
+    catch(NullPointerException g) {
+    }
   }
   printFPS();
   Shader();
@@ -282,6 +287,10 @@ PMatrix3D getMatrixLocalToWindow() {
   return viewport;
 }
 
+<T> T[] createArray(T... val){
+  return val;
+}
+
 boolean onMouse(float x, float y, float dx, float dy) {
   return x<=mouseX&mouseX<=x+dx&y<=mouseY&mouseY<=y+dy;
 }
@@ -318,6 +327,10 @@ float dist(PVector a, PVector b) {
   return dist(a.x, a.y, b.x, b.y);
 }
 
+float sqDist(PVector s, PVector e){
+  return (s.x-e.x)*(s.x-e.x)+(s.y-e.y)*(s.y-e.y);
+}
+
 boolean qDist(PVector s, PVector e, float d) {
   return ((s.x-e.x)*(s.x-e.x)+(s.y-e.y)*(s.y-e.y))<=d*d;
 }
@@ -346,6 +359,22 @@ PVector normalize(PVector v) {
 
 PVector createVector(PVector s, PVector e) {
   return e.copy().sub(s);
+}
+
+boolean CircleCollision(PVector c,float size,PVector s,PVector v){
+    PVector bulletVel=v.copy().mult(vectorMagnification);
+    PVector vecAP=createVector(s,c);
+    PVector normalAB=normalize(bulletVel);//vecAB->b.vel
+    float lenAX=dot(normalAB,vecAP);
+    float dist;
+    if(lenAX<0){
+      dist=dist(s.x,s.y,c.x,c.y);
+    }else if(lenAX>dist(0,0,bulletVel.x,bulletVel.y)){
+      dist=dist(s.x+bulletVel.x,s.y+bulletVel.y,c.x,c.y);
+    }else{
+      dist=abs(cross(normalAB,vecAP));
+    }
+    return dist<size/2;
 }
 
 boolean SegmentCollision(PVector s1, PVector v1, PVector s2, PVector v2) {
@@ -429,12 +458,14 @@ Color cloneColor(Color c) {
 void keyPressed(processing.event.KeyEvent e) {
   ModifierKey=e.getKeyCode();
   PressedKey.add(str(key));
+  PressedKeyCode.add(str(keyCode));
   nowPressedKey=str(key);
   nowPressedKeyCode=keyCode;
 }
 
 void keyReleased(processing.event.KeyEvent e) {
   ModifierKey=-1;
+  PressedKeyCode.remove(str(keyCode));
   PressedKey.remove(str(key));
 }
 

@@ -139,16 +139,16 @@ class Myself extends Entity{
     float rad=0;
     float r=0;
     float i=0;
-    if(PressedKey.contains("w")){
+    if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
       ++i;
     }
-    if(PressedKey.contains("s")){
+    if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
       --i;
     }
-    if(PressedKey.contains("d")){
+    if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
       ++r;
     }
-    if(PressedKey.contains("a")){
+    if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
       --r;
     }
     move=abs(i)+abs(r)!=0;
@@ -167,7 +167,7 @@ class Myself extends Entity{
     if(Float.isNaN(Speed)){
       Speed=0;
     }
-    if(keyPressed&&move&&(nowPressedKey.equals("w")||nowPressedKey.equals("s")||nowPressedKey.equals("a")||nowPressedKey.equals("d"))){
+    if(keyPressed&&move&&moveKeyCode.contains(nowPressedKeyCode)){
       addVel(accelSpeed,false);
     }else{
       Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):
@@ -252,21 +252,8 @@ class Myself extends Entity{
     damage=0;
     COLLISION:for(Bullet b:eneBullets){
       if(b.isDead)continue COLLISION;
-      PVector bulletVel=b.vel.copy().mult(vectorMagnification);
-      PVector vecAP=createVector(b.pos,pos);
-      PVector normalAB=normalize(bulletVel);//vecAB->b.vel
-      float lenAX=dot(normalAB,vecAP);
-      float dist;
-      if(lenAX<0){
-        dist=dist(b.pos.x,b.pos.y,pos.x,pos.y);
-      }else if(lenAX>dist(0,0,bulletVel.x,bulletVel.y)){
-        dist=dist(b.pos.x+bulletVel.x,b.pos.y+bulletVel.y,pos.x,pos.y);
-      }else{
-        dist=abs(cross(normalAB,vecAP));
-      }
-      if(dist<size/2){
+      if(CircleCollision(pos,size,b.pos,b.vel)){
         b.isDead=true;
-        
         Hit(b.power);
         continue COLLISION;
       }

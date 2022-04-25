@@ -41,7 +41,10 @@ class GameProcess{
   
   void process(){
     if(player.levelup)pause=true;
-    if(player.isDead)pause=true;
+    if(player.isDead){
+      addExplosion(player,250);
+      pause=true;
+    }
     done=false;
     background(0);
     drawShape();

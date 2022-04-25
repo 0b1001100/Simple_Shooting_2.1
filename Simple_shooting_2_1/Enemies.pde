@@ -12,6 +12,7 @@ class Enemy extends Entity implements Cloneable{
   double damage=0;
   float rotateSpeed=10;
   float protate=0;
+  float playerDistsq=0;
   float exp=1;
   protected double maxHP=10d;
   protected double HP=10d;
@@ -145,7 +146,8 @@ class Enemy extends Entity implements Cloneable{
   }
   
   void Collision(){
-    if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
+    playerDistsq=sqDist(player.pos,pos);
+    if(!player.isDead&&playerDistsq<=(player.size+size)*0.5){
       float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
       float d=(player.size+size)*0.5-dist(player.pos,pos);
       vel=new PVector(-cos(r)*d,-sin(r)*d);
@@ -158,7 +160,9 @@ class Enemy extends Entity implements Cloneable{
     if(qDist(e.pos,pos,(e.size+size)*0.5)){
       if(!Expl&&(e instanceof Explosion)){
         HP-=((Explosion)e).power*vectorMagnification;
-        Expl=true;
+        synchronized(Enemies){
+          Expl=true;
+        }
         return;
       }
       PVector c=pos.copy().sub(e.pos).normalize();

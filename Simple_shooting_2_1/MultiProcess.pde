@@ -52,12 +52,13 @@ class EnemyProcess implements Callable<String>{
   
   String call(){pTime=System.currentTimeMillis();
     player.update();
-    ArrayList<Enemy>nextEnemies=new ArrayList<Enemy>();
+    ArrayList<Enemy>nextEnemies=new ArrayList<Enemy>();println("over0");
     for(Enemy e:Enemies){
       e.update();
       if(!e.isDead)nextEnemies.add(e);
     }
-    Enemies=nextEnemies;
+    synchronized(Enemies){
+    Enemies=nextEnemies;}println("over1");
     p1=new EnemyCollision(0,(int)(EnemyX.size()*0.33));
     p2=new EnemyCollision((int)(EnemyX.size()*0.33), (int)(EnemyX.size()*0.66));
     p3=new EnemyCollision((int)(EnemyX.size()*0.66), EnemyX.size());
@@ -66,7 +67,7 @@ class EnemyProcess implements Callable<String>{
       CollisionFuture2=exec.submit(p2);
       CollisionFuture3=exec.submit(p3);
     }
-    catch(Exception e) {
+    catch(Exception e) {exit();
     }
     TreeMap<Float,Enemy>over=new TreeMap<Float,Enemy>();
     try {
@@ -74,13 +75,13 @@ class EnemyProcess implements Callable<String>{
       over.putAll(CollisionFuture2.get());
       over.putAll(CollisionFuture3.get());
     }
-    catch(ConcurrentModificationException e) {
-      e.printStackTrace();
+    catch(ConcurrentModificationException e){
+      e.printStackTrace();exit();
     }
-    catch(InterruptedException|ExecutionException f) {
+    catch(InterruptedException|ExecutionException f){exit();
     }
-    catch(NullPointerException g) {
-    }
+    catch(NullPointerException g){exit();
+    }println("over2");
     arrayX=new ArrayList<Float>(over.keySet());
     enemy=new ArrayList<Enemy>(over.values());
     HashSet<Enemy>CollisionList=new HashSet<Enemy>();
@@ -175,8 +176,10 @@ class EnemyCollision implements Callable<TreeMap<Float,Enemy>>{
   
   TreeMap<Float,Enemy> call(){
     overEnemy=new TreeMap<Float,Enemy>();
-    arrayX=new ArrayList<Float>(EnemyX.keySet());
-    enemy=new ArrayList<Enemy>(EnemyX.values());
+    synchronized(EnemyX){
+      arrayX=new ArrayList<Float>(EnemyX.keySet());
+      enemy=new ArrayList<Enemy>(EnemyX.values());
+    }
     HashSet<Enemy>CollisionList=new HashSet<Enemy>();
     for(int i=s;s<l;i++){
       Enemy E=enemy.get(i);

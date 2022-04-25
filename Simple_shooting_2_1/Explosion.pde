@@ -1,5 +1,6 @@
 class Explosion extends Enemy{
   ExplosionParticle p;
+  boolean myself=false;
   float power=10;
   
   Explosion(Entity e,float size){
@@ -27,7 +28,8 @@ class Explosion extends Enemy{
   void Collision(Enemy e){
     if(!e.Expl&&qDist(e.pos,pos,(e.size+size)*0.5)){
         e.HP-=power*vectorMagnification;
-        e.Expl=true;
+        synchronized(Enemies){
+        e.Expl=true;}
     }
   }
   
@@ -38,5 +40,7 @@ class Explosion extends Enemy{
 }
 
 void addExplosion(Entity e,float size){
-  Enemies.add(new Explosion(e,size));
+  synchronized(Enemies){
+    Enemies.add(new Explosion(e,size));
+  }
 }

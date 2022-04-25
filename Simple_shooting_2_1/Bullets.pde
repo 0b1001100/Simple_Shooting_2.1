@@ -88,7 +88,7 @@ class Bullet extends Entity{
     if(age>maxAge)isDead=true;
     age+=vectorMagnification;
     tPos=prePos.copy();
-    prePos=pos.copy();for(Enemy e:Enemies)Collision(e);
+    prePos=pos.copy();synchronized(Enemies){for(Enemy e:Enemies)Collision(e);}
     float min=min(pos.x+vel.x,pos.x)*vectorMagnification;
     float max=max(pos.x+vel.x,pos.x)*vectorMagnification;
     BulletX.put(min,this);
@@ -103,19 +103,9 @@ class Bullet extends Entity{
   
   void Collision(Enemy e){
     if(e instanceof Explosion)return;
-    for(int i=0;i<4;i++){
-      PVector s=new PVector();
-      PVector v=new PVector();
-      switch(i){
-        case 0:s=e.LeftDown;v=new PVector(e.LeftUP.x-e.LeftDown.x,e.LeftUP.y-e.LeftDown.y);break;
-        case 1:s=e.RightDown;v=new PVector(e.LeftDown.x-e.RightDown.x,e.LeftDown.y-e.RightDown.y);break;
-        case 2:s=e.RightUP;v=new PVector(e.RightDown.x-e.RightUP.x,e.RightDown.y-e.RightUP.y);break;
-        case 3:s=e.LeftUP;v=new PVector(e.RightUP.x-e.LeftUP.x,e.RightUP.y-e.LeftUP.y);break;
-      }
-      if(SegmentCollision(s,v,pos,new PVector(vel.x*vectorMagnification,vel.y*vectorMagnification))){
-        isDead=true;
-        e.Hit(parent);
-      }
+    if(CircleCollision(e.pos,e.size,pos,vel)){
+      isDead=true;
+      e.Hit(parent);
     }
   }
   
