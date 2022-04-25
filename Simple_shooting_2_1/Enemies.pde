@@ -2,9 +2,11 @@ TreeMap<Float,Enemy>EnemyX=new TreeMap<Float,Enemy>();
 HashMap<Float,String>EnemyData=new HashMap<Float,String>();
 
 class Enemy extends Entity implements Cloneable{
+  HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
   Weapon useWeapon=null;
   Weapon ShotWeapon=null;
   ItemTable dropTable;
+  boolean Expl=false;
   boolean inScreen=true;
   boolean hit=false;
   double damage=0;
@@ -31,11 +33,12 @@ class Enemy extends Entity implements Cloneable{
     strokeWeight(1);
     noFill();
     stroke(toColor(c));
-    rect(0,0,size,size);
+    rect(0,0,size*0.7071,size*0.7071);
     popMatrix();
   }
   
   void update(){
+    Expl=false;
     if(HP<=0){
       Down();
       return;
@@ -43,7 +46,7 @@ class Enemy extends Entity implements Cloneable{
     Rotate();
     move();
     Collision();
-    float d=size*0.7071;
+    float d=size*0.5;
     EnemyX.put(pos.x-d,this);
     EnemyX.put(pos.x+d,this);
     EnemyData.put(pos.x-d,"s");
@@ -85,8 +88,12 @@ class Enemy extends Entity implements Cloneable{
     vel.add(cos(-rotate-HALF_PI)*Speed,sin(-rotate-HALF_PI)*Speed).mult(vectorMagnification);
     vel.mult(0.95);
     if(vel.magSq()>maxSpeed*maxSpeed*vectorMagnification){
-      vel.normalize().mult(maxSpeed);
+      vel.normalize().mult(maxSpeed).mult(vectorMagnification);
     }
+  }
+  
+  void addMultiplyer(Class<? extends Weapon> c,float f){
+    MultiplyerMap.put(c,f);
   }
   
   void setSize(float s){
@@ -108,7 +115,7 @@ class Enemy extends Entity implements Cloneable{
   }
   
   void updateVertex(){
-    float s=size*0.7071;
+    float s=size*0.5;
     float r=-rotate+PI*0.25;
     LeftUP=new PVector(pos.x-cos(r)*s,pos.y+sin(r)*s);
     LeftDown=new PVector(pos.x-cos(r)*s,pos.y-sin(r)*s);
@@ -116,9 +123,16 @@ class Enemy extends Entity implements Cloneable{
     RightDown=new PVector(pos.x+cos(r)*s,pos.y-sin(r)*s);
   }
   
-  void Hit(float d){
-    HP-=d;
-    damage+=d;
+  void Hit(Weapon w){
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1;
+    HP-=w.power*mult;
+    damage+=w.power*mult;
+    hit=true;
+  }
+  
+  void Hit(float f){
+    HP-=f;
+    damage+=f;
     hit=true;
   }
   
@@ -141,9 +155,14 @@ class Enemy extends Entity implements Cloneable{
   }
   
   void Collision(Enemy e){
-    if(qDist(e.pos,pos,(e.size+size)*0.7071)){
+    if(qDist(e.pos,pos,(e.size+size)*0.5)){
+      if(!Expl&&(e instanceof Explosion)){
+        HP-=((Explosion)e).power*vectorMagnification;
+        Expl=true;
+        return;
+      }
       PVector c=pos.copy().sub(e.pos).normalize();
-      PVector d=new PVector((size+e.size)*0.7071-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+      PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
       vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
       e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
       pos.sub(d);
@@ -181,6 +200,7 @@ class Turret extends Enemy{
   
   private void init(){
     setHP(1);
+    setSize(28);
     useWeapon=new EnergyBullet(this);
     maxSpeed=0.7;
     rotateSpeed=3;
@@ -207,6 +227,7 @@ class Plus extends Enemy{
   
   private void init(){
     setHP(2);
+    setSize(28);
     useWeapon=new EnergyBullet(this);
     maxSpeed=0.7;
     rotateSpeed=3;
@@ -235,6 +256,7 @@ class White extends Enemy{
   private void init(){
     exp=3;
     setHP(3);
+    setSize(28);
     useWeapon=new EnergyBullet(this);
     maxSpeed=0.8;
     rotateSpeed=4;
@@ -266,7 +288,7 @@ class Normal extends Enemy{
     useWeapon=new EnergyBullet(this);
     maxSpeed=1;
     rotateSpeed=3;
-    setSize(30);
+    setSize(42);
     setMass(100);
     setColor(new Color(255,20,20));
   }

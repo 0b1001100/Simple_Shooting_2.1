@@ -30,7 +30,7 @@ float vectorMagnification=1;
 GameProcess main;
 Stage stage;
 
-ComponentSet starts=new ComponentSet();
+ComponentSetLayer starts=new ComponentSetLayer();
 
 ItemTable MastarTable;
 
@@ -136,7 +136,7 @@ void draw() {
 void Menu() {
   background(0);
   if (changeScene) {
-    starts.removeAll();
+    starts=new ComponentSetLayer();
     NormalButton New=new NormalButton("New Game");
     New.setBounds(100, 100, 120, 30);
     New.addListener(()-> {
@@ -147,9 +147,7 @@ void Menu() {
     Load.setBounds(100, 140, 120, 30);
     NormalButton Config=new NormalButton("Confuguration");
     Config.setBounds(100, 180, 120, 30);
-    starts.add(New);
-    starts.add(Load);
-    starts.add(Config);
+    starts.addLayer("root",toSet(New,Load,Config));
   }
   starts.display();
   starts.update();

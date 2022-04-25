@@ -3,6 +3,7 @@ TreeMap<Float,Object>BulletEnemyX=new TreeMap<Float,Object>();
 HashMap<Float,String>BulletData=new HashMap<Float,String>();
 
 class Bullet extends Entity{
+  Weapon parent;
   PVector bVel;
   PVector tPos;
   boolean isMine=false;
@@ -24,7 +25,9 @@ class Bullet extends Entity{
     pos=new PVector(m.pos.x+cos(rotate)*m.size,m.pos.y+sin(rotate)*m.size);
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
     maxAge=m.selectedWeapon.bulletMaxAge;
-    power=m.selectedWeapon.power;
+    try{
+      parent=m.selectedWeapon.clone();
+    }catch(Exception e){}
     prePos=pos.copy();
     tPos=pos.copy();
     isMine=true;
@@ -41,7 +44,9 @@ class Bullet extends Entity{
     pos=new PVector(m.pos.x+cos(rotate)*m.size,m.pos.y+sin(rotate)*m.size);
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
     maxAge=m.selectedWeapon.bulletMaxAge;
-    power=m.selectedWeapon.power;
+    try{
+      parent=m.selectedWeapon.clone();
+    }catch(Exception e){}
     prePos=pos.copy();
     tPos=pos.copy();
     isMine=true;
@@ -49,7 +54,9 @@ class Bullet extends Entity{
   
   Bullet(Entity e,Weapon w){
     isMine=e instanceof Myself;
-    power=w.power;
+    try{
+      parent=w.clone();
+    }catch(Exception E){}
     if(w.loadedNumber>1){
       w.loadedNumber--;
     }else if(w.loadedNumber>0){
@@ -95,6 +102,7 @@ class Bullet extends Entity{
   }
   
   void Collision(Enemy e){
+    if(e instanceof Explosion)return;
     for(int i=0;i<4;i++){
       PVector s=new PVector();
       PVector v=new PVector();
@@ -106,7 +114,7 @@ class Bullet extends Entity{
       }
       if(SegmentCollision(s,v,pos,new PVector(vel.x*vectorMagnification,vel.y*vectorMagnification))){
         isDead=true;
-        e.Hit(power);
+        e.Hit(parent);
       }
     }
   }

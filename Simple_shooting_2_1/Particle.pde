@@ -77,6 +77,7 @@ class Particle{
 
 class ExplosionParticle extends Particle{
   PVector pos;
+  float nowSize=0;
   float size=0;
   float time=0;
   
@@ -89,10 +90,11 @@ class ExplosionParticle extends Particle{
   }
   
   void display(){
+    nowSize=size*(time/maxTime)*2;
     noFill();
     stroke(toColor(pColor));
     strokeWeight(1);
-    ellipse(pos.x,pos.y,size*(time/maxTime)*2,size*(time/maxTime)*2);
+    ellipse(pos.x,pos.y,nowSize,nowSize);
   }
   
   void update(){

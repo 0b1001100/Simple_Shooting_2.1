@@ -138,7 +138,7 @@ class SpownPoint{
     noFill();
     strokeWeight(1);
     stroke((int)(255*t),0,0);
-    ellipse(pos.x,pos.y,e.size*t,e.size*t);
+    ellipse(pos.x,pos.y,e.size*t*0.7,e.size*t*0.7);
   }
   
   void update(){

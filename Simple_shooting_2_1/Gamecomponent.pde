@@ -1031,7 +1031,7 @@ class ComponentSet{
     }
   }
   
-  void addAll(GameComponent[] val){
+  void addAll(GameComponent... val){
     for(GameComponent c:val){
       add(c);
     }

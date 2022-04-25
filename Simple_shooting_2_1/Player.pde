@@ -221,14 +221,7 @@ class Myself extends Entity{
     }
     coolingTime+=vectorMagnification;
     if(keyPress&&PressedKey.contains("q")){
-      for(Enemy e:Enemies){
-        if(qDist(pos,e.pos,600)){
-          e.Hit(100);
-        }
-      }
-      synchronized(Particles){
-        Particles.add(new ExplosionParticle(this,600));
-      }
+      addExplosion(this,600);
     }
   }
   

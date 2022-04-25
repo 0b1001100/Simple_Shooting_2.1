@@ -1,4 +1,5 @@
 class GameProcess{
+  ComponentSet UpgradeSet;
   menuManage mainMenu;
   Color menuColor=new Color(230,230,230);
   PShader menuShader;
@@ -16,6 +17,7 @@ class GameProcess{
   }
   
   void setup(){
+    UpgradeSet=new ComponentSet();
     stage=new Stage();
     mainMenu=new menuManage();
     player=new Myself();
@@ -39,10 +41,15 @@ class GameProcess{
   
   void process(){
     if(player.levelup)pause=true;
+    if(player.isDead)pause=true;
     done=false;
     background(0);
     drawShape();
-    if(!pause)updateShape();
+    if(!pause){
+      updateShape();
+    }else{
+      pauseProcess();
+    }
     keyProcess();
     done=true;
   }
@@ -63,28 +70,20 @@ class GameProcess{
     localMouse=unProject(mouseX,mouseY);
     stage.display();
     player.display();
-    synchronized(Enemies){
-      for(Enemy e:Enemies){
-        e.display();
-      }
-    }
-    synchronized(eneBullets){
-      for(Bullet b:eneBullets){
-        b.display();
-      }
-    }
-    synchronized(Bullets){
-      for(Bullet b:Bullets){
-        b.display();
-      }
-    }
-    synchronized(Particles){
-      for(Particle p:Particles){
-          p.display();
-      }
-    }
     for(Exp e:Exps){
       e.display();
+    }
+    for(Enemy e:Enemies){
+      e.display();
+    }
+    for(Bullet b:eneBullets){
+      b.display();
+    }
+    for(Bullet b:Bullets){
+      b.display();
+    }
+    for(Particle p:Particles){
+        p.display();
     }
     displayHUD();
     popMatrix();
@@ -110,8 +109,35 @@ class GameProcess{
   void pauseProcess(){
     if(player.levelup){
       upgrade=true;
+      MenuButton first=(MenuButton)new MenuButton("Green").setBounds(width/2-150,height/2-45,300,30);
+      first.addListener(()->{
+        player.weapons.get(0).bulletNumber++;
+        pause=false;
+        upgrade=false;
+      });
+      MenuButton second=(MenuButton)new MenuButton("Red").setBounds(width/2-150,height/2,300,30);
+      second.addListener(()->{
+        pause=false;
+        upgrade=false;
+      });
+      MenuButton third=(MenuButton)new MenuButton("Blue").setBounds(width/2-150,height/2+45,300,30);
+      third.addListener(()->{
+        player.weapons.get(2).bulletNumber++;
+        pause=false;
+        upgrade=false;
+      });
+      UpgradeSet.addAll(first,second,third);
+      player.levelup=false;
     }
     if(upgrade){
+      fill(240);
+      noStroke();
+      rectMode(CENTER);
+      rect(width/2,height/2,400,600);
+      UpgradeSet.display();
+      UpgradeSet.update();
+    }
+    if(player.isDead){
       
     }
   }
