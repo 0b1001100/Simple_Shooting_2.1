@@ -112,6 +112,7 @@ class GameProcess{
   void pauseProcess(){
     if(player.levelup){
       upgrade=true;
+      UpgradeSet.removeAll();
       MenuButton first=(MenuButton)new MenuButton("Green").setBounds(width/2-150,height/2-45,300,30);
       first.addListener(()->{
         player.weapons.get(0).bulletNumber++;

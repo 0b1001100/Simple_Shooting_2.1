@@ -43,6 +43,11 @@ java.util.List<Bullet>eneBullets=Collections.synchronizedList(new ArrayList<Bull
 java.util.List<Bullet>Bullets=Collections.synchronizedList(new ArrayList<Bullet>());
 java.util.List<Enemy>Enemies=Collections.synchronizedList(new ArrayList<Enemy>());
 java.util.List<Exp>Exps=Collections.synchronizedList(new ArrayList<Exp>());
+java.util.List<Particle>ParticleHeap=Collections.synchronizedList(new ArrayList<Particle>());
+java.util.List<Bullet>eneBulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
+java.util.List<Bullet>BulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
+java.util.List<Enemy>EnemyHeap=Collections.synchronizedList(new ArrayList<Enemy>());
+java.util.List<Exp>ExpHeap=Collections.synchronizedList(new ArrayList<Exp>());
 ArrayList<String>PressedKeyCode=new ArrayList<String>();
 ArrayList<String>PressedKey=new ArrayList<String>();
 ArrayList<Long>Times=new ArrayList<Long>();
@@ -98,6 +103,12 @@ void setup() {
       pscreen=new PVector(w.getWidth(), w.getHeight());
     }
   }
+  );((GLWindow)surface.getNative()).addKeyListener(new com.jogamp.newt.event.KeyListener() {
+    void keyPressed(com.jogamp.newt.event.KeyEvent e){
+    }
+    void keyReleased(com.jogamp.newt.event.KeyEvent e){
+    }
+  }
   );
   PFont font=createFont("SansSerif.plain", 15);
   textFont(font);
@@ -125,13 +136,14 @@ void draw() {
       enemyFuture.get();
     }
     catch(ConcurrentModificationException e) {
-      e.printStackTrace();exit();
+      e.printStackTrace();
     }
-    catch(InterruptedException|ExecutionException f) {println(f);f.printStackTrace();exit();
+    catch(InterruptedException|ExecutionException f) {println(f);f.printStackTrace();
     }
     catch(NullPointerException g) {
     }
   }
+  Debug();
   printFPS();
   Shader();
   updatePreValue();

@@ -83,7 +83,10 @@ class Myself extends Entity{
       move();
       shot();
       BulletCollision();
-      if(HP.get().intValue()<=0){isDead=true;return;}
+      if(HP.get().intValue()<=0){
+        isDead=true;
+        return;
+      }
       keyEvent();
       HashMap<String,StatusManage>nextEffects=new HashMap<String,StatusManage>();
       for(String s:effects.keySet()){
@@ -220,14 +223,14 @@ class Myself extends Entity{
       selectedWeapon.reload();
     }
     coolingTime+=vectorMagnification;
-    if(keyPress&&PressedKey.contains("q")){
-      addExplosion(this,600);
-    }
   }
   
   void keyEvent(){
     if(keyPress&&ModifierKey==TAB){
       changeWeapon();
+    }
+    if(keyPress&&PressedKey.contains("q")){
+      addExplosion(this,600);
     }
   }
   
@@ -259,7 +262,7 @@ class Myself extends Entity{
       }
     }
     if(hit){
-      Particles.add(new Particle(this,str((int)damage)));
+      ParticleHeap.add(new Particle(this,str((int)damage)));
     }
   }
   

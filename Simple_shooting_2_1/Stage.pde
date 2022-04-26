@@ -96,7 +96,7 @@ class Stage{
         if(displaySpown){
           spown.add(new SpownPoint(v.add(cos(r)*e.size,sin(r)*e.size),e));
         }else{
-          Enemies.add(e.setPos(v.add(cos(r)*e.size,sin(r)*e.size)));
+          EnemyHeap.add(e.setPos(v.add(cos(r)*e.size,sin(r)*e.size)));
         }
       }catch(CloneNotSupportedException f){}
     }
@@ -146,7 +146,7 @@ class SpownPoint{
     if(time<0){
       isDead=true;
       e.setPos(pos);
-      Enemies.add(e);
+      EnemyHeap.add(e);
     }
   }
 }

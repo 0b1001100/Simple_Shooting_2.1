@@ -81,7 +81,7 @@ class ExplosionParticle extends Particle{
   float size=0;
   float time=0;
   
-  final float maxTime=0.2;
+  final float maxTime=0.4;
   
   ExplosionParticle(Entity e,float size){
     this.pos=e.pos.copy();

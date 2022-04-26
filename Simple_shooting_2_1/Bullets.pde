@@ -88,7 +88,7 @@ class Bullet extends Entity{
     if(age>maxAge)isDead=true;
     age+=vectorMagnification;
     tPos=prePos.copy();
-    prePos=pos.copy();synchronized(Enemies){for(Enemy e:Enemies)Collision(e);}
+    prePos=pos.copy();println("aaa");synchronized(Enemies){for(Enemy e:Enemies)Collision(e);}
     float min=min(pos.x+vel.x,pos.x)*vectorMagnification;
     float max=max(pos.x+vel.x,pos.x)*vectorMagnification;
     BulletX.put(min,this);
@@ -102,7 +102,6 @@ class Bullet extends Entity{
   }
   
   void Collision(Enemy e){
-    if(e instanceof Explosion)return;
     if(CircleCollision(e.pos,e.size,pos,vel)){
       isDead=true;
       e.Hit(parent);

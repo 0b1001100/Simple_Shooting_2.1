@@ -29,6 +29,11 @@ class Enemy extends Entity implements Cloneable{
     if(!inScreen)return;
     pushMatrix();
     translate(pos.x,pos.y);
+    if(Debug){
+      fill(255);
+      textSize(15);
+      text(pos.toString(),0,0);
+    }
     rotate(-rotate);
     rectMode(CENTER);
     strokeWeight(1);
@@ -40,10 +45,6 @@ class Enemy extends Entity implements Cloneable{
   
   void update(){
     Expl=false;
-    if(HP<=0){
-      Down();
-      return;
-    }
     Rotate();
     move();
     Collision();
@@ -129,25 +130,31 @@ class Enemy extends Entity implements Cloneable{
     HP-=w.power*mult;
     damage+=w.power*mult;
     hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
   }
   
   void Hit(float f){
     HP-=f;
     damage+=f;
     hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
   }
   
   void Down(){
     isDead=true;
-    synchronized(Particles){
-      Particles.add(new Particle(this,(int)size*3,1));
-    }
-    Exps.add(new Exp(this,exp));
+    ParticleHeap.add(new Particle(this,(int)size*3,1));
+    ExpHeap.add(new Exp(this,exp));
   }
   
   void Collision(){
     playerDistsq=sqDist(player.pos,pos);
-    if(!player.isDead&&playerDistsq<=(player.size+size)*0.5){
+    if(!player.isDead&&playerDistsq<=((player.size+size)*0.5)*((player.size+size)*0.5)){
       float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
       float d=(player.size+size)*0.5-dist(player.pos,pos);
       vel=new PVector(-cos(r)*d,-sin(r)*d);
@@ -157,26 +164,24 @@ class Enemy extends Entity implements Cloneable{
   }
   
   void Collision(Enemy e){
-    if(qDist(e.pos,pos,(e.size+size)*0.5)){
-      if(!Expl&&(e instanceof Explosion)){
-        HP-=((Explosion)e).power*vectorMagnification;
-        synchronized(Enemies){
-          Expl=true;
-        }
-        return;
+    if(e instanceof Explosion){
+      if(!Expl){
+        Hit(((Explosion)e).power*vectorMagnification);
+        Expl=true;
       }
-      PVector c=pos.copy().sub(e.pos).normalize();
-      PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-      vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-      e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-      pos.sub(d);
-      e.pos.add(d);
-      if(vel.magSq()>maxSpeed*maxSpeed){
-        vel.normalize().mult(maxSpeed);
-      }
-      if(e.vel.magSq()>e.maxSpeed*e.maxSpeed){
-        e.vel.normalize().mult(e.maxSpeed);
-      }
+      return;
+    }
+    PVector c=pos.copy().sub(e.pos).normalize();
+    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+    vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+    e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+    pos.sub(d);
+    e.pos.add(d);
+    if(vel.magSq()>maxSpeed*maxSpeed){
+      vel.normalize().mult(maxSpeed);
+    }
+    if(e.vel.magSq()>e.maxSpeed*e.maxSpeed){
+      e.vel.normalize().mult(e.maxSpeed);
     }
   }
   

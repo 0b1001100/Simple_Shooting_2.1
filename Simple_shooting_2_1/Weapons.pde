@@ -125,9 +125,9 @@ class Weapon implements Equipment,Cloneable{
     case PHYSICS:synchronized(Bullets){
                    for(int i=0;i<this.bulletNumber;i++){
                      if(parent instanceof Myself){
-                       Bullets.add(new Bullet((Myself)parent,i));
+                       BulletHeap.add(new Bullet((Myself)parent,i));
                      }else{
-                       Bullets.add(new Bullet(parent,this));
+                       BulletHeap.add(new Bullet(parent,this));
                      }
                    }
                  }
