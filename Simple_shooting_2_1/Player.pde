@@ -1,7 +1,6 @@
 class Myself extends Entity{
   HashMap<String,StatusManage>effects=new HashMap<String,StatusManage>();
   ArrayList<Weapon>weapons=new ArrayList<Weapon>();
-  ItemTable Items;
   Weapon selectedWeapon;
   Weapon ShotWeapon;
   Camera camera;
@@ -17,22 +16,20 @@ class Myself extends Entity{
   double absHP;
   double absAttak;
   double absDefence;
+  float nextLevel=10;
   float exp=0;
   float protate=0;
   float diffuse=0;
   float rotateSpeed=10;
   float bulletSpeed=15;
   float coolingTime=0;
+  float invincibleTime=0;
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
   
   Myself(){
     setMaxSpeed(3);
-    Items=new ItemTable();
-    Items.addStorage(new Item("回復薬(小)").setRecovoryPercent(0.25),10);
-    Items.addStorage(new Item("回復薬(中)").setRecovoryPercent(0.45),3);
-    Items.addStorage(new Item("回復薬(大)").setRecovoryPercent(0.75),1);
     pos=new PVector(0,0);
     vel=new PVector(0,0);
     HP=new Status(1);
@@ -47,6 +44,10 @@ class Myself extends Entity{
     resetWeapon();
     camera=new Camera();
     camera.setTarget(this);
+    addDeadListener((e)->{
+      addExplosion(this,250,1);
+      ParticleHeap.add(new Particle(this,(int)size*3,1));
+    });
     //effects.put("test",new StatusManage(this).setHP(32768));
   }
   
@@ -72,10 +73,12 @@ class Myself extends Entity{
   }
   
   void update(){
+    super.update();
     if(isDead)return;
-    while(exp>=10+(Level-1)*10){
-      exp-=10+(Level-1)*10;
+    while(exp>=nextLevel){
+      exp-=nextLevel;
       ++Level;
+      nextLevel=10+(Level-1)*10*ceil(Level/7f);
       levelup=true;
     }
     if(!camera.moveEvent){
@@ -99,6 +102,7 @@ class Myself extends Entity{
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
     prePos=new PVector(pos.x,pos.y);
+    invincibleTime=max(0,invincibleTime-0.016*vectorMagnification);
   }
   
   @Deprecated
@@ -261,14 +265,13 @@ class Myself extends Entity{
         continue COLLISION;
       }
     }
-    if(hit){
-      ParticleHeap.add(new Particle(this,str((int)damage)));
-    }
   }
   
   protected void Hit(float d){
-    HP.sub(d);
-    damage+=d;
+    if(invincibleTime<=0.0){
+      HP.sub(d);
+      damage+=d;
+    }
     hit=true;
   }
 }

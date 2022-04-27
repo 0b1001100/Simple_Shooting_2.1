@@ -59,7 +59,20 @@ class EnemyProcess implements Callable<String>{
     player.update();
     ArrayList<Enemy>nextEnemies=new ArrayList<Enemy>();
     for(Enemy e:Enemies){
-      e.update();
+      if(player.isDead){
+        if(e instanceof Explosion){
+          e.update();
+        }else{
+          e.Collision();
+          float d=e.size*0.5;
+          EnemyX.put(e.pos.x-d,e);
+          EnemyX.put(e.pos.x+d,e);
+          EnemyData.put(e.pos.x-d,"s");
+          EnemyData.put(e.pos.x+d,"e");
+        }
+      }else{
+        e.update();
+      }
       if(!e.isDead)nextEnemies.add(e);
     }
     Enemies.clear();
@@ -118,7 +131,19 @@ class BulletProcess implements Callable<String>{
     ArrayList<Bullet>nextEneBullets=new ArrayList<Bullet>();
     for(Bullet b:eneBullets){
       if(b.isDead)continue;
-      b.update();
+      if(player.isDead){
+        synchronized(Enemies){
+          for(Enemy e:Enemies)b.Collision(e);
+        }
+        float min=min(b.pos.x+b.vel.x,b.pos.x)*vectorMagnification;
+        float max=max(b.pos.x+b.vel.x,b.pos.x)*vectorMagnification;
+        BulletX.put(min,b);
+        BulletX.put(max,b);
+        BulletData.put(min,"s");
+        BulletData.put(max,"e");
+      }else{
+        b.update();
+      }
       if(!b.isDead)nextEneBullets.add(b);
     }
     eneBullets=nextEneBullets;

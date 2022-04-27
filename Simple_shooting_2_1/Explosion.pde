@@ -10,6 +10,13 @@ class Explosion extends Enemy{
     ParticleHeap.add(p);
   }
   
+  Explosion(Entity e,float size,float time){
+    pos=e.pos.copy();
+    this.size=0;
+    p=new ExplosionParticle(e,size,time);
+    ParticleHeap.add(p);
+  }
+  
   void display(){
     p.display();
   }
@@ -37,4 +44,8 @@ class Explosion extends Enemy{
 
 void addExplosion(Entity e,float size){
   EnemyHeap.add(new Explosion(e,size));
+}
+
+void addExplosion(Entity e,float size,float time){
+  EnemyHeap.add(new Explosion(e,size,time));
 }

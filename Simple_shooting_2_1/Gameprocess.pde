@@ -9,8 +9,11 @@ class GameProcess{
   boolean pause=false;
   boolean done=false;
   String menu="Main";
+  float deadTimer=0;
   int x=16;
   int y=9;
+  
+  final float maxDeadTime=3;
   
   GameProcess(){
     setup();
@@ -42,7 +45,6 @@ class GameProcess{
   void process(){
     if(player.levelup)pause=true;
     if(player.isDead){
-      addExplosion(player,250);
       pause=true;
     }
     done=false;
@@ -73,7 +75,7 @@ class GameProcess{
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
     stage.display();
-    player.display();
+    if(!player.isDead)player.display();
     for(Exp e:Exps){
       e.display();
     }
@@ -103,7 +105,7 @@ class GameProcess{
     rect(200,30,width-230,30);
     fill(255);
     noStroke();
-    rect(202.5,32.5,(width-225)*player.exp/(10+(player.Level-1)*10),25);
+    rect(202.5,32.5,(width-225)*player.exp/player.nextLevel,25);
     textSize(20);
     textAlign(RIGHT);
     text("LEVEL "+player.Level,190,52);
@@ -144,7 +146,21 @@ class GameProcess{
       UpgradeSet.update();
     }
     if(player.isDead){
-      
+      deadTimer+=0.016*vectorMagnification;
+      if(deadTimer>maxDeadTime){
+        player.isDead=player.pDead=false;
+        player.invincibleTime=3;
+        player.HP.reset();
+        pause=false;
+        deadTimer=0;
+        return;
+      }
+      try{
+        particleFuture=exec.submit(particleTask);
+        enemyFuture=exec.submit(enemyTask);
+        bulletFuture=exec.submit(bulletTask);
+      }catch(Exception e){
+      }
     }
   }
   

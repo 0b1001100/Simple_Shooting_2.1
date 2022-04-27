@@ -278,16 +278,14 @@ void printFPS() {
 }
 
 PMatrix3D getMatrixLocalToWindow() {
-  PMatrix3D projection = ((PGraphics2D)g).projection; // プロジェクション行列
-  PMatrix3D modelview = ((PGraphics2D)g).modelview;   // モデルビュー行列
+  PMatrix3D projection = ((PGraphics2D)g).projection;
+  PMatrix3D modelview = ((PGraphics2D)g).modelview;
 
-  // ビューポート変換行列
   PMatrix3D viewport = new PMatrix3D();
   viewport.m00 = viewport.m03 = width/2;
   viewport.m11 = -height/2;
   viewport.m13 =  height/2;
 
-  // ローカル座標系からウィンドウ座標系への変換行列を計算
   viewport.apply(projection);
   viewport.apply(modelview);
   return viewport;
@@ -318,7 +316,7 @@ PVector unProject(float winX, float winY) {
 
   float[] in = {winX, winY, 1.0f, 1.0f};
   float[] out = new float[4];
-  mat.mult(in, out);  // Do not use PMatrix3D.mult(PVector, PVector)
+  mat.mult(in, out);
 
   if (out[3] == 0 ) {
     return null;
@@ -489,6 +487,7 @@ void keyReleased(processing.event.KeyEvent e) {
 }
 
 class Entity implements Egent, Cloneable {
+  DeadEvent dead=(e)->{};
   float size=20;
   PVector prePos;
   PVector pos;
@@ -505,6 +504,7 @@ class Entity implements Egent, Cloneable {
   float Mass=10;
   float e=0.5;
   boolean isDead=false;
+  boolean pDead=false;
 
   Entity() {
   }
@@ -513,6 +513,10 @@ class Entity implements Egent, Cloneable {
   }
 
   void update() {
+    if(isDead&&!pDead){
+      dead.deadEvent(this);
+      pDead=isDead;
+    }
   }
 
   void setColor(Color c) {
@@ -537,6 +541,10 @@ class Entity implements Egent, Cloneable {
     clone.vel=vel==null?null:vel.copy();
     clone.c=cloneColor(c);
     return clone;
+  }
+  
+  void addDeadListener(DeadEvent e){
+    dead=e;
   }
 }
 
@@ -632,4 +640,8 @@ interface Egent {
   void display();
 
   void update();
+}
+
+interface DeadEvent{
+  void deadEvent(Entity e);
 }

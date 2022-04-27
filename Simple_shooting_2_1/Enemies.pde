@@ -30,11 +30,6 @@ class Enemy extends Entity implements Cloneable{
     if(!inScreen)return;
     pushMatrix();
     translate(pos.x,pos.y);
-    if(Debug){
-      fill(255);
-      textSize(15);
-      text(pos.toString(),0,0);
-    }
     rotate(-rotate);
     rectMode(CENTER);
     strokeWeight(1);
