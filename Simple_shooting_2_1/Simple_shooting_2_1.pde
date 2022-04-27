@@ -232,7 +232,6 @@ void updateFPS() {
   }
   pTime=System.currentTimeMillis();
   vectorMagnification=60f/(1000f/Times.get(Times.size()-1));
-  println(vectorMagnification);
 }
 
 void updatePreValue() {

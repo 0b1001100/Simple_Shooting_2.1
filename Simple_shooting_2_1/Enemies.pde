@@ -55,7 +55,7 @@ class Enemy extends Entity implements Cloneable{
     Rotate();
     move();
     Collision();
-    float d=size*0.5;if(pos.x-d>pos.x+d){exit();}
+    float d=size*0.5;
     EnemyX.put(pos.x-d,this);
     EnemyX.put(pos.x+d,this);
     EnemyData.put(pos.x-d,"s");
