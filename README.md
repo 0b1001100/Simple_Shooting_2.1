@@ -7,11 +7,14 @@
 - CPU:Intel core i5 6世代以降
 - GPU:内臓グラフィックス
 - RAM:1GB
+- OS:Windows 10
 ### 推奨環境
 - CPU:Intel core i5 8世代以降
 - GPU:内臓グラフィックス
 - RAM:4GB
+- OS:Windows 10/11
 ### 動作確認環境
 - CPU:Intel core i7 11700
 - GPU:GeForce RTX3060
 - RAM:48GB
+- OS:Windows 10 Home 21H2
