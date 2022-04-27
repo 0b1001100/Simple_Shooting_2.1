@@ -41,10 +41,14 @@ class GameProcess{
   
   void process(){
     if(player.levelup)pause=true;
-    if(player.isDead)pause=true;
+    if(player.isDead){
+      addExplosion(player,250);
+      pause=true;
+    }
     done=false;
     background(0);
     drawShape();
+    Debug();
     if(!pause){
       updateShape();
     }else{
@@ -107,8 +111,10 @@ class GameProcess{
   }
   
   void pauseProcess(){
+    EnemyTime=BulletTime=ParticleTime=0;
     if(player.levelup){
       upgrade=true;
+      UpgradeSet.removeAll();
       MenuButton first=(MenuButton)new MenuButton("Green").setBounds(width/2-150,height/2-45,300,30);
       first.addListener(()->{
         player.weapons.get(0).bulletNumber++;

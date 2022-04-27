@@ -1,0 +1,9 @@
+{
+  "mainmenu":{
+    "start":"スタート",
+    "config":"設定"
+  },
+  "game":{
+    "menu":"メニュー"
+  }
+}

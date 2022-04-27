@@ -1,11 +1,13 @@
 class Explosion extends Enemy{
   ExplosionParticle p;
+  boolean myself=false;
   float power=10;
   
   Explosion(Entity e,float size){
     pos=e.pos.copy();
     this.size=0;
     p=new ExplosionParticle(e,size);
+    ParticleHeap.add(p);
   }
   
   void display(){
@@ -13,7 +15,6 @@ class Explosion extends Enemy{
   }
   
   void update(){
-    p.update();
     size=p.nowSize;
     isDead=p.isDead;
     float d=size*0.5;
@@ -25,10 +26,7 @@ class Explosion extends Enemy{
   
   @Override
   void Collision(Enemy e){
-    if(!e.Expl&&qDist(e.pos,pos,(e.size+size)*0.5)){
-        e.HP-=power*vectorMagnification;
-        e.Expl=true;
-    }
+    if(!(e instanceof Explosion))e.Collision(this);
   }
   
   @Override
@@ -38,5 +36,5 @@ class Explosion extends Enemy{
 }
 
 void addExplosion(Entity e,float size){
-  Enemies.add(new Explosion(e,size));
+  EnemyHeap.add(new Explosion(e,size));
 }

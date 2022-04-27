@@ -36,12 +36,20 @@ ItemTable MastarTable;
 
 GL4 gl;
 
+HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
+
 java.util.List<Particle>Particles=Collections.synchronizedList(new ArrayList<Particle>());
 java.util.List<Bullet>eneBullets=Collections.synchronizedList(new ArrayList<Bullet>());
 java.util.List<Bullet>Bullets=Collections.synchronizedList(new ArrayList<Bullet>());
 java.util.List<Enemy>Enemies=Collections.synchronizedList(new ArrayList<Enemy>());
 java.util.List<Exp>Exps=Collections.synchronizedList(new ArrayList<Exp>());
-ArrayList<String>PressedKey=new ArrayList<String>();
+java.util.List<Particle>ParticleHeap=Collections.synchronizedList(new ArrayList<Particle>());
+java.util.List<Bullet>eneBulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
+java.util.List<Bullet>BulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
+java.util.List<Enemy>EnemyHeap=Collections.synchronizedList(new ArrayList<Enemy>());
+java.util.List<Exp>ExpHeap=Collections.synchronizedList(new ArrayList<Exp>());
+HashSet<String>PressedKeyCode=new HashSet<String>();
+HashSet<String>PressedKey=new HashSet<String>();
 ArrayList<Long>Times=new ArrayList<Long>();
 PVector scroll;
 PVector pscreen=new PVector(1280, 720);
@@ -49,7 +57,7 @@ PVector localMouse;
 PShader colorInv;
 boolean pmousePress=false;
 boolean mousePress=false;
-boolean pkeyPress=false;
+boolean keyRelease=false;
 boolean keyPress=false;
 boolean changeScene=true;
 boolean ColorInv=false;
@@ -95,6 +103,12 @@ void setup() {
       pscreen=new PVector(w.getWidth(), w.getHeight());
     }
   }
+  );((GLWindow)surface.getNative()).addKeyListener(new com.jogamp.newt.event.KeyListener() {
+    void keyPressed(com.jogamp.newt.event.KeyEvent e){
+    }
+    void keyReleased(com.jogamp.newt.event.KeyEvent e){
+    }
+  }
   );
   PFont font=createFont("SansSerif.plain", 15);
   textFont(font);
@@ -115,17 +129,19 @@ void draw() {
     break;
   }
   eventProcess();
-  try {
-    enemyFuture.get();
-    bulletFuture.get();
-    particleFuture.get();
-  }
-  catch(ConcurrentModificationException e) {
-    e.printStackTrace();
-  }
-  catch(InterruptedException|ExecutionException f) {
-  }
-  catch(NullPointerException g) {
+  if(scene==2){
+    try {
+      bulletFuture.get();
+      particleFuture.get();
+      enemyFuture.get();
+    }
+    catch(ConcurrentModificationException e) {
+      e.printStackTrace();
+    }
+    catch(InterruptedException|ExecutionException f) {println(f);f.printStackTrace();
+    }
+    catch(NullPointerException g) {
+    }
   }
   printFPS();
   Shader();
@@ -170,11 +186,6 @@ void eventProcess() {
     mousePress=true;
   } else {
     mousePress=false;
-  }
-  if (!pkeyPress&&keyPressed) {
-    keyPress=true;
-  } else {
-    keyPress=false;
   }
   if (scene!=pscene) {
     changeScene=true;
@@ -221,12 +232,12 @@ void updateFPS() {
   }
   pTime=System.currentTimeMillis();
   vectorMagnification=60f/(1000f/Times.get(Times.size()-1));
-  println(vectorMagnification);
 }
 
 void updatePreValue() {
+  keyRelease=false;
+  keyPress=false;
   pmousePress=mousePressed;
-  pkeyPress=keyPressed;
   pscene=scene;
   pMenu=nowMenu;
   pEnemyNum=EnemyX.size();
@@ -282,6 +293,21 @@ PMatrix3D getMatrixLocalToWindow() {
   return viewport;
 }
 
+<T> T[] createArray(T... val){
+  return val;
+}
+
+<P extends Collection,C extends Collection> boolean containsList(P p,C c){
+  boolean ret=false;
+  for(Object o:c){
+    if(p.contains(o)){
+      ret=true;
+      break;
+    }
+  }
+  return ret;
+}
+
 boolean onMouse(float x, float y, float dx, float dy) {
   return x<=mouseX&mouseX<=x+dx&y<=mouseY&mouseY<=y+dy;
 }
@@ -318,6 +344,10 @@ float dist(PVector a, PVector b) {
   return dist(a.x, a.y, b.x, b.y);
 }
 
+float sqDist(PVector s, PVector e){
+  return (s.x-e.x)*(s.x-e.x)+(s.y-e.y)*(s.y-e.y);
+}
+
 boolean qDist(PVector s, PVector e, float d) {
   return ((s.x-e.x)*(s.x-e.x)+(s.y-e.y)*(s.y-e.y))<=d*d;
 }
@@ -346,6 +376,22 @@ PVector normalize(PVector v) {
 
 PVector createVector(PVector s, PVector e) {
   return e.copy().sub(s);
+}
+
+boolean CircleCollision(PVector c,float size,PVector s,PVector v){
+    PVector bulletVel=v.copy().mult(vectorMagnification);
+    PVector vecAP=createVector(s,c);
+    PVector normalAB=normalize(bulletVel);//vecAB->b.vel
+    float lenAX=dot(normalAB,vecAP);
+    float dist;
+    if(lenAX<0){
+      dist=dist(s.x,s.y,c.x,c.y);
+    }else if(lenAX>dist(0,0,bulletVel.x,bulletVel.y)){
+      dist=dist(s.x+bulletVel.x,s.y+bulletVel.y,c.x,c.y);
+    }else{
+      dist=abs(cross(normalAB,vecAP));
+    }
+    return dist<size/2;
 }
 
 boolean SegmentCollision(PVector s1, PVector v1, PVector s2, PVector v2) {
@@ -427,14 +473,18 @@ Color cloneColor(Color c) {
 }
 
 void keyPressed(processing.event.KeyEvent e) {
+  keyPress=true;
   ModifierKey=e.getKeyCode();
   PressedKey.add(str(key));
+  PressedKeyCode.add(str(keyCode));
   nowPressedKey=str(key);
   nowPressedKeyCode=keyCode;
 }
 
 void keyReleased(processing.event.KeyEvent e) {
+  keyRelease=false;
   ModifierKey=-1;
+  PressedKeyCode.remove(str(keyCode));
   PressedKey.remove(str(key));
 }
 

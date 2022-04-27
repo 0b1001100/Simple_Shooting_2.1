@@ -1,8 +1,8 @@
 import java.util.concurrent.atomic.AtomicInteger;
 
-Future<TreeMap<Float,Enemy>> CollisionFuture1;
-Future<TreeMap<Float,Enemy>> CollisionFuture2;
-Future<TreeMap<Float,Enemy>> CollisionFuture3;
+Future<?> CollisionFuture1;
+Future<?> CollisionFuture2;
+Future<?> CollisionFuture3;
 
 EnemyCollision p1;
 EnemyCollision p2;
@@ -21,14 +21,17 @@ class ParticleProcess implements Callable<String>{
     
   }
   
-  synchronized String call(){pTime=System.currentTimeMillis();
+  String call(){
+    pTime=System.nanoTime();
     ArrayList<Particle>nextParticles=new ArrayList<Particle>();
-    synchronized(Particles){
-      for(Particle p:Particles){
-        p.update();
-        if(!p.isDead)nextParticles.add(p);
-      }
-      Particles=nextParticles;
+    for(Particle p:Particles){
+      p.update();
+      if(!p.isDead)nextParticles.add(p);
+    }
+    Particles=nextParticles;
+    synchronized(ParticleHeap){
+    Particles.addAll(ParticleHeap);
+    ParticleHeap.clear();
     }
     ArrayList<Exp>nextExp=new ArrayList<Exp>();
     for(Exp e:Exps){
@@ -36,28 +39,35 @@ class ParticleProcess implements Callable<String>{
       if(!e.isDead)nextExp.add(e);
     }
     Exps=nextExp;
-    println("sub",System.currentTimeMillis()-pTime);
+    synchronized(ExpHeap){
+      Exps.addAll(ExpHeap);
+      ExpHeap.clear();
+    }
+    ParticleTime=(System.nanoTime()-pTime)/1000000f;
     return "";
   }
 }
 
 class EnemyProcess implements Callable<String>{
-  ArrayList<Float>arrayX;
-  ArrayList<Enemy>enemy;
-  
   long pTime=0;
   
   EnemyProcess(){
   }
   
-  String call(){pTime=System.currentTimeMillis();
+  String call(){
+    pTime=System.nanoTime();
     player.update();
     ArrayList<Enemy>nextEnemies=new ArrayList<Enemy>();
     for(Enemy e:Enemies){
       e.update();
       if(!e.isDead)nextEnemies.add(e);
     }
-    Enemies=nextEnemies;
+    Enemies.clear();
+    Enemies.addAll(nextEnemies);
+    synchronized(EnemyHeap){
+      Enemies.addAll(EnemyHeap);
+      EnemyHeap.clear();
+    }
     p1=new EnemyCollision(0,(int)(EnemyX.size()*0.33));
     p2=new EnemyCollision((int)(EnemyX.size()*0.33), (int)(EnemyX.size()*0.66));
     p3=new EnemyCollision((int)(EnemyX.size()*0.66), EnemyX.size());
@@ -68,40 +78,19 @@ class EnemyProcess implements Callable<String>{
     }
     catch(Exception e) {
     }
-    TreeMap<Float,Enemy>over=new TreeMap<Float,Enemy>();
     try {
-      over.putAll(CollisionFuture1.get());
-      over.putAll(CollisionFuture2.get());
-      over.putAll(CollisionFuture3.get());
+      CollisionFuture1.get();
+      CollisionFuture2.get();
+      CollisionFuture3.get();
     }
-    catch(ConcurrentModificationException e) {
+    catch(ConcurrentModificationException e){
       e.printStackTrace();
     }
-    catch(InterruptedException|ExecutionException f) {
+    catch(InterruptedException|ExecutionException f){
     }
-    catch(NullPointerException g) {
+    catch(NullPointerException g){
     }
-    arrayX=new ArrayList<Float>(over.keySet());
-    enemy=new ArrayList<Enemy>(over.values());
-    HashSet<Enemy>CollisionList=new HashSet<Enemy>();
-    for(int i=0;i<over.size();i++){
-      Enemy E=enemy.get(i);
-      float f=arrayX.get(i);
-      switch(EnemyData.get(f)){
-        case "s":CollisionList.forEach(e->{
-                   if(abs(e.pos.y-E.pos.y)<(e.size+E.size)*0.5)E.Collision(e);
-                 });
-                 CollisionList.add(E);break;
-        case "e":if(CollisionList.contains(E)){
-                   CollisionList.remove(E);
-                 }else{
-                   CollisionList.forEach(e->{
-                     if(abs(e.pos.y-E.pos.y)<(e.size+E.size)*0.5)E.Collision(e);
-                   });
-                 }break;
-      }
-    }
-    println("ene",System.currentTimeMillis()-pTime);
+    EnemyTime=(System.nanoTime()-pTime)/1000000f;
     return "";
   }
 }
@@ -113,94 +102,99 @@ class BulletProcess implements Callable<String>{
     
   }
   
-  synchronized String call(){pTime=System.currentTimeMillis();
+  String call(){
+    pTime=System.nanoTime();
     ArrayList<Bullet>nextBullets=new ArrayList<Bullet>();
-    synchronized(Bullets){
-      for(Bullet b:Bullets){
-        if(b.isDead)continue;
-        b.update();
-        if(!b.isDead)nextBullets.add(b);
-      }
-      Bullets=nextBullets;
+    for(Bullet b:Bullets){
+      if(b.isDead)continue;
+      b.update();
+      if(!b.isDead)nextBullets.add(b);
+    }
+    Bullets=nextBullets;
+    synchronized(BulletHeap){
+      Bullets.addAll(BulletHeap);
+      BulletHeap.clear();
     }
     ArrayList<Bullet>nextEneBullets=new ArrayList<Bullet>();
-    synchronized(eneBullets){
-      for(Bullet b:eneBullets){
-        if(b.isDead)continue;
-        b.update();
-        if(!b.isDead)nextEneBullets.add(b);
-      }
-      eneBullets=nextEneBullets;
-      /*BulletEnemyX=new TreeMap<Float,Object>(BulletX);
-      BulletEnemyX.putAll(EnemyX);
-      if(BulletEnemyX.size()!=0){
-        int size=BulletEnemyX.size();
-        b1=new BulletCollision(0,(int)(size*0.5));
-        b2=new BulletCollision((int)(size*0.5),size);
-        try{
-          BulletCollision1=exec.submit(b1);
-          BulletCollision2=exec.submit(b2);
-        }
-        catch(Exception e) {
-        }
-        try {
-          BulletCollision1.get();
-          BulletCollision2.get();
-        }
-        catch(ConcurrentModificationException e) {
-          e.printStackTrace();
-        }
-        catch(InterruptedException|ExecutionException f) {f.printStackTrace();println(EnemyData,EnemyData.size(),BulletData,BulletData.size());exit();
-        }
-        catch(NullPointerException g) {g.printStackTrace();exit();
-        }
-      }*/
+    for(Bullet b:eneBullets){
+      if(b.isDead)continue;
+      b.update();
+      if(!b.isDead)nextEneBullets.add(b);
     }
-    println("bul",System.currentTimeMillis()-pTime);
+    eneBullets=nextEneBullets;
+    synchronized(eneBulletHeap){
+      eneBullets.addAll(eneBulletHeap);
+      eneBulletHeap.clear();
+    }
+    /*BulletEnemyX=new TreeMap<Float,Object>(BulletX);
+    BulletEnemyX.putAll(EnemyX);
+    if(BulletEnemyX.size()!=0){
+      int size=BulletEnemyX.size();
+      b1=new BulletCollision(0,(int)(size*0.5));
+      b2=new BulletCollision((int)(size*0.5),size);
+      try{
+        BulletCollision1=exec.submit(b1);
+        BulletCollision2=exec.submit(b2);
+      }
+      catch(Exception e) {
+      }
+      try {
+        BulletCollision1.get();
+        BulletCollision2.get();
+      }
+      catch(ConcurrentModificationException e) {
+        e.printStackTrace();
+      }
+      catch(InterruptedException|ExecutionException f) {f.printStackTrace();println(EnemyData,EnemyData.size(),BulletData,BulletData.size());exit();
+      }
+      catch(NullPointerException g) {g.printStackTrace();exit();
+      }
+    }*/
+    BulletTime=(System.nanoTime()-pTime)/1000000f;
     return "";
   }
 }
 
-class EnemyCollision implements Callable<TreeMap<Float,Enemy>>{
+class EnemyCollision implements Callable<String>{
   ArrayList<Float>arrayX;
   ArrayList<Enemy>enemy;
   TreeMap<Float,Enemy>overEnemy;
+  float hue;
   int s;
   int l;
   
   EnemyCollision(int s,int l){
     this.s=s;
     this.l=l;
+    hue=s==0?0:255*(s/(float)EnemyX.size());
   }
   
-  TreeMap<Float,Enemy> call(){
-    overEnemy=new TreeMap<Float,Enemy>();
+  String call(){
     arrayX=new ArrayList<Float>(EnemyX.keySet());
     enemy=new ArrayList<Enemy>(EnemyX.values());
     HashSet<Enemy>CollisionList=new HashSet<Enemy>();
+    HashSet<Enemy>CollisionedList=new HashSet<Enemy>();
     for(int i=s;s<l;i++){
       Enemy E=enemy.get(i);
       float f=arrayX.get(i);
+      if(Debug)E.hue=hue;
       switch(EnemyData.get(f)){
         case "s":CollisionList.forEach(e->{
-                   if(abs(e.pos.y-E.pos.y)<(e.size+E.size)*0.5)E.Collision(e);
+                   if(qDist(e.pos,E.pos,(e.size+E.size)*0.5))E.Collision(e);
                  });
+                 CollisionedList.add(E);
                  CollisionList.add(E);break;
         case "e":if(CollisionList.contains(E)){
                    CollisionList.remove(E);
                  }else{
-                   CollisionList.forEach(e->{
-                     if(abs(e.pos.y-E.pos.y)<(e.size+E.size)*0.5)E.Collision(e);
+                   CollisionedList.forEach(e->{
+                     if(qDist(e.pos,E.pos,(e.size+E.size)*0.5))E.Collision(e);
                    });
-                   overEnemy.put(f,E);
                  }break;
       }
       ++s;
     }
-    for(Enemy e:CollisionList){
-      overEnemy.put(arrayX.get(enemy.indexOf(e)),e);
-    }
-    return overEnemy;
+    return "";
   }
 }
 
