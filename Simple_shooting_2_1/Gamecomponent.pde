@@ -1080,7 +1080,7 @@ class ComponentSet{
       }
       if(c.focus)selectedIndex=conponents.indexOf(c);
     }
-    if(!onMouse())keyEvent();
+    keyEvent();
     if(pSelectedIndex!=selectedIndex){
       conponents.get(pSelectedIndex).Fe.lostFocus();
       conponents.get(selectedIndex).Fe.getFocus();
@@ -1093,25 +1093,25 @@ class ComponentSet{
   }
   
   boolean onMouse(){
-    boolean b=false;
     for(GameComponent c:conponents){
-      b=c.pos.x<=mouseX&mouseX<=c.pos.x+c.dist.x&c.pos.y<=mouseY&mouseY<=c.pos.y+c.dist.y;
-      if(b)return b;
+      if(c.pos.x<=mouseX&&mouseX<=c.pos.x+c.dist.x&&c.pos.y<=mouseY&&mouseY<=c.pos.y+c.dist.y)return true;
     }
-    return b;
+    return false;
   }
   
   void keyEvent(){
     if(keyPress&!conponents.get(selectedIndex).keyMove){
-      if(type==0|type==1){
-        switch(nowPressedKeyCode){
-          case DOWN:if(type==0)addSelect();else subSelect();break;
-          case UP:if(type==0)subSelect();else addSelect();break;
-        }
-      }else if(type==2|type==3){
-        switch(nowPressedKeyCode){
-          case RIGHT:break;
-          case LEFT:break;
+      if(!onMouse()){
+        if(type==0|type==1){
+          switch(nowPressedKeyCode){
+            case DOWN:if(type==0)addSelect();else subSelect();break;
+            case UP:if(type==0)subSelect();else addSelect();break;
+          }
+        }else if(type==2|type==3){
+          switch(nowPressedKeyCode){
+            case RIGHT:break;
+            case LEFT:break;
+          }
         }
       }
       if(nowPressedKeyCode==ENTER|keyCode==subSelectButton){

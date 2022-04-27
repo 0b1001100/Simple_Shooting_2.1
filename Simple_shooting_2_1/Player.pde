@@ -170,7 +170,7 @@ class Myself extends Entity{
     if(Float.isNaN(Speed)){
       Speed=0;
     }
-    if(keyPressed&&move&&moveKeyCode.contains(nowPressedKeyCode)){
+    if(keyPressed&&move&&containsList(moveKeyCode,PressedKeyCode)){
       addVel(accelSpeed,false);
     }else{
       Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):

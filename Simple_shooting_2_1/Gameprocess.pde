@@ -48,6 +48,7 @@ class GameProcess{
     done=false;
     background(0);
     drawShape();
+    Debug();
     if(!pause){
       updateShape();
     }else{
@@ -110,6 +111,7 @@ class GameProcess{
   }
   
   void pauseProcess(){
+    EnemyTime=BulletTime=ParticleTime=0;
     if(player.levelup){
       upgrade=true;
       UpgradeSet.removeAll();

@@ -13,6 +13,7 @@ class Enemy extends Entity implements Cloneable{
   float rotateSpeed=10;
   float protate=0;
   float playerDistsq=0;
+  float hue=0;
   float exp=1;
   protected double maxHP=10d;
   protected double HP=10d;
@@ -38,7 +39,13 @@ class Enemy extends Entity implements Cloneable{
     rectMode(CENTER);
     strokeWeight(1);
     noFill();
-    stroke(toColor(c));
+    if(Debug){
+      colorMode(HSB);
+      stroke(hue,255,255);
+      colorMode(RGB);
+    }else{
+      stroke(toColor(c));
+    }
     rect(0,0,size*0.7071,size*0.7071);
     popMatrix();
   }
@@ -48,7 +55,7 @@ class Enemy extends Entity implements Cloneable{
     Rotate();
     move();
     Collision();
-    float d=size*0.5;
+    float d=size*0.5;if(pos.x-d>pos.x+d){exit();}
     EnemyX.put(pos.x-d,this);
     EnemyX.put(pos.x+d,this);
     EnemyData.put(pos.x-d,"s");

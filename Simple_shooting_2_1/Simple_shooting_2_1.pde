@@ -36,7 +36,7 @@ ItemTable MastarTable;
 
 GL4 gl;
 
-HashSet<Integer>moveKeyCode=new HashSet<Integer>(Arrays.asList(createArray(UP,DOWN,RIGHT,LEFT,87,119,65,97,83,115,68,100)));
+HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
 java.util.List<Particle>Particles=Collections.synchronizedList(new ArrayList<Particle>());
 java.util.List<Bullet>eneBullets=Collections.synchronizedList(new ArrayList<Bullet>());
@@ -48,8 +48,8 @@ java.util.List<Bullet>eneBulletHeap=Collections.synchronizedList(new ArrayList<B
 java.util.List<Bullet>BulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
 java.util.List<Enemy>EnemyHeap=Collections.synchronizedList(new ArrayList<Enemy>());
 java.util.List<Exp>ExpHeap=Collections.synchronizedList(new ArrayList<Exp>());
-ArrayList<String>PressedKeyCode=new ArrayList<String>();
-ArrayList<String>PressedKey=new ArrayList<String>();
+HashSet<String>PressedKeyCode=new HashSet<String>();
+HashSet<String>PressedKey=new HashSet<String>();
 ArrayList<Long>Times=new ArrayList<Long>();
 PVector scroll;
 PVector pscreen=new PVector(1280, 720);
@@ -57,7 +57,7 @@ PVector localMouse;
 PShader colorInv;
 boolean pmousePress=false;
 boolean mousePress=false;
-boolean pkeyPress=false;
+boolean keyRelease=false;
 boolean keyPress=false;
 boolean changeScene=true;
 boolean ColorInv=false;
@@ -143,7 +143,6 @@ void draw() {
     catch(NullPointerException g) {
     }
   }
-  Debug();
   printFPS();
   Shader();
   updatePreValue();
@@ -187,11 +186,6 @@ void eventProcess() {
     mousePress=true;
   } else {
     mousePress=false;
-  }
-  if (!pkeyPress&&keyPressed) {
-    keyPress=true;
-  } else {
-    keyPress=false;
   }
   if (scene!=pscene) {
     changeScene=true;
@@ -242,8 +236,9 @@ void updateFPS() {
 }
 
 void updatePreValue() {
+  keyRelease=false;
+  keyPress=false;
   pmousePress=mousePressed;
-  pkeyPress=keyPressed;
   pscene=scene;
   pMenu=nowMenu;
   pEnemyNum=EnemyX.size();
@@ -301,6 +296,17 @@ PMatrix3D getMatrixLocalToWindow() {
 
 <T> T[] createArray(T... val){
   return val;
+}
+
+<P extends Collection,C extends Collection> boolean containsList(P p,C c){
+  boolean ret=false;
+  for(Object o:c){
+    if(p.contains(o)){
+      ret=true;
+      break;
+    }
+  }
+  return ret;
 }
 
 boolean onMouse(float x, float y, float dx, float dy) {
@@ -468,6 +474,7 @@ Color cloneColor(Color c) {
 }
 
 void keyPressed(processing.event.KeyEvent e) {
+  keyPress=true;
   ModifierKey=e.getKeyCode();
   PressedKey.add(str(key));
   PressedKeyCode.add(str(keyCode));
@@ -476,6 +483,7 @@ void keyPressed(processing.event.KeyEvent e) {
 }
 
 void keyReleased(processing.event.KeyEvent e) {
+  keyRelease=false;
   ModifierKey=-1;
   PressedKeyCode.remove(str(keyCode));
   PressedKey.remove(str(key));
