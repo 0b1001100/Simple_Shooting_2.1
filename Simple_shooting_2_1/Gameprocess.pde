@@ -75,12 +75,16 @@ class GameProcess{
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
     stage.display();
-    if(!player.isDead)player.display();
+    for(Particle p:Particles){
+        p.display();
+    }
     for(Exp e:Exps){
       e.display();
     }
-    for(Enemy e:Enemies){
-      e.display();
+    Lighting.set("resolution", width, height);
+    for(int i=0;i<1;i++){
+      Lighting.set("texture",g);
+      filter(Lighting);
     }
     for(Bullet b:eneBullets){
       b.display();
@@ -88,8 +92,9 @@ class GameProcess{
     for(Bullet b:Bullets){
       b.display();
     }
-    for(Particle p:Particles){
-        p.display();
+    if(!player.isDead)player.display();
+    for(Enemy e:Enemies){
+      e.display();
     }
     displayHUD();
     popMatrix();

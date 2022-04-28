@@ -27,6 +27,9 @@ BulletProcess bulletTask=new BulletProcess();
 
 float vectorMagnification=1;
 
+PShader colorInv;
+PShader Lighting;
+
 GameProcess main;
 Stage stage;
 
@@ -54,7 +57,6 @@ ArrayList<Long>Times=new ArrayList<Long>();
 PVector scroll;
 PVector pscreen=new PVector(1280, 720);
 PVector localMouse;
-PShader colorInv;
 boolean pmousePress=false;
 boolean mousePress=false;
 boolean keyRelease=false;
@@ -73,6 +75,8 @@ int pscene=0;
 int scene=0;
 
 static final String ShaderPath=".\\data\\shader\\";
+
+{PJOGL.profile=4;}
 
 void setup() {
   size(1280, 720, P2D);
@@ -113,6 +117,7 @@ void setup() {
   PFont font=createFont("SansSerif.plain", 15);
   textFont(font);
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
+  Lighting=loadShader(ShaderPath+"Lighting.glsl");
   blendMode(ADD);
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();

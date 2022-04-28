@@ -18,7 +18,6 @@ class Explosion extends Enemy{
   }
   
   void display(){
-    p.display();
   }
   
   void update(){
