@@ -4,6 +4,9 @@ import processing.awt.PSurfaceAWT.*;
 import java.awt.*;
 import java.awt.event.*;
 
+import java.nio.*;
+import java.nio.file.*;
+
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -39,6 +42,9 @@ ItemTable MastarTable;
 
 GL4 gl;
 
+JSONObject Language;
+JSONObject conf;
+
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
 java.util.List<Particle>Particles=Collections.synchronizedList(new ArrayList<Particle>());
@@ -73,6 +79,8 @@ int pEnemyNum=0;
 int pBulletNum=0;
 int pscene=0;
 int scene=0;
+
+boolean colorInverse=false;
 
 static final String ShaderPath=".\\data\\shader\\";
 
@@ -122,6 +130,8 @@ void setup() {
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
+  initGPGPU();
+  LoadData();
 }
 
 void draw() {
@@ -154,24 +164,66 @@ void draw() {
   updateFPS();
 }
 
+void LoadData(){
+  conf=loadJSONObject(".\\data\\save\\config.json");
+  useGPGPU=conf.getBoolean("GPGPU");
+  Language=loadJSONObject(".\\data\\lang\\"+conf.getString("Language")+".json");
+}
+
 void Menu() {
-  background(0);
-  if (changeScene) {
-    starts=new ComponentSetLayer();
-    NormalButton New=new NormalButton("New Game");
-    New.setBounds(100, 100, 120, 30);
-    New.addListener(()-> {
-      scene=1;
-    }
-    );
-    NormalButton Load=new NormalButton("Load Game");
-    Load.setBounds(100, 140, 120, 30);
-    NormalButton Config=new NormalButton("Confuguration");
-    Config.setBounds(100, 180, 120, 30);
-    starts.addLayer("root",toSet(New,Load,Config));
+  if (changeScene){
+    initMenu();
+  }
+  switch(starts.nowLayer){
+    case "root":background(0);break;
+    default:background(230);break;
   }
   starts.display();
   starts.update();
+  if(colorInverse){
+    colorInv.set("tex",g);
+    colorInv.set("resolution",width,height);
+    filter(colorInv);
+  }
+}
+
+void initMenu(){
+  starts=new ComponentSetLayer();
+  NormalButton New=new NormalButton(Language.getString("start_game"));
+  New.setBounds(100,100,120,30);
+  New.addListener(()-> {
+    starts.toChild("main");
+  }
+  );
+  MenuButton Select=new MenuButton(Language.getString("stage_select"));
+  Select.setBounds(100,140,120,25);
+  Select.addListener(()->{
+    starts.toChild("stage");
+  });
+  ItemList stage=new ItemList();
+  stage.setBounds(250,100,300,500);
+  stage.showSub=false;
+  stage.addContent("Stage1","Stage2");
+  stage.addSelectListener((s)->{
+    switch(s){
+      case "Stage1":break;
+    }
+  });
+  MenuButton Config=new MenuButton(Language.getString("config"));
+  Config.setBounds(100,180,120,25);
+  Config.addListener(()->{
+    starts.toChild("confMenu");
+  });
+  MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),false);
+  Colorinv.setBounds(250,180,120,25);
+  Colorinv.addListener(()->{
+    colorInverse=Colorinv.value;
+  });
+  starts.setSubChildDisplayType(1);
+  starts.addLayer("root",toSet(New));
+  starts.addChild("root","main",toSet(Select,Config));
+  starts.addSubChild("main","stage",toSet(stage));
+  starts.addSubChild("main","confMenu",toSet(Colorinv));
 }
 
 void Load() {

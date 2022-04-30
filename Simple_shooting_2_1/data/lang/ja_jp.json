@@ -1,9 +1,7 @@
 {
-  "mainmenu":{
-    "start":"スタート",
-    "config":"設定"
-  },
-  "game":{
-    "menu":"メニュー"
-  }
+  "start_game":"ゲームを開始",
+  "stage_select":"ステージ選択",
+  "config":"設定",
+  "color_inverse":"色反転",
+  "menu":"メニュー"
 }

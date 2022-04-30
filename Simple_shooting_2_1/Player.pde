@@ -246,9 +246,6 @@ class Myself extends Entity{
     }
   }
   
-  void Collision(PVector pos){
-  }
-  
   void resetSpeed(){
     Speed=dist(0,0,vel.x,vel.y)*sign(Speed);
     Speed=min(abs(Speed),maxSpeed)/vectorMagnification*sign(Speed);
