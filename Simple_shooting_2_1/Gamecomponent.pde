@@ -272,6 +272,51 @@ class SliderItem extends GameComponent{
   }
 }
 
+class TextBox extends GameComponent{
+  boolean Parsed;
+  String title="";
+  String text="";
+  float fontSize=15;
+  
+  TextBox(){
+    Parsed=false;
+  }
+  
+  TextBox(String t){
+    Parsed=false;
+    title=t;
+  }
+  
+  void setText(String t){
+    Parsed=false;
+    Parse(t);
+  }
+  
+  private void Parse(String s){
+    if(dist!=null){
+      String t="";
+      float l=0;
+      for(char c:s.toCharArray()){
+        l+=g.textFont.width(c)*fontSize;
+        if((l>dist.x||c=='\n')&&c!=','&&c!='.'&&c!='、'&&c!='。'){
+          l=0;
+          t+=c=='\n'?"":"\n";
+          t+=c;
+        }else{
+          t+=c;
+        }
+      }
+      text=t;
+      Parsed=true;
+    }
+  }
+  
+  void update(){
+    super.update();
+    if(!Parsed)Parse(text);
+  }
+}
+
 class MultiButton extends GameComponent{
   protected ArrayList<NormalButton>Buttons=new ArrayList<NormalButton>();
   protected boolean resize=true;
@@ -407,7 +452,9 @@ class ItemList extends GameComponent{
   
   GameComponent setBounds(float x,float y,float dx,float dy){
     pg=createGraphics(round(dx),round(dy),P2D);
+    pg.beginDraw();
     pg.textFont(createFont("SansSerif.plain",15));
+    pg.endDraw();
     return super.setBounds(x,y,dx,dy);
   }
   
@@ -689,22 +736,6 @@ class ProgressBar extends GameComponent{
   }
 }
 
-class TextBox extends GameComponent{
-  String Title="";
-  
-  TextBox(){
-    
-  }
-  
-  TextBox(String s){
-    Title=s;
-  }
-  
-  void setTitle(String s){
-    Title=s;
-  }
-}
-
 class StatusList extends ListTemplate{
   Myself m;
   float addHP=0;
@@ -887,7 +918,9 @@ class NormalButton extends TextButton{
 }
 
 class MenuButton extends TextButton{
+  MenuTextBox box=new MenuTextBox();
   Color sideLineColor=new Color(toColor(menuRightColor));
+  boolean displayBox=false;
   
   MenuButton(){
     setBackground(new Color(220,220,220));
@@ -906,6 +939,14 @@ class MenuButton extends TextButton{
     setBorderColor(new Color(0,0,0,0));
   }
   
+  void setTextBoxBounds(float x,float y,float dx,float dy){
+    box.setBounds(x,y,dx,dy);
+  }
+  
+  void setExplanation(String s){
+    box.setText(s);
+  }
+  
   void display(){
     blendMode(BLEND);
     strokeWeight(1);
@@ -919,18 +960,57 @@ class MenuButton extends TextButton{
     textAlign(CENTER);
     textSize(dist.y*0.5);
     text(text,center.x,center.y+dist.y*0.2);
+    if(displayBox)box.display();
   }
   
   void update(){
     super.update();
+    if(displayBox)box.update();
   }
   
   TextButton setText(String s){
     return super.setText(s);
   }
+  
+  void displayBox(boolean b){
+    displayBox=b;
+  }
+}
+
+class MenuTextBox extends TextBox{
+  
+  MenuTextBox(){
+    super();
+  }
+  
+  MenuTextBox(String t){
+    super(t);
+  }
+  
+  void display(){
+    blendMode(BLEND);
+    noStroke();
+    fill(toColor(background));
+    rect(pos.x,pos.y,dist.x,dist.y);
+    fill(#707070);
+    rect(pos.x,pos.y,dist.x,25);
+    fill(toColor(foreground));
+    textSize(fontSize);
+    textAlign(CENTER);
+    fill(0);
+    text(title,pos.x+5+textWidth(title)/2,pos.y+17.5);
+    textAlign(LEFT);
+    text(text,pos.x+5,pos.y+45);
+  }
+  
+  void update(){
+    super.update();
+  }
 }
 
 class MenuCheckBox extends CheckBox{
+  MenuTextBox box=new MenuTextBox();
+  boolean displayBox=false;
   
   MenuCheckBox(String text,boolean value){
     super(value);
@@ -940,6 +1020,14 @@ class MenuCheckBox extends CheckBox{
     setSelectBackground(new Color(200,200,200));
     setSelectForeground(new Color(40,40,40));
     setBorderColor(new Color(0,0,0,0));
+  }
+  
+  void setTextBoxBounds(float x,float y,float dx,float dy){
+    box.setBounds(x,y,dx,dy);
+  }
+  
+  void setExplanation(String s){
+    box.setText(s);
   }
   
   void display(){
@@ -955,6 +1043,16 @@ class MenuCheckBox extends CheckBox{
     textAlign(CENTER);
     textSize(dist.y*0.5);
     text(text+":"+(value?"ON":"OFF"),center.x,center.y+dist.y*0.2);
+    if(displayBox)box.display();
+  }
+  
+  void update(){
+    super.update();
+    if(displayBox)box.update();
+  }
+  
+  void displayBox(boolean b){
+    displayBox=b;
   }
 }
 
@@ -1319,8 +1417,9 @@ class ComponentSetLayer{
   
   private void displaySub(String n){
     if(Lines.containsKey(n)){
-      displayChild(n);
       displayParent(n);
+      if(SubChildshowType==1&&n.equals(nowLayer))return;
+      displayChild(n);
     }
   }
   

@@ -39,6 +39,11 @@ class Explosion extends Enemy{
   void Collision(){
     
   }
+  
+  @Override
+  void Hit(Weapon w){
+    return;
+  }
 }
 
 void addExplosion(Entity e,float size){

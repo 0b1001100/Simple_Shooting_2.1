@@ -42,6 +42,7 @@ ItemTable MastarTable;
 
 GL4 gl;
 
+JSONObject LanguageData;
 JSONObject Language;
 JSONObject conf;
 
@@ -68,7 +69,6 @@ boolean mousePress=false;
 boolean keyRelease=false;
 boolean keyPress=false;
 boolean changeScene=true;
-boolean ColorInv=false;
 String nowPressedKey;
 String nowMenu="Main";
 String pMenu="Main";
@@ -130,7 +130,7 @@ void setup() {
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
-  initGPGPU();
+  //initGPGPU();
   LoadData();
 }
 
@@ -167,6 +167,11 @@ void draw() {
 void LoadData(){
   conf=loadJSONObject(".\\data\\save\\config.json");
   useGPGPU=conf.getBoolean("GPGPU");
+  LoadLanguage();
+  LanguageData=loadJSONObject(".\\data\\lang\\Languages.json");
+}
+
+void LoadLanguage(){
   Language=loadJSONObject(".\\data\\lang\\"+conf.getString("Language")+".json");
 }
 
@@ -180,7 +185,7 @@ void Menu() {
   }
   starts.display();
   starts.update();
-  if(colorInverse){
+  if(colorInverse&&!starts.nowLayer.equals("root")){
     colorInv.set("tex",g);
     colorInv.set("resolution",width,height);
     filter(colorInv);
@@ -203,10 +208,10 @@ void initMenu(){
   ItemList stage=new ItemList();
   stage.setBounds(250,100,300,500);
   stage.showSub=false;
-  stage.addContent("Stage1","Stage2");
+  stage.addContent("Stage1");
   stage.addSelectListener((s)->{
     switch(s){
-      case "Stage1":break;
+      case "Stage1":scene=2;break;
     }
   });
   MenuButton Config=new MenuButton(Language.getString("config"));
@@ -214,16 +219,59 @@ void initMenu(){
   Config.addListener(()->{
     starts.toChild("confMenu");
   });
-  MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),false);
-  Colorinv.setBounds(250,180,120,25);
-  Colorinv.addListener(()->{
-    colorInverse=Colorinv.value;
-  });
+  MenuTextBox confBox=new MenuTextBox(Language.getString("ex"));
+  confBox.setBounds(width-320,100,300,500);
+  //---
+    MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),colorInverse);
+    Colorinv.setBounds(250,180,120,25);
+    Colorinv.addListener(()->{
+      colorInverse=Colorinv.value;
+    });
+    Colorinv.addFocusListener(new FocusEvent(){
+      void getFocus(){
+        confBox.setText(Language.getString("ex_color_inverse"));
+      }
+      
+      void lostFocus(){}
+    });
+    MenuButton Lang=new MenuButton(Language.getString("language"));
+    Lang.setBounds(250,220,120,25);
+    Lang.addListener(()->{
+      starts.toChild("Language");
+    });
+    Lang.addFocusListener(new FocusEvent(){
+      void getFocus(){
+        confBox.setText(Language.getString("ex_language"));
+      }
+      
+      void lostFocus(){}
+    });
+    //--
+      ItemList LangList=new ItemList();
+      LangList.setBounds(400,100,300,500);
+      LangList.showSub=false;
+      for(int i=0;i<LanguageData.getJSONArray("Language").size();i++){
+        LangList.addContent(LanguageData.getJSONArray("Language").getJSONObject(i).getString("name"));
+      }
+      LangList.addSelectListener((s)->{
+        if(conf.getString("Language").equals(LanguageData.getString(s))){
+          starts.toParent();
+          return;
+        }
+        conf.setString("Language",LanguageData.getString(s));
+        saveJSONObject(conf,".\\data\\save\\config.json");
+        LoadLanguage();
+        initMenu();
+        starts.toParent();
+      });
+    //--
+  //---
   starts.setSubChildDisplayType(1);
   starts.addLayer("root",toSet(New));
   starts.addChild("root","main",toSet(Select,Config));
   starts.addSubChild("main","stage",toSet(stage));
-  starts.addSubChild("main","confMenu",toSet(Colorinv));
+  starts.addSubChild("main","confMenu",toSet(Colorinv,Lang),toSet(confBox));
+  starts.addSubChild("confMenu","Language",toSet(LangList));
 }
 
 void Load() {
@@ -306,11 +354,6 @@ void updatePreValue() {
 }
 
 void Shader() {
-  if (ColorInv) {
-    colorInv.set("tex", g);
-    colorInv.set("resolution", width, height);
-    filter(colorInv);
-  }
   if (player!=null) {
     /*if(scene==2){
      View.set("Map",g);
