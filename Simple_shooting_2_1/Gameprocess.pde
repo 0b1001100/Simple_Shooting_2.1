@@ -4,6 +4,7 @@ class GameProcess{
   Color menuColor=new Color(230,230,230);
   PShader menuShader;
   float UItime=0;
+  boolean gameOver=false;
   boolean animation=false;
   boolean upgrade=false;
   boolean pause=false;
@@ -20,26 +21,24 @@ class GameProcess{
   }
   
   void setup(){
+    init();
+  }
+  
+  void init(){
+    Particles=Collections.synchronizedList(new ArrayList<Particle>());
+    eneBullets=Collections.synchronizedList(new ArrayList<Bullet>());
+    Bullets=Collections.synchronizedList(new ArrayList<Bullet>());
+    Enemies=Collections.synchronizedList(new ArrayList<Enemy>());
+    Exps=Collections.synchronizedList(new ArrayList<Exp>());
+    ParticleHeap=Collections.synchronizedList(new ArrayList<Particle>());
+    eneBulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
+    BulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
+    EnemyHeap=Collections.synchronizedList(new ArrayList<Enemy>());
+    ExpHeap=Collections.synchronizedList(new ArrayList<Exp>());
     UpgradeSet=new ComponentSet();
-    stage=new Stage();
     mainMenu=new menuManage();
     player=new Myself();
-    stage.addProcess("1.1",new TimeSchedule(120,s->{s.addSpown(EnemySpown.Triangle,0,new Turret());s.autoSpown(false,0.02,new Turret());}),
-                           new TimeSchedule(420,s->{s.addSpown(EnemySpown.Pentagon,0,new Turret());}),
-                           new TimeSchedule(660,s->{s.addSpown(EnemySpown.Rect,0,new Turret());}),
-                           new TimeSchedule(1080,s->{s.addSpown(EnemySpown.Octagon,0,new Turret());}),
-                           new TimeSchedule(1200,s->{s.autoSpown(false,0.02,new White());}),
-                           new TimeSchedule(1300,s->{s.addSpown(EnemySpown.Octagon,0,new Plus());}),
-                           new TimeSchedule(1500,s->{s.addSpown(10,2,0,new White());}),
-                           new TimeSchedule(1700,s->{s.addSpown(30,3,0,new Turret());}),
-                           new TimeSchedule(1900,s->{s.addSpown(15,2,0,new White());}),
-                           new TimeSchedule(2100,s->{s.addSpown(40,3,0,new Turret());}),
-                           new TimeSchedule(2400,s->{s.autoSpown(false,0.03,new Plus(),new Turret());}),
-                           new TimeSchedule(2600,s->{s.addSpown(20,3,0,new Plus());}),
-                           new TimeSchedule(2900,s->{s.addSpown(30,3,0,new Plus());}),
-                           new TimeSchedule(3200,s->{s.addSpown(20,3,0,new Normal());}),
-                           new TimeSchedule(3600,s->{s.addSpown(30,3,0,new Normal());s.autoSpown(false,0.03,new Plus(),new White(),new Normal());}),
-                           new TimeSchedule(3700,s->{s.endSchedule=true;}));
+    stage=new Stage();
   }
   
   void process(){
@@ -50,6 +49,11 @@ class GameProcess{
     done=false;
     background(0);
     drawShape();
+    if(gameOver){
+      scene=0;
+      done=true;
+      return;
+    }
     Debug();
     if(!pause){
       updateShape();
@@ -153,6 +157,12 @@ class GameProcess{
     if(player.isDead){
       deadTimer+=0.016*vectorMagnification;
       if(deadTimer>maxDeadTime){
+        player.remain--;
+        if(player.remain<=0){
+          gameOver=true;
+          pause=false;
+          return;
+        }
         player.isDead=player.pDead=false;
         player.invincibleTime=3;
         player.HP.reset();

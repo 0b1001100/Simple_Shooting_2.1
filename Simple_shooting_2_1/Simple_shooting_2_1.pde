@@ -4,6 +4,8 @@ import processing.awt.PSurfaceAWT.*;
 import java.awt.*;
 import java.awt.event.*;
 
+import java.lang.reflect.*;
+
 import java.nio.*;
 import java.nio.file.*;
 
@@ -72,6 +74,7 @@ boolean changeScene=true;
 String nowPressedKey;
 String nowMenu="Main";
 String pMenu="Main";
+String StageName="";
 long pTime=0;
 int nowPressedKeyCode;
 int ModifierKey=0;
@@ -83,6 +86,7 @@ int scene=0;
 boolean colorInverse=false;
 
 static final String ShaderPath=".\\data\\shader\\";
+static final String StageConfPath=".\\data\\StageConfig\\";
 
 {PJOGL.profile=4;}
 
@@ -213,6 +217,7 @@ void initMenu(){
     switch(s){
       case "Stage1":scene=2;break;
     }
+    StageName=s;
   });
   MenuButton Config=new MenuButton(Language.getString("config"));
   Config.setBounds(100,180,120,25);
@@ -282,6 +287,24 @@ void Load() {
 void Field() {
   if (changeScene) {
     main=new GameProcess();
+    stage.name=StageName;
+    JSONArray data=loadJSONArray(StageConfPath+StageName+".json");
+    for(int i=0;i<data.size();i++){
+      JSONObject config=data.getJSONObject(i);
+      JSONObject param=config.getJSONObject("param");
+      if(config.getString("type").equals("auto")){
+        Enemy[] e=new Enemy[param.getJSONArray("name").size()];
+        for(int j=0;j<e.length;j++){
+          try{
+          e[j]=(Enemy)Class.forName("Simple_shooting_2_1$"+param.getJSONArray("name").get(i)).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet);
+          }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
+        }
+        stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{s.autoSpown(param.getBoolean("disp"),param.getFloat("freq"),e);}));
+      }else{
+        
+      }
+    }
+    stage.addProcess(StageName,new TimeSchedule(2000,s->{s.endSchedule=true;}));
   }
   main.process();
 }

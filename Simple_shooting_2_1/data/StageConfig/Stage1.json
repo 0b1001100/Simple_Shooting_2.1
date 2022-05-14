@@ -1,0 +1,23 @@
+[
+  {
+    "time":1,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.01,
+      "name":[
+        "Turret"
+      ]
+    }
+  },
+  {
+    "time":20,
+    "type":"add",
+    "param":{
+      "number":8,
+      "dist":2,
+      "offset":0,
+      "name":"Turret"
+    }
+  }
+]

@@ -27,6 +27,7 @@ class Myself extends Entity{
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
+  int remain=3;
   
   Myself(){
     setMaxSpeed(3);
