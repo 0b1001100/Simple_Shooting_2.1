@@ -11,20 +11,21 @@ void Debug(){
     Debug=!Debug;
   }
   if(Debug){
-    String Time="";
+    String Text="";
     fill(255);
     textSize(15);
     textAlign(LEFT);
     pushMatrix();
     resetMatrix();
-    for(int i=0;i<4;i++){
+    for(int i=0;i<5;i++){
       switch(i){
-        case 0:Time="RunTime(ms):"+(System.nanoTime()-RunTimeBuffer)/1000000f;break;
-        case 1:Time="ParticleTime(ms):"+ParticleTime;break;
-        case 2:Time="BulletTime(ms):"+BulletTime;break;
-        case 3:Time="EnemyTime(ms):"+EnemyTime;break;
+        case 0:Text="RunTime(ms):"+(System.nanoTime()-RunTimeBuffer)/1000000f;break;
+        case 1:Text="ParticleTime(ms):"+ParticleTime;break;
+        case 2:Text="BulletTime(ms):"+BulletTime;break;
+        case 3:Text="EnemyTime(ms):"+EnemyTime;break;
+        case 4:Text="EnemyNumber:"+Enemies.size();break;
       }
-      text(Time,30,100+i*20);
+      text(Text,30,100+i*20);
     }
     RunTimeBuffer=System.nanoTime();
     popMatrix();

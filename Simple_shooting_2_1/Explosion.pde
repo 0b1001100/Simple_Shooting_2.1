@@ -18,20 +18,25 @@ class Explosion extends Enemy{
   }
   
   void display(){
+    if(Debug){
+      rectMode(CENTER);
+      strokeWeight(1);
+      stroke(255);
+      noFill();
+      rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+    }
   }
   
   void update(){
     size=p.nowSize;
     isDead=p.isDead;
-    float d=size*0.5;
-    EnemyX.put(pos.x-d,this);
-    EnemyX.put(pos.x+d,this);
-    EnemyData.put(pos.x-d,"s");
-    EnemyData.put(pos.x+d,"e");
+    Center=pos;
+    AxisSize=new PVector(size,size);
+    putAABB();
   }
   
   @Override
-  void Collision(Enemy e){
+  void Collision(Entity e){
     if(!(e instanceof Explosion))e.Collision(this);
   }
   

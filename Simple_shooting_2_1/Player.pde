@@ -102,7 +102,6 @@ class Myself extends Entity{
     camera.update();
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
-    prePos=new PVector(pos.x,pos.y);
     invincibleTime=max(0,invincibleTime-0.016*vectorMagnification);
   }
   

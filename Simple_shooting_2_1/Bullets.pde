@@ -4,8 +4,6 @@ HashMap<Float,String>BulletData=new HashMap<Float,String>();
 
 class Bullet extends Entity{
   Weapon parent;
-  PVector bVel;
-  PVector tPos;
   boolean isMine=false;
   boolean isDead=false;
   boolean bounse=false;
@@ -28,8 +26,6 @@ class Bullet extends Entity{
     try{
       parent=m.selectedWeapon.clone();
     }catch(Exception e){}
-    prePos=pos.copy();
-    tPos=pos.copy();
     isMine=true;
   }
   
@@ -47,8 +43,6 @@ class Bullet extends Entity{
     try{
       parent=m.selectedWeapon.clone();
     }catch(Exception e){}
-    prePos=pos.copy();
-    tPos=pos.copy();
     isMine=true;
   }
   
@@ -71,13 +65,17 @@ class Bullet extends Entity{
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
     maxAge=w.bulletMaxAge;
     isMine=e.getClass().getSimpleName().equals("Myself");
-    prePos=pos.copy();
-    tPos=pos.copy();
     if(!isMine)bulletColor=new Color(255,0,0);
   }
   
   void display(){
     strokeWeight(1);
+    if(Debug){
+      noFill();
+      stroke(255);
+      rectMode(CENTER);
+      rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+    }
     stroke(toColor(bulletColor));
     line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
     if(age/maxAge>0.9)bulletColor=bulletColor.darker();
@@ -87,27 +85,22 @@ class Bullet extends Entity{
     pos.add(vel.copy().mult(vectorMagnification));
     if(age>maxAge)isDead=true;
     age+=vectorMagnification;
-    tPos=prePos.copy();
-    prePos=pos.copy();
-    synchronized(Enemies){
-      for(Enemy e:Enemies)Collision(e);
-    }
-    float min=min(pos.x+vel.x,pos.x)*vectorMagnification;
-    float max=max(pos.x+vel.x,pos.x)*vectorMagnification;
-    BulletX.put(min,this);
-    BulletX.put(max,this);
-    BulletData.put(min,"s");
-    BulletData.put(max,"e");
+    Center=pos.copy().add(vel.copy().mult(0.5));
+    AxisSize=new PVector(abs(vel.x),abs(vel.y));
+    putAABB();
   }
   
   void setBounse(boolean b){
     bounse=b;
   }
   
-  void Collision(Enemy e){
-    if(CircleCollision(e.pos,e.size,pos,vel)){
-      isDead=true;
-      e.Hit(parent);
+  @Override
+  void Collision(Entity e){
+    if(e instanceof Enemy){
+      if(CircleCollision(e.pos,e.size,pos,vel)){
+        ((Enemy)e).Hit(parent);
+        isDead=true;
+      }
     }
   }
   

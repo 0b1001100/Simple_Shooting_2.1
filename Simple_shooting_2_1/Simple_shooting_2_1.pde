@@ -1,4 +1,4 @@
-import processing.awt.*;
+import processing.awt.*;//当たり判定の重複
 import processing.awt.PSurfaceAWT.*;
 
 import java.awt.*;
@@ -26,9 +26,15 @@ Future<?> particleFuture;
 Future<?> enemyFuture;
 Future<?> bulletFuture;
 
+ArrayList<Future<?>>CollisionFuture;
+
 ParticleProcess particleTask=new ParticleProcess();
 EnemyProcess enemyTask=new EnemyProcess();
 BulletProcess bulletTask=new BulletProcess();
+
+ArrayList<EntityCollision>CollisionProcess;
+byte collisionNumber=16;
+int minDataNumber=4;
 
 float vectorMagnification=1;
 
@@ -149,6 +155,8 @@ void draw() {
   }
   eventProcess();
   if(scene==2){
+    CollisionFuture=new ArrayList<Future<?>>();
+    CollisionProcess=new ArrayList<EntityCollision>();
     try {
       bulletFuture.get();
       particleFuture.get();
@@ -160,6 +168,26 @@ void draw() {
     catch(InterruptedException|ExecutionException f) {println(f);f.printStackTrace();
     }
     catch(NullPointerException g) {
+    }
+    byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
+    float block=EntityX.size()/(float)ThreadNumber;
+    for(byte b=0;b<ThreadNumber;b++){
+      CollisionProcess.add(new EntityCollision(ceil(block*b),floor(block*(b+1))));
+    }
+    for(EntityCollision e:CollisionProcess){
+      CollisionFuture.add(exec.submit(e));
+    }
+    for(Future<?> f:CollisionFuture){
+      try {
+        f.get();
+      }
+      catch(ConcurrentModificationException e) {
+        e.printStackTrace();
+      }
+      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+      }
+      catch(NullPointerException g) {
+      }
     }
   }
   printFPS();
@@ -215,7 +243,7 @@ void initMenu(){
   stage.addContent("Stage1");
   stage.addSelectListener((s)->{
     switch(s){
-      case "Stage1":scene=2;break;
+      case "Stage1":scene=1;break;
     }
     StageName=s;
   });
@@ -285,7 +313,7 @@ void Load() {
 }
 
 void Field() {
-  if (changeScene) {
+  if (changeScene){
     main=new GameProcess();
     stage.name=StageName;
     JSONArray data=loadJSONArray(StageConfPath+StageName+".json");
@@ -300,8 +328,13 @@ void Field() {
           }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
         }
         stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{s.autoSpown(param.getBoolean("disp"),param.getFloat("freq"),e);}));
-      }else{
-        
+      }else if(config.getString("type").equals("add")){
+        stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{
+          try{
+            s.addSpown(param.getInt("number"),param.getFloat("dist"),param.getFloat("offset"),
+            (Enemy)Class.forName("Simple_shooting_2_1$"+param.getString("name")).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
+          }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
+        }));
       }
     }
     stage.addProcess(StageName,new TimeSchedule(2000,s->{s.endSchedule=true;}));
@@ -368,10 +401,10 @@ void updatePreValue() {
   pmousePress=mousePressed;
   pscene=scene;
   pMenu=nowMenu;
-  pEnemyNum=EnemyX.size();
+  pEnemyNum=EntityX.size();
   pBulletNum=BulletX.size();
-  EnemyX.clear();
-  EnemyData.clear();
+  EntityX.clear();
+  EntityDataX.clear();
   BulletX.clear();
   BulletData.clear();
 }
@@ -612,13 +645,14 @@ void keyReleased(processing.event.KeyEvent e) {
 class Entity implements Egent, Cloneable {
   DeadEvent dead=(e)->{};
   float size=20;
-  PVector prePos;
   PVector pos;
   PVector vel=new PVector(0, 0);
   PVector LeftUP;
   PVector LeftDown;
   PVector RightUP;
   PVector RightDown;
+  PVector Center=new PVector();
+  PVector AxisSize=new PVector();
   Color c=new Color(0, 255, 0);
   float rotate=0;
   float accelSpeed=0.25;
@@ -668,6 +702,23 @@ class Entity implements Egent, Cloneable {
   
   void addDeadListener(DeadEvent e){
     dead=e;
+  }
+  
+  final protected void putAABB(){
+    float x=AxisSize.x*0.5;
+    float min=Center.x-x;
+    float max=Center.x+x;
+    synchronized(EntityX){
+      EntityX.put(min,this);
+      EntityX.put(max,this);
+    }
+    synchronized(EntityDataX){
+      EntityDataX.put(min,"s");
+      EntityDataX.put(max,"e");
+    }
+  }
+  
+  void Collision(Entity e){
   }
 }
 

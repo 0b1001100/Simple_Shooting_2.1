@@ -4,9 +4,9 @@ Future<?> CollisionFuture1;
 Future<?> CollisionFuture2;
 Future<?> CollisionFuture3;
 
-EnemyCollision p1;
-EnemyCollision p2;
-EnemyCollision p3;
+EntityCollision p1;
+EntityCollision p2;
+EntityCollision p3;
 
 Future<?> BulletCollision1;
 Future<?> BulletCollision2;
@@ -63,12 +63,7 @@ class EnemyProcess implements Callable<String>{
         if(e instanceof Explosion){
           e.update();
         }else{
-          e.Collision();
-          float d=e.size*0.5;
-          EnemyX.put(e.pos.x-d,e);
-          EnemyX.put(e.pos.x+d,e);
-          EnemyData.put(e.pos.x-d,"s");
-          EnemyData.put(e.pos.x+d,"e");
+          e.putAABB();
         }
       }else{
         e.update();
@@ -80,28 +75,6 @@ class EnemyProcess implements Callable<String>{
     synchronized(EnemyHeap){
       Enemies.addAll(EnemyHeap);
       EnemyHeap.clear();
-    }
-    p1=new EnemyCollision(0,(int)(EnemyX.size()*0.33));
-    p2=new EnemyCollision((int)(EnemyX.size()*0.33), (int)(EnemyX.size()*0.66));
-    p3=new EnemyCollision((int)(EnemyX.size()*0.66), EnemyX.size());
-    try{
-      CollisionFuture1=exec.submit(p1);
-      CollisionFuture2=exec.submit(p2);
-      CollisionFuture3=exec.submit(p3);
-    }
-    catch(Exception e) {
-    }
-    try {
-      CollisionFuture1.get();
-      CollisionFuture2.get();
-      CollisionFuture3.get();
-    }
-    catch(ConcurrentModificationException e){
-      e.printStackTrace();
-    }
-    catch(InterruptedException|ExecutionException f){
-    }
-    catch(NullPointerException g){
     }
     EnemyTime=(System.nanoTime()-pTime)/1000000f;
     return "";
@@ -135,12 +108,7 @@ class BulletProcess implements Callable<String>{
         synchronized(Enemies){
           for(Enemy e:Enemies)b.Collision(e);
         }
-        float min=min(b.pos.x+b.vel.x,b.pos.x)*vectorMagnification;
-        float max=max(b.pos.x+b.vel.x,b.pos.x)*vectorMagnification;
-        BulletX.put(min,b);
-        BulletX.put(max,b);
-        BulletData.put(min,"s");
-        BulletData.put(max,"e");
+        b.putAABB();
       }else{
         b.update();
       }
@@ -180,32 +148,35 @@ class BulletProcess implements Callable<String>{
   }
 }
 
-class EnemyCollision implements Callable<String>{
+class EntityCollision implements Callable<String>{
   ArrayList<Float>arrayX;
-  ArrayList<Enemy>enemy;
-  TreeMap<Float,Enemy>overEnemy;
+  ArrayList<Entity>entity;
+  TreeMap<Float,Enemy>overEntity;
   float hue;
   int s;
   int l;
   
-  EnemyCollision(int s,int l){
+  EntityCollision(int s,int l){
     this.s=s;
     this.l=l;
-    hue=s==0?0:255*(s/(float)EnemyX.size());
+    hue=s==0?0:255*(s/(float)EntityX.size());
   }
   
   String call(){
-    arrayX=new ArrayList<Float>(EnemyX.keySet());
-    enemy=new ArrayList<Enemy>(EnemyX.values());
-    HashSet<Enemy>CollisionList=new HashSet<Enemy>();
-    HashSet<Enemy>CollisionedList=new HashSet<Enemy>();
+    arrayX=new ArrayList<Float>(EntityX.keySet());
+    entity=new ArrayList<Entity>(EntityX.values());
+    HashSet<Entity>CollisionList=new HashSet<Entity>();
+    HashSet<Entity>CollisionedList=new HashSet<Entity>();
     for(int i=s;s<l;i++){
-      Enemy E=enemy.get(i);
+      Entity E=entity.get(i);
       float f=arrayX.get(i);
-      if(Debug)E.hue=hue;
-      switch(EnemyData.get(f)){
+      if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
+      switch(EntityDataX.get(f)){
         case "s":CollisionList.forEach(e->{
-                   if(qDist(e.pos,E.pos,(e.size+E.size)*0.5))E.Collision(e);
+                   if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){println(e,E);
+                     E.Collision(e);
+                     e.Collision(E);
+                   }
                  });
                  CollisionedList.add(E);
                  CollisionList.add(E);break;
@@ -213,8 +184,12 @@ class EnemyCollision implements Callable<String>{
                    CollisionList.remove(E);
                  }else{
                    CollisionedList.forEach(e->{
-                     if(qDist(e.pos,E.pos,(e.size+E.size)*0.5))E.Collision(e);
+                     if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){
+                       E.Collision(e);
+                       e.Collision(E);
+                     }
                    });
+                   CollisionedList.add(E);
                  }break;
       }
       ++s;
@@ -243,7 +218,7 @@ class BulletCollision implements Callable<String>{
       float f=arrayX.get(i);
       if(obj.get(i) instanceof Enemy){
         Enemy E=(Enemy)obj.get(i);
-        switch(EnemyData.get(f)){
+        switch(EntityDataX.get(f)){
           case "s":ene.add(E);break;
           case "e":if(ene.contains(E)){
                      ene.remove(E);

@@ -14,8 +14,8 @@
     "time":20,
     "type":"add",
     "param":{
-      "number":8,
-      "dist":2,
+      "number":20,
+      "dist":4,
       "offset":0,
       "name":"Turret"
     }

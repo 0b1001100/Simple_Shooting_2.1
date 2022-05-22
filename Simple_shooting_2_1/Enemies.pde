@@ -1,5 +1,5 @@
-TreeMap<Float,Enemy>EnemyX=new TreeMap<Float,Enemy>();
-HashMap<Float,String>EnemyData=new HashMap<Float,String>();
+TreeMap<Float,Entity>EntityX=new TreeMap<Float,Entity>();
+HashMap<Float,String>EntityDataX=new HashMap<Float,String>();
 
 class Enemy extends Entity implements Cloneable{
   HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
@@ -28,6 +28,12 @@ class Enemy extends Entity implements Cloneable{
   
   void display(){
     if(!inScreen)return;
+    if(Debug){
+      strokeWeight(1);
+      stroke(255);
+      rectMode(CENTER);
+      rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+    }
     pushMatrix();
     translate(pos.x,pos.y);
     rotate(-rotate);
@@ -50,11 +56,9 @@ class Enemy extends Entity implements Cloneable{
     Rotate();
     move();
     Collision();
-    float d=size*0.5;
-    EnemyX.put(pos.x-d,this);
-    EnemyX.put(pos.x+d,this);
-    EnemyData.put(pos.x-d,"s");
-    EnemyData.put(pos.x+d,"e");
+    Center=pos;
+    AxisSize=new PVector(size,size);
+    putAABB();
     Process();
   }
   
@@ -165,25 +169,24 @@ class Enemy extends Entity implements Cloneable{
     }
   }
   
-  void Collision(Enemy e){
+  @Override
+  void Collision(Entity e){
     if(e instanceof Explosion){
       if(!Expl){
         Hit(((Explosion)e).power*vectorMagnification);
         Expl=true;
       }
       return;
-    }
-    PVector c=pos.copy().sub(e.pos).normalize();
-    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-    vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-    e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-    pos.sub(d);
-    e.pos.add(d);
-    if(vel.magSq()>maxSpeed*maxSpeed){
-      vel.normalize().mult(maxSpeed);
-    }
-    if(e.vel.magSq()>e.maxSpeed*e.maxSpeed){
-      e.vel.normalize().mult(e.maxSpeed);
+    }else if(e instanceof Enemy){
+      PVector c=pos.copy().sub(e.pos).normalize();
+      PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+      vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+      e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+      pos.sub(d);
+      if(vel.magSq()>maxSpeed*maxSpeed){
+        vel.normalize().mult(maxSpeed);
+      }
+    }else if(e instanceof Bullet){
     }
   }
   
