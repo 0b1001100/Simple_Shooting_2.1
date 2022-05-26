@@ -1,9 +1,11 @@
 {
-  "mainmenu":{
-    "start":"スタート",
-    "config":"設定"
-  },
-  "game":{
-    "menu":"メニュー"
-  }
+  "start_game":"ゲームを開始",
+  "stage_select":"ステージ選択",
+  "config":"設定",
+  "ex":"説明",
+  "color_inverse":"色反転",
+  "ex_color_inverse":"メニュー画面のダークモードの切り替え",
+  "language":"言語",
+  "ex_language":"言語の選択",
+  "menu":"メニュー"
 }

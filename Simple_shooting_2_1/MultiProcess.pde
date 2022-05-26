@@ -4,15 +4,12 @@ Future<?> CollisionFuture1;
 Future<?> CollisionFuture2;
 Future<?> CollisionFuture3;
 
-EnemyCollision p1;
-EnemyCollision p2;
-EnemyCollision p3;
+EntityCollision p1;
+EntityCollision p2;
+EntityCollision p3;
 
 Future<?> BulletCollision1;
 Future<?> BulletCollision2;
-
-BulletCollision b1;
-BulletCollision b2;
 
 class ParticleProcess implements Callable<String>{
   long pTime=0;
@@ -59,7 +56,15 @@ class EnemyProcess implements Callable<String>{
     player.update();
     ArrayList<Enemy>nextEnemies=new ArrayList<Enemy>();
     for(Enemy e:Enemies){
-      e.update();
+      if(player.isDead){
+        if(e instanceof Explosion){
+          e.update();
+        }else{
+          e.putAABB();
+        }
+      }else{
+        e.update();
+      }
       if(!e.isDead)nextEnemies.add(e);
     }
     Enemies.clear();
@@ -67,28 +72,6 @@ class EnemyProcess implements Callable<String>{
     synchronized(EnemyHeap){
       Enemies.addAll(EnemyHeap);
       EnemyHeap.clear();
-    }
-    p1=new EnemyCollision(0,(int)(EnemyX.size()*0.33));
-    p2=new EnemyCollision((int)(EnemyX.size()*0.33), (int)(EnemyX.size()*0.66));
-    p3=new EnemyCollision((int)(EnemyX.size()*0.66), EnemyX.size());
-    try{
-      CollisionFuture1=exec.submit(p1);
-      CollisionFuture2=exec.submit(p2);
-      CollisionFuture3=exec.submit(p3);
-    }
-    catch(Exception e) {
-    }
-    try {
-      CollisionFuture1.get();
-      CollisionFuture2.get();
-      CollisionFuture3.get();
-    }
-    catch(ConcurrentModificationException e){
-      e.printStackTrace();
-    }
-    catch(InterruptedException|ExecutionException f){
-    }
-    catch(NullPointerException g){
     }
     EnemyTime=(System.nanoTime()-pTime)/1000000f;
     return "";
@@ -118,7 +101,14 @@ class BulletProcess implements Callable<String>{
     ArrayList<Bullet>nextEneBullets=new ArrayList<Bullet>();
     for(Bullet b:eneBullets){
       if(b.isDead)continue;
-      b.update();
+      if(player.isDead){
+        synchronized(Enemies){
+          for(Enemy e:Enemies)b.Collision(e);
+        }
+        b.putAABB();
+      }else{
+        b.update();
+      }
       if(!b.isDead)nextEneBullets.add(b);
     }
     eneBullets=nextEneBullets;
@@ -126,126 +116,86 @@ class BulletProcess implements Callable<String>{
       eneBullets.addAll(eneBulletHeap);
       eneBulletHeap.clear();
     }
-    /*BulletEnemyX=new TreeMap<Float,Object>(BulletX);
-    BulletEnemyX.putAll(EnemyX);
-    if(BulletEnemyX.size()!=0){
-      int size=BulletEnemyX.size();
-      b1=new BulletCollision(0,(int)(size*0.5));
-      b2=new BulletCollision((int)(size*0.5),size);
-      try{
-        BulletCollision1=exec.submit(b1);
-        BulletCollision2=exec.submit(b2);
-      }
-      catch(Exception e) {
-      }
-      try {
-        BulletCollision1.get();
-        BulletCollision2.get();
-      }
-      catch(ConcurrentModificationException e) {
-        e.printStackTrace();
-      }
-      catch(InterruptedException|ExecutionException f) {f.printStackTrace();println(EnemyData,EnemyData.size(),BulletData,BulletData.size());exit();
-      }
-      catch(NullPointerException g) {g.printStackTrace();exit();
-      }
-    }*/
     BulletTime=(System.nanoTime()-pTime)/1000000f;
     return "";
   }
 }
 
-class EnemyCollision implements Callable<String>{
+class EntityCollision implements Callable<String>{
   ArrayList<Float>arrayX;
-  ArrayList<Enemy>enemy;
-  TreeMap<Float,Enemy>overEnemy;
+  ArrayList<Entity>entity;
+  TreeMap<Float,Enemy>overEntity;
   float hue;
+  byte number;
   int s;
   int l;
   
-  EnemyCollision(int s,int l){
+  EntityCollision(int s,int l,byte num){
     this.s=s;
     this.l=l;
-    hue=s==0?0:255*(s/(float)EnemyX.size());
+    hue=s==0?0:255*(s/(float)EntityX.size());
+    number=num;
   }
   
   String call(){
-    arrayX=new ArrayList<Float>(EnemyX.keySet());
-    enemy=new ArrayList<Enemy>(EnemyX.values());
-    HashSet<Enemy>CollisionList=new HashSet<Enemy>();
-    HashSet<Enemy>CollisionedList=new HashSet<Enemy>();
-    for(int i=s;s<l;i++){
-      Enemy E=enemy.get(i);
+    arrayX=new ArrayList<Float>(EntityX.keySet());
+    entity=new ArrayList<Entity>(EntityX.values());
+    for(int i=s;i<l;i++){
+      Entity E=entity.get(i);
       float f=arrayX.get(i);
-      if(Debug)E.hue=hue;
-      switch(EnemyData.get(f)){
-        case "s":CollisionList.forEach(e->{
-                   if(qDist(e.pos,E.pos,(e.size+E.size)*0.5))E.Collision(e);
-                 });
-                 CollisionedList.add(E);
-                 CollisionList.add(E);break;
-        case "e":if(CollisionList.contains(E)){
-                   CollisionList.remove(E);
-                 }else{
-                   CollisionedList.forEach(e->{
-                     if(qDist(e.pos,E.pos,(e.size+E.size)*0.5))E.Collision(e);
-                   });
-                 }break;
+      if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
+      switch(EntityDataX.get(f)){
+        case "s":Collision(E,i);break;
+        case "e":continue;
       }
-      ++s;
     }
     return "";
+  }
+  
+  void Collision(Entity E,int i){
+    ++i;
+    for(int j=i;j<EntityX.size();j++){
+      Entity e=entity.get(j);
+      float f=arrayX.get(j);
+      if(EntityDataX.get(f).equals("e")){
+        if(E==e)break;
+        continue;
+      }
+      if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){
+        E.Collision(e);
+        e.Collision(E);
+      }
+    }
   }
 }
 
-class BulletCollision implements Callable<String>{
-  ArrayList<Float>arrayX;
-  ArrayList<Object>obj;
-  int s;
-  int l;
-  
-  BulletCollision(int s,int l){
-    this.s=s;
-    this.l=l;
+class CollisionData{
+  byte number;
+  byte end;
+  Entity e;
+  CollisionData(Entity e,byte num){
+    number=num;
+    this.e=e;
   }
   
-  String call(){
-    arrayX=new ArrayList<Float>(BulletEnemyX.keySet());
-    obj=new ArrayList<Object>(BulletEnemyX.values());
-    HashSet<Bullet>bul=new HashSet<Bullet>();
-    HashSet<Enemy>ene=new HashSet<Enemy>();
-    for(int i=s;s<l;i++){
-      float f=arrayX.get(i);
-      if(obj.get(i) instanceof Enemy){
-        Enemy E=(Enemy)obj.get(i);
-        switch(EnemyData.get(f)){
-          case "s":ene.add(E);break;
-          case "e":if(ene.contains(E)){
-                     ene.remove(E);
-                   }else{
-                     bul.forEach(b->{
-                       if(abs(b.pos.y-E.pos.y)<E.size*1.4142+abs(b.vel.mag())){b.Collision(E);}
-                     });
-                   }break;
-        }
-      }else if(obj.get(i) instanceof Bullet){
-        Bullet B=(Bullet)obj.get(i);
-        switch(BulletData.get(f)){
-          case "s":bul.add(B);
-                   ene.forEach(e->{
-                     if(abs(e.pos.y-B.pos.y)<e.size*1.4142+abs(B.vel.mag())){B.Collision(e);}
-                   });break;
-          case "e":if(bul.contains(B)){
-                     bul.remove(B);
-                   }else{
-                     ene.forEach(e->{
-                       if(abs(e.pos.y-B.pos.y)<e.size*1.4142+abs(B.vel.mag())){B.Collision(e);}
-                     });
-                   }break;
-        }
-      }
-      ++s;
-    }
-    return "";
+  Entity getEntity(){
+    return e;
+  }
+  
+  byte getNumber(){
+    return number;
+  }
+  
+  void setEnd(byte b){
+    end=b;
+  }
+  
+  byte getEnd(){
+    return end;
+  }
+  
+  @Override
+  String toString(){
+    return number+":"+e;
   }
 }

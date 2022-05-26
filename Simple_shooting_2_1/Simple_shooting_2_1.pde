@@ -4,6 +4,11 @@ import processing.awt.PSurfaceAWT.*;
 import java.awt.*;
 import java.awt.event.*;
 
+import java.lang.reflect.*;
+
+import java.nio.*;
+import java.nio.file.*;
+
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -21,11 +26,20 @@ Future<?> particleFuture;
 Future<?> enemyFuture;
 Future<?> bulletFuture;
 
+ArrayList<Future<?>>CollisionFuture;
+
 ParticleProcess particleTask=new ParticleProcess();
 EnemyProcess enemyTask=new EnemyProcess();
 BulletProcess bulletTask=new BulletProcess();
 
+ArrayList<EntityCollision>CollisionProcess;
+byte collisionNumber=16;
+int minDataNumber=4;
+
 float vectorMagnification=1;
+
+PShader colorInv;
+PShader Lighting;
 
 GameProcess main;
 Stage stage;
@@ -35,6 +49,10 @@ ComponentSetLayer starts=new ComponentSetLayer();
 ItemTable MastarTable;
 
 GL4 gl;
+
+JSONObject LanguageData;
+JSONObject Language;
+JSONObject conf;
 
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
@@ -54,16 +72,15 @@ ArrayList<Long>Times=new ArrayList<Long>();
 PVector scroll;
 PVector pscreen=new PVector(1280, 720);
 PVector localMouse;
-PShader colorInv;
 boolean pmousePress=false;
 boolean mousePress=false;
 boolean keyRelease=false;
 boolean keyPress=false;
 boolean changeScene=true;
-boolean ColorInv=false;
 String nowPressedKey;
 String nowMenu="Main";
 String pMenu="Main";
+String StageName="";
 long pTime=0;
 int nowPressedKeyCode;
 int ModifierKey=0;
@@ -72,7 +89,12 @@ int pBulletNum=0;
 int pscene=0;
 int scene=0;
 
+boolean colorInverse=false;
+
 static final String ShaderPath=".\\data\\shader\\";
+static final String StageConfPath=".\\data\\StageConfig\\";
+
+{PJOGL.profile=4;}
 
 void setup() {
   size(1280, 720, P2D);
@@ -113,10 +135,13 @@ void setup() {
   PFont font=createFont("SansSerif.plain", 15);
   textFont(font);
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
+  Lighting=loadShader(ShaderPath+"Lighting.glsl");
   blendMode(ADD);
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
+  //initGPGPU();
+  LoadData();
 }
 
 void draw() {
@@ -130,6 +155,8 @@ void draw() {
   }
   eventProcess();
   if(scene==2){
+    CollisionFuture=new ArrayList<Future<?>>();
+    CollisionProcess=new ArrayList<EntityCollision>();
     try {
       bulletFuture.get();
       particleFuture.get();
@@ -142,6 +169,26 @@ void draw() {
     }
     catch(NullPointerException g) {
     }
+    byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
+    float block=EntityX.size()/(float)ThreadNumber;
+    for(byte b=0;b<ThreadNumber;b++){
+      CollisionProcess.add(new EntityCollision(ceil(block*b),floor(block*(b+1)),b));
+    }
+    for(EntityCollision e:CollisionProcess){
+      CollisionFuture.add(exec.submit(e));
+    }
+    for(Future<?> f:CollisionFuture){
+      try {
+        f.get();
+      }
+      catch(ConcurrentModificationException e) {
+        e.printStackTrace();
+      }
+      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+      }
+      catch(NullPointerException g) {
+      }
+    }
   }
   printFPS();
   Shader();
@@ -149,24 +196,115 @@ void draw() {
   updateFPS();
 }
 
+void LoadData(){
+  conf=loadJSONObject(".\\data\\save\\config.json");
+  useGPGPU=conf.getBoolean("GPGPU");
+  LoadLanguage();
+  LanguageData=loadJSONObject(".\\data\\lang\\Languages.json");
+}
+
+void LoadLanguage(){
+  Language=loadJSONObject(".\\data\\lang\\"+conf.getString("Language")+".json");
+}
+
 void Menu() {
-  background(0);
-  if (changeScene) {
-    starts=new ComponentSetLayer();
-    NormalButton New=new NormalButton("New Game");
-    New.setBounds(100, 100, 120, 30);
-    New.addListener(()-> {
-      scene=1;
-    }
-    );
-    NormalButton Load=new NormalButton("Load Game");
-    Load.setBounds(100, 140, 120, 30);
-    NormalButton Config=new NormalButton("Confuguration");
-    Config.setBounds(100, 180, 120, 30);
-    starts.addLayer("root",toSet(New,Load,Config));
+  if (changeScene){
+    initMenu();
+  }
+  switch(starts.nowLayer){
+    case "root":background(0);break;
+    default:background(230);break;
   }
   starts.display();
   starts.update();
+  if(colorInverse&&!starts.nowLayer.equals("root")){
+    colorInv.set("tex",g);
+    colorInv.set("resolution",width,height);
+    filter(colorInv);
+  }
+}
+
+void initMenu(){
+  starts=new ComponentSetLayer();
+  NormalButton New=new NormalButton(Language.getString("start_game"));
+  New.setBounds(100,100,120,30);
+  New.addListener(()-> {
+    starts.toChild("main");
+  }
+  );
+  MenuButton Select=new MenuButton(Language.getString("stage_select"));
+  Select.setBounds(100,140,120,25);
+  Select.addListener(()->{
+    starts.toChild("stage");
+  });
+  ItemList stage=new ItemList();
+  stage.setBounds(250,100,300,500);
+  stage.showSub=false;
+  stage.addContent("Stage1");
+  stage.addSelectListener((s)->{
+    switch(s){
+      case "Stage1":scene=1;break;
+    }
+    StageName=s;
+  });
+  MenuButton Config=new MenuButton(Language.getString("config"));
+  Config.setBounds(100,180,120,25);
+  Config.addListener(()->{
+    starts.toChild("confMenu");
+  });
+  MenuTextBox confBox=new MenuTextBox(Language.getString("ex"));
+  confBox.setBounds(width-320,100,300,500);
+  //---
+    MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),colorInverse);
+    Colorinv.setBounds(250,180,120,25);
+    Colorinv.addListener(()->{
+      colorInverse=Colorinv.value;
+    });
+    Colorinv.addFocusListener(new FocusEvent(){
+      void getFocus(){
+        confBox.setText(Language.getString("ex_color_inverse"));
+      }
+      
+      void lostFocus(){}
+    });
+    MenuButton Lang=new MenuButton(Language.getString("language"));
+    Lang.setBounds(250,220,120,25);
+    Lang.addListener(()->{
+      starts.toChild("Language");
+    });
+    Lang.addFocusListener(new FocusEvent(){
+      void getFocus(){
+        confBox.setText(Language.getString("ex_language"));
+      }
+      
+      void lostFocus(){}
+    });
+    //--
+      ItemList LangList=new ItemList();
+      LangList.setBounds(400,100,300,500);
+      LangList.showSub=false;
+      for(int i=0;i<LanguageData.getJSONArray("Language").size();i++){
+        LangList.addContent(LanguageData.getJSONArray("Language").getJSONObject(i).getString("name"));
+      }
+      LangList.addSelectListener((s)->{
+        if(conf.getString("Language").equals(LanguageData.getString(s))){
+          starts.toParent();
+          return;
+        }
+        conf.setString("Language",LanguageData.getString(s));
+        saveJSONObject(conf,".\\data\\save\\config.json");
+        LoadLanguage();
+        initMenu();
+        starts.toParent();
+      });
+    //--
+  //---
+  starts.setSubChildDisplayType(1);
+  starts.addLayer("root",toSet(New));
+  starts.addChild("root","main",toSet(Select,Config));
+  starts.addSubChild("main","stage",toSet(stage));
+  starts.addSubChild("main","confMenu",toSet(Colorinv,Lang),toSet(confBox));
+  starts.addSubChild("confMenu","Language",toSet(LangList));
 }
 
 void Load() {
@@ -175,8 +313,31 @@ void Load() {
 }
 
 void Field() {
-  if (changeScene) {
+  if (changeScene){
     main=new GameProcess();
+    stage.name=StageName;
+    JSONArray data=loadJSONArray(StageConfPath+StageName+".json");
+    for(int i=0;i<data.size();i++){
+      JSONObject config=data.getJSONObject(i);
+      JSONObject param=config.getJSONObject("param");
+      if(config.getString("type").equals("auto")){
+        Enemy[] e=new Enemy[param.getJSONArray("name").size()];
+        for(int j=0;j<e.length;j++){
+          try{
+          e[j]=(Enemy)Class.forName("Simple_shooting_2_1$"+param.getJSONArray("name").get(i)).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet);
+          }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
+        }
+        stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{s.autoSpown(param.getBoolean("disp"),param.getFloat("freq"),e);}));
+      }else if(config.getString("type").equals("add")){
+        stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{
+          try{
+            s.addSpown(param.getInt("number"),param.getFloat("dist"),param.getFloat("offset"),
+            (Enemy)Class.forName("Simple_shooting_2_1$"+param.getString("name")).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
+          }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
+        }));
+      }
+    }
+    stage.addProcess(StageName,new TimeSchedule(2000,s->{s.endSchedule=true;}));
   }
   main.process();
 }
@@ -240,20 +401,15 @@ void updatePreValue() {
   pmousePress=mousePressed;
   pscene=scene;
   pMenu=nowMenu;
-  pEnemyNum=EnemyX.size();
+  pEnemyNum=EntityX.size();
   pBulletNum=BulletX.size();
-  EnemyX.clear();
-  EnemyData.clear();
+  EntityX.clear();
+  EntityDataX.clear();
   BulletX.clear();
   BulletData.clear();
 }
 
 void Shader() {
-  if (ColorInv) {
-    colorInv.set("tex", g);
-    colorInv.set("resolution", width, height);
-    filter(colorInv);
-  }
   if (player!=null) {
     /*if(scene==2){
      View.set("Map",g);
@@ -278,16 +434,14 @@ void printFPS() {
 }
 
 PMatrix3D getMatrixLocalToWindow() {
-  PMatrix3D projection = ((PGraphics2D)g).projection; // プロジェクション行列
-  PMatrix3D modelview = ((PGraphics2D)g).modelview;   // モデルビュー行列
+  PMatrix3D projection = ((PGraphics2D)g).projection;
+  PMatrix3D modelview = ((PGraphics2D)g).modelview;
 
-  // ビューポート変換行列
   PMatrix3D viewport = new PMatrix3D();
   viewport.m00 = viewport.m03 = width/2;
   viewport.m11 = -height/2;
   viewport.m13 =  height/2;
 
-  // ローカル座標系からウィンドウ座標系への変換行列を計算
   viewport.apply(projection);
   viewport.apply(modelview);
   return viewport;
@@ -318,7 +472,7 @@ PVector unProject(float winX, float winY) {
 
   float[] in = {winX, winY, 1.0f, 1.0f};
   float[] out = new float[4];
-  mat.mult(in, out);  // Do not use PMatrix3D.mult(PVector, PVector)
+  mat.mult(in, out);
 
   if (out[3] == 0 ) {
     return null;
@@ -489,14 +643,16 @@ void keyReleased(processing.event.KeyEvent e) {
 }
 
 class Entity implements Egent, Cloneable {
+  DeadEvent dead=(e)->{};
   float size=20;
-  PVector prePos;
   PVector pos;
   PVector vel=new PVector(0, 0);
   PVector LeftUP;
   PVector LeftDown;
   PVector RightUP;
   PVector RightDown;
+  PVector Center=new PVector();
+  PVector AxisSize=new PVector();
   Color c=new Color(0, 255, 0);
   float rotate=0;
   float accelSpeed=0.25;
@@ -505,6 +661,7 @@ class Entity implements Egent, Cloneable {
   float Mass=10;
   float e=0.5;
   boolean isDead=false;
+  boolean pDead=false;
 
   Entity() {
   }
@@ -513,6 +670,10 @@ class Entity implements Egent, Cloneable {
   }
 
   void update() {
+    if(isDead&&!pDead){
+      dead.deadEvent(this);
+      pDead=isDead;
+    }
   }
 
   void setColor(Color c) {
@@ -537,6 +698,27 @@ class Entity implements Egent, Cloneable {
     clone.vel=vel==null?null:vel.copy();
     clone.c=cloneColor(c);
     return clone;
+  }
+  
+  void addDeadListener(DeadEvent e){
+    dead=e;
+  }
+  
+  final protected void putAABB(){
+    float x=AxisSize.x*0.5;
+    float min=Center.x-x;
+    float max=Center.x+x;
+    synchronized(EntityX){
+      EntityX.put(min,this);
+      EntityX.put(max,this);
+    }
+    synchronized(EntityDataX){
+      EntityDataX.put(min,"s");
+      EntityDataX.put(max,"e");
+    }
+  }
+  
+  void Collision(Entity e){
   }
 }
 
@@ -632,4 +814,8 @@ interface Egent {
   void display();
 
   void update();
+}
+
+interface DeadEvent{
+  void deadEvent(Entity e);
 }

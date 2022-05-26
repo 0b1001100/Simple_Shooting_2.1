@@ -81,12 +81,19 @@ class ExplosionParticle extends Particle{
   float size=0;
   float time=0;
   
-  final float maxTime=0.4;
+  float maxTime=0.4;
   
   ExplosionParticle(Entity e,float size){
     this.pos=e.pos.copy();
     this.size=size;
     pColor=new Color(255,60,0);
+  }
+  
+  ExplosionParticle(Entity e,float size,float time){
+    this.pos=e.pos.copy();
+    this.size=size;
+    pColor=new Color(255,60,0);
+    maxTime=time;
   }
   
   void display(){
