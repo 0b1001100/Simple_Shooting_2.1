@@ -1,4 +1,4 @@
-import processing.awt.*;//当たり判定の重複
+import processing.awt.*;
 import processing.awt.PSurfaceAWT.*;
 
 import java.awt.*;
@@ -172,7 +172,7 @@ void draw() {
     byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
     float block=EntityX.size()/(float)ThreadNumber;
     for(byte b=0;b<ThreadNumber;b++){
-      CollisionProcess.add(new EntityCollision(ceil(block*b),floor(block*(b+1))));
+      CollisionProcess.add(new EntityCollision(ceil(block*b),floor(block*(b+1)),b));
     }
     for(EntityCollision e:CollisionProcess){
       CollisionFuture.add(exec.submit(e));

@@ -85,8 +85,8 @@ class Bullet extends Entity{
     pos.add(vel.copy().mult(vectorMagnification));
     if(age>maxAge)isDead=true;
     age+=vectorMagnification;
-    Center=pos.copy().add(vel.copy().mult(0.5));
-    AxisSize=new PVector(abs(vel.x),abs(vel.y));
+    Center=pos.copy().add(vel.copy().mult(0.5).mult(vectorMagnification));
+    AxisSize=new PVector(abs(vel.x),abs(vel.y)).mult(vectorMagnification);
     putAABB();
   }
   
