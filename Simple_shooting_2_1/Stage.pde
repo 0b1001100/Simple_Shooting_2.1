@@ -125,6 +125,7 @@ class Stage{
 
 class SpownPoint{
   Enemy e;
+  boolean inScreen=false;
   boolean isDead=false;
   PVector pos;
   float time;
@@ -142,6 +143,7 @@ class SpownPoint{
   }
   
   void display(){
+    if(!inScreen)return;
     float t=time%25/25;
     noFill();
     strokeWeight(1);
@@ -155,7 +157,9 @@ class SpownPoint{
       isDead=true;
       e.setPos(pos);
       EnemyHeap.add(e);
+      return;
     }
+    inScreen=-scroll.x<pos.x-e.size*0.35&&pos.x+e.size*0.35<-scroll.x+width&&-scroll.y<pos.y-e.size*0.35&&pos.y+e.size*0.35<-scroll.y+height;
   }
 }
 

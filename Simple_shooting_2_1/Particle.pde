@@ -211,6 +211,6 @@ class particleFragment{
   
   void update(){
     pos.add(vel.copy().mult(vectorMagnification));
-    inScreen=-scroll.x<pos.x-size/2&pos.x+size/2<-scroll.x+width&-scroll.y<pos.y-size/2&pos.y+size/2<-scroll.y+height;
+    inScreen=-scroll.x<pos.x-size/2&&pos.x+size/2<-scroll.x+width&&-scroll.y<pos.y-size/2&&pos.y+size/2<-scroll.y+height;
   }
 }

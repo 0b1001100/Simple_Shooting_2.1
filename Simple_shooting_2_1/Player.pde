@@ -184,19 +184,11 @@ class Myself extends Entity{
     vel.y=-Speed;
     vel=unProject(vel.x,vel.y);
     pos.add(vel.mult(vectorMagnification));
-    LeftUP=new PVector(pos.x-size,pos.y+size);
-    LeftDown=new PVector(pos.x-size,pos.y-size);
-    RightUP=new PVector(pos.x+size,pos.y+size);
-    RightDown=new PVector(pos.x+size,pos.y-size);
   }
   
   void move(PVector v){
     vel.add(v);
     pos.add(v.mult(vectorMagnification));
-    LeftUP=new PVector(pos.x-size,pos.y+size);
-    LeftDown=new PVector(pos.x-size,pos.y-size);
-    RightUP=new PVector(pos.x+size,pos.y+size);
-    RightDown=new PVector(pos.x+size,pos.y-size);
     camera.reset();
   }
   

@@ -1,7 +1,3 @@
-TreeMap<Float,Bullet>BulletX=new TreeMap<Float,Bullet>();
-TreeMap<Float,Object>BulletEnemyX=new TreeMap<Float,Object>();
-HashMap<Float,String>BulletData=new HashMap<Float,String>();
-
 class Bullet extends Entity{
   Weapon parent;
   boolean isMine=false;

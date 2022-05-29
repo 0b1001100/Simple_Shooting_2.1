@@ -26,13 +26,13 @@ Future<?> particleFuture;
 Future<?> enemyFuture;
 Future<?> bulletFuture;
 
-ArrayList<Future<?>>CollisionFuture;
+ArrayList<Future<?>>CollisionFuture=new ArrayList<Future<?>>();
 
 ParticleProcess particleTask=new ParticleProcess();
 EnemyProcess enemyTask=new EnemyProcess();
 BulletProcess bulletTask=new BulletProcess();
 
-ArrayList<EntityCollision>CollisionProcess;
+ArrayList<EntityCollision>CollisionProcess=new ArrayList<EntityCollision>();
 byte collisionNumber=16;
 int minDataNumber=4;
 
@@ -84,8 +84,7 @@ String StageName="";
 long pTime=0;
 int nowPressedKeyCode;
 int ModifierKey=0;
-int pEnemyNum=0;
-int pBulletNum=0;
+int pEntityNum=0;
 int pscene=0;
 int scene=0;
 
@@ -155,8 +154,6 @@ void draw() {
   }
   eventProcess();
   if(scene==2){
-    CollisionFuture=new ArrayList<Future<?>>();
-    CollisionProcess=new ArrayList<EntityCollision>();
     try {
       bulletFuture.get();
       particleFuture.get();
@@ -169,10 +166,13 @@ void draw() {
     }
     catch(NullPointerException g) {
     }
-    byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
-    float block=EntityX.size()/(float)ThreadNumber;
-    for(byte b=0;b<ThreadNumber;b++){
-      CollisionProcess.add(new EntityCollision(ceil(block*b),floor(block*(b+1)),b));
+    if(pEntityNum!=EntityX.size()){
+      CollisionProcess.clear();
+      byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
+      float block=EntityX.size()/(float)ThreadNumber;
+      for(byte b=0;b<ThreadNumber;b++){
+        CollisionProcess.add(new EntityCollision(ceil(block*b),floor(block*(b+1)),b));
+      }
     }
     for(EntityCollision e:CollisionProcess){
       CollisionFuture.add(exec.submit(e));
@@ -324,7 +324,7 @@ void Field() {
         Enemy[] e=new Enemy[param.getJSONArray("name").size()];
         for(int j=0;j<e.length;j++){
           try{
-          e[j]=(Enemy)Class.forName("Simple_shooting_2_1$"+param.getJSONArray("name").get(i)).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet);
+          e[j]=(Enemy)Class.forName("Simple_shooting_2_1$"+param.getJSONArray("name").get(j)).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet);
           }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
         }
         stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{s.autoSpown(param.getBoolean("disp"),param.getFloat("freq"),e);}));
@@ -357,35 +357,6 @@ void eventProcess() {
   }
 }
 
-/*void CollisionProcess() {
-  BulletEnemyX=new TreeMap<Float,Object>(BulletX);
-  BulletEnemyX.putAll(EnemyX);
-  if (pEnemyNum!=EnemyX.size()) {
-    p1=new EnemyCollision(0,(int)(EnemyX.size()*0.33));
-    p2=new EnemyCollision((int)(EnemyX.size()*0.33), (int)(EnemyX.size()*0.66));
-    p3=new EnemyCollision((int)(EnemyX.size()*0.66), EnemyX.size());
-  }
-  if (pBulletNum!=BulletX.size()) {
-    b1=new BulletCollision(0,(int)(BulletEnemyX.size()*0.5));
-    b2=new BulletCollision((int)(BulletEnemyX.size()*0.5), BulletEnemyX.size());
-  }
-  try {
-    CollisionFuture1=exec.submit(p1);
-    CollisionFuture2=exec.submit(p2);
-    CollisionFuture3=exec.submit(p3);
-    BulletCollision1=exec.submit(b1);
-    BulletCollision2=exec.submit(b2);
-  }
-  catch(Exception e) {
-  }
-  pEnemyNum=EnemyX.size();
-  pBulletNum=BulletX.size();
-  EnemyX.clear();
-  EnemyData.clear();
-  BulletX.clear();
-  BulletData.clear();
-}*/
-
 void updateFPS() {
   Times.add(System.currentTimeMillis()-pTime);
   while (Times.size()>60) {
@@ -401,12 +372,9 @@ void updatePreValue() {
   pmousePress=mousePressed;
   pscene=scene;
   pMenu=nowMenu;
-  pEnemyNum=EntityX.size();
-  pBulletNum=BulletX.size();
+  pEntityNum=EntityX.size();
   EntityX.clear();
   EntityDataX.clear();
-  BulletX.clear();
-  BulletData.clear();
 }
 
 void Shader() {
@@ -646,14 +614,10 @@ class Entity implements Egent, Cloneable {
   DeadEvent dead=(e)->{};
   float size=20;
   PVector pos;
-  PVector vel=new PVector(0, 0);
-  PVector LeftUP;
-  PVector LeftDown;
-  PVector RightUP;
-  PVector RightDown;
+  PVector vel=new PVector(0,0);
   PVector Center=new PVector();
   PVector AxisSize=new PVector();
-  Color c=new Color(0, 255, 0);
+  Color c=new Color(0,255,0);
   float rotate=0;
   float accelSpeed=0.25;
   float maxSpeed=7.5;

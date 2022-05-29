@@ -19,5 +19,17 @@
       "offset":0,
       "name":"Turret"
     }
+  },
+  {
+    "time":20,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.02,
+      "name":[
+        "Turret",
+        "Plus"
+      ]
+    }
   }
 ]

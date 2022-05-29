@@ -80,10 +80,6 @@ class Enemy extends Entity implements Cloneable{
     addVel(accelSpeed,false);
     pos.add(vel);
     inScreen=-scroll.x<pos.x+size/2&pos.x-size/2<-scroll.x+width&-scroll.y<pos.y+size/2&pos.y-size/2<-scroll.y+height;
-    LeftUP=new PVector(pos.x-size,pos.y+size);
-    LeftDown=new PVector(pos.x-size,pos.y-size);
-    RightUP=new PVector(pos.x+size,pos.y+size);
-    RightDown=new PVector(pos.x+size,pos.y-size);
   }
   
   private void addVel(float accel,boolean force){
@@ -120,15 +116,6 @@ class Enemy extends Entity implements Cloneable{
   Enemy setPos(PVector p){
     pos=p;
     return this;
-  }
-  
-  void updateVertex(){
-    float s=size*0.5;
-    float r=-rotate+PI*0.25;
-    LeftUP=new PVector(pos.x-cos(r)*s,pos.y+sin(r)*s);
-    LeftDown=new PVector(pos.x-cos(r)*s,pos.y-sin(r)*s);
-    RightUP=new PVector(pos.x+cos(r)*s,pos.y+sin(r)*s);
-    RightDown=new PVector(pos.x+cos(r)*s,pos.y-sin(r)*s);
   }
   
   void Hit(Weapon w){
@@ -173,18 +160,22 @@ class Enemy extends Entity implements Cloneable{
   void Collision(Entity e){
     if(e instanceof Explosion){
       if(!Expl){
-        Hit(((Explosion)e).power*vectorMagnification);
-        Expl=true;
+        if(qDist(pos,e.pos,(e.size+size)*0.5)){
+          Hit(((Explosion)e).power*vectorMagnification);
+          Expl=true;
+        }
       }
       return;
     }else if(e instanceof Enemy){
-      PVector c=pos.copy().sub(e.pos).normalize();
-      PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-      vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-      e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-      pos.sub(d);
-      if(vel.magSq()>maxSpeed*maxSpeed){
-        vel.normalize().mult(maxSpeed);
+      if(qDist(pos,e.pos,(size+e.size)*0.5)){
+        PVector c=pos.copy().sub(e.pos).normalize();
+        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+        pos.sub(d);
+        if(vel.magSq()>maxSpeed*maxSpeed){
+          vel.normalize().mult(maxSpeed);
+        }
       }
     }else if(e instanceof Bullet){
     }
