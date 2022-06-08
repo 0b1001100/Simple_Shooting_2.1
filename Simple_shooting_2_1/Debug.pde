@@ -23,7 +23,7 @@ void Debug(){
         case 1:Text="ParticleTime(ms):"+ParticleTime;break;
         case 2:Text="BulletTime(ms):"+BulletTime;break;
         case 3:Text="EnemyTime(ms):"+EnemyTime;break;
-        case 4:Text="EnemyNumber:"+Enemies.size();break;
+        case 4:Text="EntityNumber:"+Entities.size();break;
       }
       text(Text,30,100+i*20);
     }

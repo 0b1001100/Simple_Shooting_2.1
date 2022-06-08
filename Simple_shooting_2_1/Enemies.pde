@@ -1,5 +1,5 @@
-TreeMap<Float,Entity>EntityX=new TreeMap<Float,Entity>();
-HashMap<Float,String>EntityDataX=new HashMap<Float,String>();
+Map<Float,Entity>EntityX=new TreeMap<Float,Entity>();
+Map<Float,String>EntityDataX=new HashMap<Float,String>();
 
 class Enemy extends Entity implements Cloneable{
   HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
@@ -31,6 +31,7 @@ class Enemy extends Entity implements Cloneable{
     if(Debug){
       strokeWeight(1);
       stroke(255);
+      noFill();
       rectMode(CENTER);
       rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
     }
@@ -55,11 +56,17 @@ class Enemy extends Entity implements Cloneable{
     Expl=false;
     Rotate();
     move();
-    Collision();
     Center=pos;
     AxisSize=new PVector(size,size);
     putAABB();
     Process();
+    if(inScreen){
+      if(!nearEnemy.contains(this)){
+        nearEnemy.add(this);
+      }else{
+        playerDistsq=sqDist(player.pos,pos);
+      }
+    }
   }
   
   void Rotate(){
@@ -141,19 +148,8 @@ class Enemy extends Entity implements Cloneable{
   
   void Down(){
     isDead=true;
-    ParticleHeap.add(new Particle(this,(int)size*3,1));
-    ExpHeap.add(new Exp(this,exp));
-  }
-  
-  void Collision(){
-    playerDistsq=sqDist(player.pos,pos);
-    if(!player.isDead&&playerDistsq<=((player.size+size)*0.5)*((player.size+size)*0.5)){
-      float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
-      float d=(player.size+size)*0.5-dist(player.pos,pos);
-      vel=new PVector(-cos(r)*d,-sin(r)*d);
-      pos.add(vel);
-      player.Hit(1);
-    }
+    NextEntities.add(new Particle(this,(int)size*3,1));
+    NextEntities.add(new Exp(this,exp));
   }
   
   @Override
@@ -165,7 +161,6 @@ class Enemy extends Entity implements Cloneable{
           Expl=true;
         }
       }
-      return;
     }else if(e instanceof Enemy){
       if(qDist(pos,e.pos,(size+e.size)*0.5)){
         PVector c=pos.copy().sub(e.pos).normalize();
@@ -178,6 +173,15 @@ class Enemy extends Entity implements Cloneable{
         }
       }
     }else if(e instanceof Bullet){
+      e.Collision(this);
+    }else if(e instanceof Myself){
+      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
+        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
+        float d=(player.size+size)*0.5-dist(player.pos,pos);
+        vel=new PVector(-cos(r)*d,-sin(r)*d);
+        pos.add(vel);
+        player.Hit(1);
+      }
     }
   }
   

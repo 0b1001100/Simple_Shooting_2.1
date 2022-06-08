@@ -1,5 +1,8 @@
+java.util.List<Enemy>nearEnemy=Collections.synchronizedList(new ArrayList<Enemy>());
+
 class Myself extends Entity{
   HashMap<String,StatusManage>effects=new HashMap<String,StatusManage>();
+  ArrayList<SubWeapon>subWeapons=new ArrayList<SubWeapon>();
   ArrayList<Weapon>weapons=new ArrayList<Weapon>();
   Weapon selectedWeapon;
   Weapon ShotWeapon;
@@ -42,14 +45,14 @@ class Myself extends Entity{
     weapons.add(new EnergyBullet(this));
     weapons.add(new DiffuseBullet(this));
     weapons.add(new PulseBullet(this));
+    subWeapons.add(masterTable.get("G_Shot").getWeapon());
     resetWeapon();
     camera=new Camera();
     camera.setTarget(this);
     addDeadListener((e)->{
       addExplosion(this,250,1);
-      ParticleHeap.add(new Particle(this,(int)size*3,1));
+      NextEntities.add(new Particle(this,(int)size*3,1));
     });
-    //effects.put("test",new StatusManage(this).setHP(32768));
   }
   
   void display(){
@@ -86,7 +89,6 @@ class Myself extends Entity{
       Rotate();
       move();
       shot();
-      BulletCollision();
       if(HP.get().intValue()<=0){
         isDead=true;
         return;
@@ -100,9 +102,17 @@ class Myself extends Entity{
       effects=nextEffects;
     }
     camera.update();
+    subWeapons.forEach(w->{w.update();});
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
     invincibleTime=max(0,invincibleTime-0.016*vectorMagnification);
+    setAABB();
+  }
+  
+  void setAABB(){
+    Center=pos;
+    AxisSize=new PVector(size,size);
+    putAABB();
   }
   
   @Deprecated
@@ -243,15 +253,20 @@ class Myself extends Entity{
     Speed=min(abs(Speed),maxSpeed)/vectorMagnification*sign(Speed);
   }
   
-  void BulletCollision(){
-    hit=false;
-    damage=0;
-    COLLISION:for(Bullet b:eneBullets){
-      if(b.isDead)continue COLLISION;
-      if(CircleCollision(pos,size,b.pos,b.vel)){
-        b.isDead=true;
-        Hit(b.power);
-        continue COLLISION;
+  @Override
+  void Collision(Entity e){
+    if(e instanceof Explosion){
+      if(!((Explosion)e).myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
+        Hit(((Explosion)e).power*vectorMagnification);
+      }
+    }else if(e instanceof Enemy){
+      e.Collision(this);
+    }else if(e instanceof Bullet){
+      if(!((Bullet)e).isMine){
+        if(CircleCollision(pos,size,e.pos,e.vel)){
+          e.isDead=true;
+          Hit(((Bullet)e).power);
+        }
       }
     }
   }

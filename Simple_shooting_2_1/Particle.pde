@@ -1,6 +1,5 @@
-class Particle{
+class Particle extends Entity{
   ArrayList<particleFragment>particles=new ArrayList<particleFragment>();
-  boolean isDead=false;
   Color pColor;
   float min=1;
   float max=5;
@@ -72,6 +71,10 @@ class Particle{
     if(time>255){
       isDead=true;
     }
+  }
+  
+  @Override
+  void putAABB(){
   }
 }
 
@@ -164,7 +167,7 @@ class LineFragment extends particleFragment{
   }
 }
 
-class particleFragment{
+class particleFragment implements Egent{
   PVector pos;
   PVector vel;
   boolean inScreen=true;

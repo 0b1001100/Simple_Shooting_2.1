@@ -3,6 +3,7 @@ class GameProcess{
   menuManage mainMenu;
   Color menuColor=new Color(230,230,230);
   PShader menuShader;
+  PShader backgroundShader;
   float UItime=0;
   boolean gameOver=false;
   boolean animation=false;
@@ -20,34 +21,28 @@ class GameProcess{
     setup();
   }
   
-  void setup(){
+   public void setup(){
     init();
   }
   
-  void init(){
-    Particles=Collections.synchronizedList(new ArrayList<Particle>());
-    eneBullets=Collections.synchronizedList(new ArrayList<Bullet>());
-    Bullets=Collections.synchronizedList(new ArrayList<Bullet>());
-    Enemies=Collections.synchronizedList(new ArrayList<Enemy>());
-    Exps=Collections.synchronizedList(new ArrayList<Exp>());
-    ParticleHeap=Collections.synchronizedList(new ArrayList<Particle>());
-    eneBulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
-    BulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
-    EnemyHeap=Collections.synchronizedList(new ArrayList<Enemy>());
-    ExpHeap=Collections.synchronizedList(new ArrayList<Exp>());
+   public void init(){
+    Entities=new ArrayList<Entity>();
     UpgradeSet=new ComponentSet();
     mainMenu=new menuManage();
     player=new Myself();
     stage=new Stage();
+    backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
   }
   
-  void process(){
+   public void process(){
     if(player.levelup)pause=true;
     if(player.isDead){
       pause=true;
     }
     done=false;
     background(0);
+    backgroundShader.set("offset",player.pos.x,-player.pos.y);
+    filter(backgroundShader);
     drawShape();
     if(gameOver){
       scene=0;
@@ -55,56 +50,136 @@ class GameProcess{
       return;
     }
     Debug();
-    if(!pause){
-      updateShape();
-    }else{
-      pauseProcess();
-    }
+    updateShape();
     keyProcess();
     done=true;
   }
 
-  void updateShape(){
-    try{
-      particleFuture=exec.submit(particleTask);
-      enemyFuture=exec.submit(enemyTask);
-      bulletFuture=exec.submit(bulletTask);
-    }catch(Exception e){
+  public void updateShape(){
+    if(!pause){
+      for(int i=0;i<nearEnemy.size();i++){
+        Enemy e=nearEnemy.get(i);
+        if(e!=null&&(e.isDead||!e.inScreen)){
+          nearEnemy.remove(e);
+          i--;
+        }
+      }
+      Collections.sort(nearEnemy,new Comparator<Enemy>(){
+        @Override
+        public int compare(Enemy e1,Enemy e2) {
+          return Float.compare(e1.playerDistsq,e2.playerDistsq);
+        }
+      });
+      player.update();
+    }else{
+      EnemyTime=BulletTime=ParticleTime=0;
+      if(player.levelup){
+        upgrade=true;
+        int num=3;
+        Item[]list=new Item[num];
+        ItemTable copy=playerTable.clone();
+        for(int i=0;i<num;i++){
+          list[i]=copy.getRandom();
+          copy.removeTable(list[i].getName());
+        }
+        UpgradeSet.removeAll();
+        MenuButton[]buttons=new MenuButton[num];
+        for(int i=0;i<num;i++){
+          buttons[i]=(MenuButton)new MenuButton(list[i].getName()).setBounds(width/2-150,height/2-60+45*i,300,30);
+          Item item=list[i];
+          buttons[i].addListener(()->{
+            if(player.subWeapons.contains(item.getWeapon())){
+              item.getWeapon().upgrade(item.getUpgradeArray(),item.getWeapon().level+1);
+            }else{
+              player.subWeapons.add(item.getWeapon());
+            }
+            pause=false;
+            upgrade=false;
+          });
+        }
+        UpgradeSet.addAll(buttons);
+        player.levelup=false;
+      }
+      if(upgrade){
+        fill(240);
+        noStroke();
+        rectMode(CENTER);
+        rect(width/2,height/2,400,600);
+        UpgradeSet.display();
+        UpgradeSet.update();
+      }
+      if(player.isDead){
+        deadTimer+=0.016f*vectorMagnification;
+        if(deadTimer>maxDeadTime){
+          player.remain--;
+          if(player.remain<=0){
+            gameOver=true;
+            pause=false;
+            return;
+          }
+          player.isDead=player.pDead=false;
+          player.invincibleTime=3;
+          player.HP.reset();
+          pause=false;
+          deadTimer=0;
+        }
+        player.update();
+      }
     }
-    stage.update();
+    if(!upgrade){
+      stage.update();
+      UpdateProcess.clear();
+      byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
+      float block=Entities.size()/(float)ThreadNumber;
+      for(byte b=0;b<ThreadNumber;b++){
+        UpdateProcess.add(new EntityProcess(round(block*b),round(block*(b+1))));
+      }
+      try{
+        for(EntityProcess e:UpdateProcess){
+          entityFuture.add(exec.submit(e));
+        }
+      }catch(Exception e){println(e);
+      }
+      for(Future<?> f:entityFuture){
+        try {
+          f.get();
+        }
+        catch(ConcurrentModificationException e) {
+          e.printStackTrace();
+        }
+        catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+        }
+        catch(NullPointerException g) {
+        }
+      }
+      Entities.clear();
+      Entities.addAll(NextEntities);
+      NextEntities.clear();
+    }
   }
   
-  void drawShape(){
+  public void drawShape(){
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
     stage.display();
-    for(Particle p:Particles){
-        p.display();
-    }
-    for(Exp e:Exps){
+    for(Entity e:Entities){
       e.display();
-    }
-    Lighting.set("resolution", width, height);
-    for(int i=0;i<1;i++){
-      Lighting.set("texture",g);
-      filter(Lighting);
-    }
-    for(Bullet b:eneBullets){
-      b.display();
-    }
-    for(Bullet b:Bullets){
-      b.display();
     }
     if(!player.isDead)player.display();
-    for(Enemy e:Enemies){
-      e.display();
+    for(GravityBullet G:LensData){
+      GravityLens.set("texture",g);
+      GravityLens.set("center",G.screen.x,G.screen.y);
+      GravityLens.set("resolution",width,height);
+      GravityLens.set("g",G.scale*0.1);
+      applyShader(GravityLens);
     }
+    LensData.clear();
     displayHUD();
     popMatrix();
   }
   
-  void displayHUD(){
+  public void displayHUD(){
     pushMatrix();
     resetMatrix();
     rectMode(CORNER);
@@ -114,72 +189,14 @@ class GameProcess{
     rect(200,30,width-230,30);
     fill(255);
     noStroke();
-    rect(202.5,32.5,(width-225)*player.exp/player.nextLevel,25);
+    rect(202.5f,32.5f,(width-225)*player.exp/player.nextLevel,25);
     textSize(20);
     textAlign(RIGHT);
     text("LEVEL "+player.Level,190,52);
     popMatrix();
   }
   
-  void pauseProcess(){
-    EnemyTime=BulletTime=ParticleTime=0;
-    if(player.levelup){
-      upgrade=true;
-      UpgradeSet.removeAll();
-      MenuButton first=(MenuButton)new MenuButton("Green").setBounds(width/2-150,height/2-45,300,30);
-      first.addListener(()->{
-        player.weapons.get(0).bulletNumber++;
-        pause=false;
-        upgrade=false;
-      });
-      MenuButton second=(MenuButton)new MenuButton("Red").setBounds(width/2-150,height/2,300,30);
-      second.addListener(()->{
-        pause=false;
-        upgrade=false;
-      });
-      MenuButton third=(MenuButton)new MenuButton("Blue").setBounds(width/2-150,height/2+45,300,30);
-      third.addListener(()->{
-        player.weapons.get(2).bulletNumber++;
-        pause=false;
-        upgrade=false;
-      });
-      UpgradeSet.addAll(first,second,third);
-      player.levelup=false;
-    }
-    if(upgrade){
-      fill(240);
-      noStroke();
-      rectMode(CENTER);
-      rect(width/2,height/2,400,600);
-      UpgradeSet.display();
-      UpgradeSet.update();
-    }
-    if(player.isDead){
-      deadTimer+=0.016*vectorMagnification;
-      if(deadTimer>maxDeadTime){
-        player.remain--;
-        if(player.remain<=0){
-          gameOver=true;
-          pause=false;
-          return;
-        }
-        player.isDead=player.pDead=false;
-        player.invincibleTime=3;
-        player.HP.reset();
-        pause=false;
-        deadTimer=0;
-        return;
-      }
-      try{
-        particleFuture=exec.submit(particleTask);
-        enemyFuture=exec.submit(enemyTask);
-        bulletFuture=exec.submit(bulletTask);
-      }catch(Exception e){
-      }
-    }
-  }
-  
-  void switchMenu(){
+   public void switchMenu(){
     if((key=='c'|keyCode==CONTROL)&menu.equals("Main")&!animation){
       mainMenu.init();
       menu="Menu";
@@ -220,23 +237,23 @@ class GameProcess{
     }
   }
   
-  void drawMenu(){
+   public void drawMenu(){
     mainMenu.display();
   }
   
-  void updateMenu(){
+   public void updateMenu(){
     mainMenu.update();
   }
   
-  void keyProcess(){
+   public void keyProcess(){
     if(keyPress&(key=='c'|keyCode==CONTROL|key=='x'|keyCode==SHIFT|keyCode==LEFT))switchMenu();
   }
   
-  void menuShading(){
+   public void menuShading(){
     menuShader.set("time",UItime);
     menuShader.set("xy",(float)x,(float)y);
     menuShader.set("resolution",(float)width,(float)height);
-    menuShader.set("menuColor",(float)menuColor.getRed()/255,(float)menuColor.getGreen()/255,(float)menuColor.getBlue()/255,1.0);
+    menuShader.set("menuColor",(float)menuColor.getRed()/255,(float)menuColor.getGreen()/255,(float)menuColor.getBlue()/255,1.0f);
     menuShader.set("tex",g);
     filter(menuShader);
   }
@@ -251,7 +268,7 @@ class GameProcess{
     menuManage(){
     }
     
-    void init(){
+     public void init(){
       layer=new ComponentSetLayer();
       main=null;
       initMain();
@@ -260,7 +277,7 @@ class GameProcess{
       }
     }
     
-    void initMain(){
+     public void initMain(){
       main=new ComponentSet();
       layer.addLayer("Main",main);
       MenuButton equip=new MenuButton("装備");
@@ -291,25 +308,25 @@ class GameProcess{
       componentMap.put("main",main);
     }
     
-    void display(){
+     public void display(){
       layer.display();
     }
     
-    void update(){
+     public void update(){
       boolean Stack=false;
       layer.update();
       pStack=Stack;
     }
     
-    void dispose(){
+     public void dispose(){
       main=null;
     }
     
-    boolean isMain(){
+     public boolean isMain(){
       return layer.getLayerName().equals("Main");
     }
     
-    void back(){
+     public void back(){
       layer.toParent();
     }
   }

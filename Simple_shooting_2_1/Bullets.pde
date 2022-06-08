@@ -1,7 +1,6 @@
 class Bullet extends Entity{
   Weapon parent;
   boolean isMine=false;
-  boolean isDead=false;
   boolean bounse=false;
   Color bulletColor;
   Color parentColor;
@@ -10,6 +9,9 @@ class Bullet extends Entity{
   float power;
   float age=0;
   int maxAge=0;
+  
+  Bullet(){
+  }
   
   Bullet(Myself m){
     rotate=-atan2(m.pos.x-localMouse.x,m.pos.y-localMouse.y)-PI/2+random(-m.diffuse/2,m.diffuse/2);
@@ -81,6 +83,10 @@ class Bullet extends Entity{
     pos.add(vel.copy().mult(vectorMagnification));
     if(age>maxAge)isDead=true;
     age+=vectorMagnification;
+    setAABB();
+  }
+  
+  void setAABB(){
     Center=pos.copy().add(vel.copy().mult(0.5).mult(vectorMagnification));
     AxisSize=new PVector(abs(vel.x),abs(vel.y)).mult(vectorMagnification);
     putAABB();
@@ -114,18 +120,157 @@ class Bullet extends Entity{
   }
 }
 
-class HomingBullet extends Bullet{
-  Entity target=null;
-  float mag=0.0005;
+class SubBullet extends Bullet{
+  float scale=0;
+  int duration=0;
+  int through=0;
   
-  HomingBullet(Myself m,Entity e){
-    super(m);
-    target=e;
+  SubBullet(SubWeapon w){
+    parent=w;
+    scale=w.scale;
+    power=w.power;
+    speed=w.speed;
+    maxAge=w.bulletMaxAge;
+    duration=w.duration;
+    through=w.through;
+    isMine=true;
+    pos=player.pos.copy();
+    rotate=random(0,TWO_PI);
+    vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
   }
   
-  HomingBullet(Entity e,Weapon w,Entity t){
-    super(e,w);
-    target=t;
+  void setNear(int num){
+    if(nearEnemy.size()>0){
+      float rad=-atan2(pos,nearEnemy.get(num).pos)+HALF_PI+random(radians(-2),radians(2));
+      vel=new PVector(cos(rad)*speed,sin(rad)*speed);
+    }
+  }
+}
+
+class GravityBullet extends SubBullet{
+  PVector screen;
+  boolean stop=false;
+  float count=0;
+  final float damageCoolTime=30;
+  
+  GravityBullet(SubWeapon w,int num){
+    super(w);
+    setNear(num);
+    screen=new PVector(pos.x-player.pos.x+width*0.5,height-(pos.y-player.pos.y+height*0.5));
+  }
+  
+  void display(){
+    if(stop){
+      LensData.add(this);
+    }else{
+      stroke(200,110,255);
+      line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    }
+  }
+  
+  void update(){
+    pos.add(vel.copy().mult(vectorMagnification));
+    if(!stop&&age>maxAge){
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
+    }
+    if(count>damageCoolTime){
+      count=0;
+    }
+    if(duration<0)isDead=true;
+    if(stop){
+      duration-=vectorMagnification;
+      count+=vectorMagnification;
+    }else{
+      age+=vectorMagnification;
+    }
+    screen=new PVector(pos.x-player.pos.x+width*0.5,height-(pos.y-player.pos.y+height*0.5));
+    setAABB();
+  }
+  
+  void setAABB(){
+    if(stop){
+      Center=pos;
+      AxisSize=new PVector(scale,scale).mult(1.5);
+    }else{
+      Center=pos.copy().add(vel.copy().mult(0.5).mult(vectorMagnification));
+      AxisSize=new PVector(abs(vel.x),abs(vel.y)).mult(vectorMagnification);
+    }
+    putAABB();
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(e instanceof Enemy){
+      if(stop){
+        if(qDist(pos,e.pos,(e.size+scale)*0.75)){
+          float rad=-atan2(pos,e.pos)+HALF_PI;
+          e.vel.add(new PVector(-dist(pos,e.pos)/((e.size+scale)*0.75),0).rotate(rad));
+        }
+        if(count>=damageCoolTime&&qDist(pos,e.pos,(e.size+scale)*0.5)){
+          ((Enemy)e).Hit(parent);
+        }
+      }else{
+        if(CircleCollision(e.pos,e.size,pos,vel)){
+          ((Enemy)e).Hit(parent.power*3);
+          age=0;
+          stop=true;
+          vel=new PVector(0,0);
+        }
+      }
+    }
+  }
+}
+
+class TurretBullet extends SubBullet{
+  
+  TurretBullet(SubWeapon w,int num){
+    super(w);
+    setNear(num);
+    bulletColor=new Color(0,150,255);
+  }
+}
+
+class GrenadeBullet extends SubBullet{
+  
+  GrenadeBullet(SubWeapon w,int num){
+    super(w);
+    setNear(num);
+    bulletColor=new Color(0,150,255);
+  }
+  
+  void update(){
+    pos.add(vel.copy().mult(vectorMagnification));
+    if(age>maxAge){
+      isDead=true;
+      addExplosion(this,scale,0.3);
+    }
+    age+=vectorMagnification;
+    setAABB();
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(e instanceof Enemy){
+      if(CircleCollision(e.pos,e.size,pos,vel)){
+        ((Enemy)e).Hit(parent.power*3);
+        isDead=true;
+        addExplosion(this,scale,0.3);
+      }
+    }
+  }
+}
+
+class HomingBullet extends SubBullet{
+  float mag=0.0005;
+  int num;
+  
+  HomingBullet(SubWeapon w,int num){
+    super(w);
+    setNear(num);
+    bulletColor=new Color(0,0,255);
+    this.num=num;
   }
   
   @Override
@@ -136,12 +281,13 @@ class HomingBullet extends Bullet{
   @Override
   void update(){
     super.update();
-    float rad=atan2(target.pos.x-pos.x,target.pos.y-pos.y)-PI*0.5;
+    float rad=atan2(nearEnemy.get(num).pos.x-pos.x,nearEnemy.get(num).pos.y-pos.y)-PI*0.5;
     float nRad=0<rotate?rad+TWO_PI:rad-TWO_PI;
     rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
     rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,PI*mag*vectorMagnification);
     rotate+=rad;
     rotate%=TWO_PI;
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
+    setAABB();
   }
 }

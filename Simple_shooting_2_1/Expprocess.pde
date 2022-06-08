@@ -34,9 +34,17 @@ class Exp extends Entity{
   }
   
   void update(){
-    if(qDist(player.pos,pos,player.size*2)){
+    if(inScreen&&qDist(player.pos,pos,player.size*2)){
       player.exp+=this.exp;
       isDead=true;
     }
+  }
+  
+  @Override
+  void putAABB(){
+  }
+  
+  @Override
+  void Collision(Entity e){
   }
 }

@@ -7,14 +7,16 @@ class Explosion extends Enemy{
     pos=e.pos.copy();
     this.size=0;
     p=new ExplosionParticle(e,size);
-    ParticleHeap.add(p);
+    NextEntities.add(p);
+    myself=e instanceof Myself;
   }
   
   Explosion(Entity e,float size,float time){
     pos=e.pos.copy();
     this.size=0;
     p=new ExplosionParticle(e,size,time);
-    ParticleHeap.add(p);
+    NextEntities.add(p);
+    myself=e instanceof Myself;
   }
   
   void display(){
@@ -41,20 +43,15 @@ class Explosion extends Enemy{
   }
   
   @Override
-  void Collision(){
-    
-  }
-  
-  @Override
   void Hit(Weapon w){
     return;
   }
 }
 
 void addExplosion(Entity e,float size){
-  EnemyHeap.add(new Explosion(e,size));
+  NextEntities.add(new Explosion(e,size));
 }
 
 void addExplosion(Entity e,float size,float time){
-  EnemyHeap.add(new Explosion(e,size,time));
+  NextEntities.add(new Explosion(e,size,time));
 }

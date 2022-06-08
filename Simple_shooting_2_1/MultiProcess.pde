@@ -1,63 +1,21 @@
 import java.util.concurrent.atomic.AtomicInteger;
 
-Future<?> CollisionFuture1;
-Future<?> CollisionFuture2;
-Future<?> CollisionFuture3;
-
-EntityCollision p1;
-EntityCollision p2;
-EntityCollision p3;
-
-Future<?> BulletCollision1;
-Future<?> BulletCollision2;
-
-class ParticleProcess implements Callable<String>{
+class EntityProcess implements Callable<String>{
   long pTime=0;
+  int s;
+  int l;
   
-  ParticleProcess(){
-    
+  EntityProcess(int s,int l){
+    this.s=s;
+    this.l=l;
   }
   
   String call(){
     pTime=System.nanoTime();
-    ArrayList<Particle>nextParticles=new ArrayList<Particle>();
-    for(Particle p:Particles){
-      p.update();
-      if(!p.isDead)nextParticles.add(p);
-    }
-    Particles=nextParticles;
-    synchronized(ParticleHeap){
-    Particles.addAll(ParticleHeap);
-    ParticleHeap.clear();
-    }
-    ArrayList<Exp>nextExp=new ArrayList<Exp>();
-    for(Exp e:Exps){
-      e.update();
-      if(!e.isDead)nextExp.add(e);
-    }
-    Exps=nextExp;
-    synchronized(ExpHeap){
-      Exps.addAll(ExpHeap);
-      ExpHeap.clear();
-    }
-    ParticleTime=(System.nanoTime()-pTime)/1000000f;
-    return "";
-  }
-}
-
-class EnemyProcess implements Callable<String>{
-  long pTime=0;
-  
-  EnemyProcess(){
-  }
-  
-  String call(){
-    pTime=System.nanoTime();
-    player.update();
-    ArrayList<Enemy>nextEnemies=new ArrayList<Enemy>();
-    for(Enemy e:Enemies){
+    for(int i=s;i<l;i++){
+      Entity e=Entities.get(i);
       if(player.isDead){
-        if(e instanceof Explosion){
+        if((e instanceof Explosion)||(e instanceof Particle)){
           e.update();
         }else{
           e.putAABB();
@@ -65,58 +23,11 @@ class EnemyProcess implements Callable<String>{
       }else{
         e.update();
       }
-      if(!e.isDead)nextEnemies.add(e);
-    }
-    Enemies.clear();
-    Enemies.addAll(nextEnemies);
-    synchronized(EnemyHeap){
-      Enemies.addAll(EnemyHeap);
-      EnemyHeap.clear();
+      if(!e.isDead){
+        NextEntities.add(e);
+      }
     }
     EnemyTime=(System.nanoTime()-pTime)/1000000f;
-    return "";
-  }
-}
-
-class BulletProcess implements Callable<String>{
-  long pTime=0;
-  
-  BulletProcess(){
-    
-  }
-  
-  String call(){
-    pTime=System.nanoTime();
-    ArrayList<Bullet>nextBullets=new ArrayList<Bullet>();
-    for(Bullet b:Bullets){
-      if(b.isDead)continue;
-      b.update();
-      if(!b.isDead)nextBullets.add(b);
-    }
-    Bullets=nextBullets;
-    synchronized(BulletHeap){
-      Bullets.addAll(BulletHeap);
-      BulletHeap.clear();
-    }
-    ArrayList<Bullet>nextEneBullets=new ArrayList<Bullet>();
-    for(Bullet b:eneBullets){
-      if(b.isDead)continue;
-      if(player.isDead){
-        synchronized(Enemies){
-          for(Enemy e:Enemies)b.Collision(e);
-        }
-        b.putAABB();
-      }else{
-        b.update();
-      }
-      if(!b.isDead)nextEneBullets.add(b);
-    }
-    eneBullets=nextEneBullets;
-    synchronized(eneBulletHeap){
-      eneBullets.addAll(eneBulletHeap);
-      eneBulletHeap.clear();
-    }
-    BulletTime=(System.nanoTime()-pTime)/1000000f;
     return "";
   }
 }
@@ -142,11 +53,10 @@ class EntityCollision implements Callable<String>{
     entity=new ArrayList<Entity>(EntityX.values());
     for(int i=s;i<l;i++){
       Entity E=entity.get(i);
-      float f=arrayX.get(i);
       if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
-      switch(EntityDataX.get(f)){
-        case "s":Collision(E,i);break;
-        case "e":continue;
+      switch(EntityDataX.get(arrayX.get(i))){
+        case "s":Collision(E,i);break;//kore
+        case "e":break;
       }
     }
     return "";
@@ -156,14 +66,12 @@ class EntityCollision implements Callable<String>{
     ++i;
     for(int j=i;j<EntityX.size();j++){
       Entity e=entity.get(j);
-      float f=arrayX.get(j);
-      if(EntityDataX.get(f).equals("e")){
-        if(E==e)break;
+      if(E==e)break;
+      if(EntityDataX.get(arrayX.get(j)).equals("e")){
         continue;
       }
       if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){
         E.Collision(e);
-        e.Collision(E);
       }
     }
   }

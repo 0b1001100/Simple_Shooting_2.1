@@ -21,25 +21,24 @@ Simple_shooting_2_1 CopyApplet=this;
 
 Myself player;
 
-ExecutorService exec=Executors.newCachedThreadPool();
-Future<?> particleFuture;
-Future<?> enemyFuture;
-Future<?> bulletFuture;
+ExecutorService exec;
 
 ArrayList<Future<?>>CollisionFuture=new ArrayList<Future<?>>();
-
-ParticleProcess particleTask=new ParticleProcess();
-EnemyProcess enemyTask=new EnemyProcess();
-BulletProcess bulletTask=new BulletProcess();
+ArrayList<Future<?>>entityFuture=new ArrayList<Future<?>>();
 
 ArrayList<EntityCollision>CollisionProcess=new ArrayList<EntityCollision>();
 byte collisionNumber=16;
 int minDataNumber=4;
 
+ArrayList<EntityProcess>UpdateProcess=new ArrayList<EntityProcess>();
+byte updateNumber=16;
+
 float vectorMagnification=1;
 
 PShader colorInv;
 PShader Lighting;
+PShader GravityLens;
+java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
 
 GameProcess main;
 Stage stage;
@@ -56,16 +55,8 @@ JSONObject conf;
 
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
-java.util.List<Particle>Particles=Collections.synchronizedList(new ArrayList<Particle>());
-java.util.List<Bullet>eneBullets=Collections.synchronizedList(new ArrayList<Bullet>());
-java.util.List<Bullet>Bullets=Collections.synchronizedList(new ArrayList<Bullet>());
-java.util.List<Enemy>Enemies=Collections.synchronizedList(new ArrayList<Enemy>());
-java.util.List<Exp>Exps=Collections.synchronizedList(new ArrayList<Exp>());
-java.util.List<Particle>ParticleHeap=Collections.synchronizedList(new ArrayList<Particle>());
-java.util.List<Bullet>eneBulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
-java.util.List<Bullet>BulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
-java.util.List<Enemy>EnemyHeap=Collections.synchronizedList(new ArrayList<Enemy>());
-java.util.List<Exp>ExpHeap=Collections.synchronizedList(new ArrayList<Exp>());
+java.util.List<Entity>Entities=new ArrayList<Entity>();
+java.util.List<Entity>NextEntities=Collections.synchronizedList(new ArrayList<Entity>());
 HashSet<String>PressedKeyCode=new HashSet<String>();
 HashSet<String>PressedKey=new HashSet<String>();
 ArrayList<Long>Times=new ArrayList<Long>();
@@ -92,6 +83,7 @@ boolean colorInverse=false;
 
 static final String ShaderPath=".\\data\\shader\\";
 static final String StageConfPath=".\\data\\StageConfig\\";
+static final String WeaponInitPath=".\\data\\WeaponData\\WeaponInit.json";
 
 {PJOGL.profile=4;}
 
@@ -135,12 +127,14 @@ void setup() {
   textFont(font);
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
   Lighting=loadShader(ShaderPath+"Lighting.glsl");
+  GravityLens=loadShader(ShaderPath+"GravityLens.glsl");
   blendMode(ADD);
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
   //initGPGPU();
   LoadData();
+  initThread();
 }
 
 void draw() {
@@ -154,26 +148,15 @@ void draw() {
   }
   eventProcess();
   if(scene==2){
-    try {
-      bulletFuture.get();
-      particleFuture.get();
-      enemyFuture.get();
-    }
-    catch(ConcurrentModificationException e) {
-      e.printStackTrace();
-    }
-    catch(InterruptedException|ExecutionException f) {println(f);f.printStackTrace();
-    }
-    catch(NullPointerException g) {
-    }
     if(pEntityNum!=EntityX.size()){
       CollisionProcess.clear();
       byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
       float block=EntityX.size()/(float)ThreadNumber;
       for(byte b=0;b<ThreadNumber;b++){
-        CollisionProcess.add(new EntityCollision(ceil(block*b),floor(block*(b+1)),b));
+        CollisionProcess.add(new EntityCollision(round(block*b),round(block*(b+1)),b));
       }
     }
+    CollisionFuture.clear();
     for(EntityCollision e:CollisionProcess){
       CollisionFuture.add(exec.submit(e));
     }
@@ -201,6 +184,17 @@ void LoadData(){
   useGPGPU=conf.getBoolean("GPGPU");
   LoadLanguage();
   LanguageData=loadJSONObject(".\\data\\lang\\Languages.json");
+  UpgradeArray=loadJSONObject(".\\data\\WeaponData\\WeaponUpgrade.json");
+  JSONArray a=loadJSONArray(WeaponInitPath);
+  for(int i=0;i<a.size();i++){
+    try{
+      JSONObject o=a.getJSONObject(i);
+      String name=o.getString("name");
+      WeaponConstructor.put(name,Class.forName("Simple_shooting_2_1$"+name+"Weapon").getDeclaredConstructor(Simple_shooting_2_1.class,JSONObject.class));
+      masterTable.addTable(new Item(o,"weapon"),o.getFloat("weight"));
+    }catch(ClassNotFoundException|NoSuchMethodException g){g.printStackTrace();}
+  }
+  Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
 }
 
 void LoadLanguage(){
@@ -312,6 +306,10 @@ void Load() {
   scene=2;
 }
 
+void initThread(){
+  exec=Executors.newFixedThreadPool(collisionNumber);
+}
+
 void Field() {
   if (changeScene){
     main=new GameProcess();
@@ -324,7 +322,7 @@ void Field() {
         Enemy[] e=new Enemy[param.getJSONArray("name").size()];
         for(int j=0;j<e.length;j++){
           try{
-          e[j]=(Enemy)Class.forName("Simple_shooting_2_1$"+param.getJSONArray("name").get(j)).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet);
+            e[j]=(Enemy)Class.forName("Simple_shooting_2_1$"+param.getJSONArray("name").get(j)).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet);
           }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
         }
         stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{s.autoSpown(param.getBoolean("disp"),param.getFloat("freq"),e);}));
@@ -377,14 +375,8 @@ void updatePreValue() {
   EntityDataX.clear();
 }
 
-void Shader() {
+void Shader(){
   if (player!=null) {
-    /*if(scene==2){
-     View.set("Map",g);
-     View.set("StartPos",player.pos);
-     View.set("resolution",width,height);
-     filter(View);
-     }*/
   }
 }
 
@@ -398,6 +390,16 @@ void printFPS() {
   for (long l : Times)MTime+=l;
   MTime/=(float)Times.size();
   text(1000f/MTime, 10, 10);
+  popMatrix();
+}
+
+void applyShader(PShader s){
+  pushMatrix();
+  resetMatrix();
+  shader(s);
+  g.loadPixels();
+  image(g,0,0);
+  resetShader();
   popMatrix();
 }
 
@@ -476,6 +478,10 @@ boolean qDist(PVector s, PVector e, float d) {
 
 boolean qDist(PVector s1, PVector e1, PVector s2, PVector e2) {
   return ((s1.x-e1.x)*(s1.x-e1.x)+(s1.y-e1.y)*(s1.y-e1.y))<=((s2.x-e2.x)*(s2.x-e2.x)+(s2.y-e2.y)*(s2.y-e2.y));
+}
+
+float atan2(PVector s,PVector e){
+  return atan2(e.x-s.x,e.y-s.y);
 }
 
 float cross(PVector v1, PVector v2) {
@@ -668,7 +674,7 @@ class Entity implements Egent, Cloneable {
     dead=e;
   }
   
-  final protected void putAABB(){
+  protected void putAABB(){
     float x=AxisSize.x*0.5;
     float min=Center.x-x;
     float max=Center.x+x;

@@ -102,7 +102,7 @@ class Stage{
         if(displaySpown){
           spown.add(new SpownPoint(v.add(cos(r)*e.size,sin(r)*e.size),e));
         }else{
-          EnemyHeap.add(e.setPos(v.add(cos(r)*e.size,sin(r)*e.size)));
+          NextEntities.add(e.setPos(v.add(cos(r)*e.size,sin(r)*e.size)));
         }
       }catch(CloneNotSupportedException f){}
     }
@@ -156,7 +156,7 @@ class SpownPoint{
     if(time<0){
       isDead=true;
       e.setPos(pos);
-      EnemyHeap.add(e);
+      NextEntities.add(e);
       return;
     }
     inScreen=-scroll.x<pos.x-e.size*0.35&&pos.x+e.size*0.35<-scroll.x+width&&-scroll.y<pos.y-e.size*0.35&&pos.y+e.size*0.35<-scroll.y+height;

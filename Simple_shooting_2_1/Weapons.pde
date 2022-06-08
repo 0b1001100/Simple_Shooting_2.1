@@ -1,3 +1,6 @@
+HashMap<String,Constructor>WeaponConstructor=new HashMap<String,Constructor>();
+int addtionalProjectile=0;
+
 class Weapon implements Equipment,Cloneable{
   Entity parent;
   boolean autoShot=true;
@@ -27,6 +30,9 @@ class Weapon implements Equipment,Cloneable{
   static final int EXPLOSIVE=3;
   
   static final int INFINITY=-1;
+  
+  Weapon(){
+  }
   
   Weapon(Entity e){
     parent=e;
@@ -120,24 +126,70 @@ class Weapon implements Equipment,Cloneable{
   }
   
   void shot(){
-    switch(Attribute){
-    case ENERGY:
-    case PHYSICS:synchronized(Bullets){
-                   for(int i=0;i<this.bulletNumber;i++){
-                     if(parent instanceof Myself){
-                       BulletHeap.add(new Bullet((Myself)parent,i));
-                     }else{
-                       BulletHeap.add(new Bullet(parent,this));
-                     }
-                   }
-                 }
-                 break;
-    case LASER:break;
+    for(int i=0;i<this.bulletNumber;i++){
+      if(parent instanceof Myself){
+        NextEntities.add(new Bullet((Myself)parent,i));
+      }else{
+        NextEntities.add(new Bullet(parent,this));
+      }
     }
   }
   
   Weapon clone()throws CloneNotSupportedException{
     return (Weapon)super.clone();
+  }
+}
+
+class SubWeapon extends Weapon{
+  JSONObject obj;
+  float scale=1;
+  int duration=0;
+  int through=0;
+  int level=1;
+  
+  protected float time=0;
+  
+  SubWeapon(){
+    super();
+  }
+  
+  SubWeapon(JSONObject o){
+    init(o);
+  }
+  
+  void init(JSONObject o){
+    obj=o;
+    name=o.getString("name");
+    bulletNumber=o.getInt("projectile")+addtionalProjectile;
+    scale=o.getFloat("scale");
+    power=o.getFloat("power");
+    speed=o.getFloat("velocity");
+    bulletMaxAge=o.getInt("time");
+    duration=o.getInt("duration");
+    coolTime=o.getFloat("cooltime");
+    through=o.getInt("through");
+  }
+  
+  void upgrade(JSONArray a,int level){
+    this.level=level;
+    JSONObject add=a.getJSONObject(level-2);
+    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
+    bulletNumber+=(param.contains("projectile")?add.getInt("projectile"):0)+addtionalProjectile;
+    scale+=(param.contains("scale")?add.getFloat("scale"):0);
+    power+=(param.contains("power")?add.getFloat("power"):0);
+    speed+=(param.contains("velocity")?add.getFloat("velocity"):0);
+    bulletMaxAge+=(param.contains("time")?add.getInt("time"):0);
+    duration+=(param.contains("duration")?add.getInt("duration"):0);
+    coolTime+=(param.contains("cooltime")?add.getFloat("cooltime"):0);
+    through+=(param.contains("through")?add.getInt("through"):0);
+  }
+  
+  void update(){
+    time+=vectorMagnification;
+    if(time>=coolTime){
+      shot();
+      time=0;
+    }
   }
 }
 
@@ -185,6 +237,60 @@ class PulseBullet extends Weapon{
     setDiffuse(0f);
     setCoolTime(15);
     setName("フォトンパルス");
+  }
+}
+
+class G_ShotWeapon extends SubWeapon{
+  
+  G_ShotWeapon(){
+    super();
+  }
+  
+  G_ShotWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new GravityBullet(this,i));
+    }
+  }
+}
+
+class TurretWeapon extends SubWeapon{
+  
+  TurretWeapon(){
+    super();
+  }
+  
+  TurretWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new TurretBullet(this,i));
+    }
+  }
+}
+
+class GrenadeWeapon extends SubWeapon{
+  
+  GrenadeWeapon(){
+    super();
+  }
+  
+  GrenadeWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new GrenadeBullet(this,i));
+    }
   }
 }
 

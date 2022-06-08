@@ -1,4 +1,9 @@
 {
-  "Language": "ja_jp",
-  "GPGPU": false
+  "Language":"ja_jp",
+  "GPGPU":false,
+  "Weapons":[
+    "G_Shot",
+    "Grenade",
+    "Turret"
+  ]
 }
