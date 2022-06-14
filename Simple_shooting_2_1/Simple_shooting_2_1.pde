@@ -11,6 +11,7 @@ import java.nio.file.*;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.Map.Entry;
 
 import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.newt.opengl.*;
@@ -55,8 +56,9 @@ JSONObject conf;
 
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
-java.util.List<Entity>Entities=new ArrayList<Entity>();
-java.util.List<Entity>NextEntities=Collections.synchronizedList(new ArrayList<Entity>());
+java.util.List<Entity>Entities=new ArrayList<Entity>(50);
+java.util.List<Entity>NextEntities=new ArrayList<Entity>();
+ArrayList<ArrayList<Entity>>HeapEntity=new ArrayList<ArrayList<Entity>>();
 HashSet<String>PressedKeyCode=new HashSet<String>();
 HashSet<String>PressedKey=new HashSet<String>();
 ArrayList<Long>Times=new ArrayList<Long>();
@@ -308,6 +310,11 @@ void Load() {
 
 void initThread(){
   exec=Executors.newFixedThreadPool(collisionNumber);
+  for(int i=0;i<updateNumber;i++){
+    HeapEntity.add(new ArrayList<Entity>());
+    HeapEntityX.add(new TreeMap<Float,Entity>());
+    HeapEntityDataX.add(new HashMap<Float,String>());
+  }
 }
 
 void Field() {
@@ -417,6 +424,37 @@ PMatrix3D getMatrixLocalToWindow() {
   return viewport;
 }
 
+PVector unProject(float winX, float winY) {
+  PMatrix3D mat = getMatrixLocalToWindow();
+  mat.invert();
+
+  float[] in = {winX, winY, 1.0f, 1.0f};
+  float[] out = new float[4];
+  mat.mult(in, out);
+
+  if (out[3] == 0 ) {
+    return null;
+  }
+
+  PVector result = new PVector(out[0]/out[3], out[1]/out[3], out[2]/out[3]);
+  return result;
+}
+
+PVector Project(float winX, float winY) {
+  PMatrix3D mat = getMatrixLocalToWindow();
+
+  float[] in = {winX, winY, 1.0f, 1.0f};
+  float[] out = new float[4];
+  mat.mult(in, out);
+
+  if (out[3] == 0 ) {
+    return null;
+  }
+
+  PVector result = new PVector(out[0]/out[3], out[1]/out[3], out[2]/out[3]);
+  return result;
+}
+
 <T> T[] createArray(T... val){
   return val;
 }
@@ -436,20 +474,12 @@ boolean onMouse(float x, float y, float dx, float dy) {
   return x<=mouseX&mouseX<=x+dx&y<=mouseY&mouseY<=y+dy;
 }
 
-PVector unProject(float winX, float winY) {
-  PMatrix3D mat = getMatrixLocalToWindow();
-  mat.invert();
+PVector unProject(PVector v){
+  return unProject(v.x,v.y);
+}
 
-  float[] in = {winX, winY, 1.0f, 1.0f};
-  float[] out = new float[4];
-  mat.mult(in, out);
-
-  if (out[3] == 0 ) {
-    return null;
-  }
-
-  PVector result = new PVector(out[0]/out[3], out[1]/out[3], out[2]/out[3]);
-  return result;
+PVector Project(PVector v){
+  return Project(v.x,v.y);
 }
 
 float Sigmoid(float t) {
@@ -462,6 +492,10 @@ float ESigmoid(float t) {
 
 int sign(float f) {
   return f==0?0:f>0?1:-1;
+}
+
+void line(PVector s,PVector v){
+  line(s.x,s.y,s.x+v.x,s.y+v.y);
 }
 
 float dist(PVector a, PVector b) {
@@ -519,7 +553,7 @@ boolean CircleCollision(PVector c,float size,PVector s,PVector v){
     }else{
       dist=abs(cross(normalAB,vecAP));
     }
-    return dist<size/2;
+    return dist<size*0.5;
 }
 
 boolean SegmentCollision(PVector s1, PVector v1, PVector s2, PVector v2) {
@@ -630,6 +664,7 @@ class Entity implements Egent, Cloneable {
   float Speed=0;
   float Mass=10;
   float e=0.5;
+  int threadNum=0;
   boolean isDead=false;
   boolean pDead=false;
 
@@ -678,14 +713,10 @@ class Entity implements Egent, Cloneable {
     float x=AxisSize.x*0.5;
     float min=Center.x-x;
     float max=Center.x+x;
-    synchronized(EntityX){
-      EntityX.put(min,this);
-      EntityX.put(max,this);
-    }
-    synchronized(EntityDataX){
-      EntityDataX.put(min,"s");
-      EntityDataX.put(max,"e");
-    }
+    HeapEntityX.get(threadNum).put(min,this);
+    HeapEntityX.get(threadNum).put(max,this);
+    HeapEntityDataX.get(threadNum).put(min,"s");
+    HeapEntityDataX.get(threadNum).put(max,"e");
   }
   
   void Collision(Entity e){

@@ -7,7 +7,7 @@ class Explosion extends Enemy{
     pos=e.pos.copy();
     this.size=0;
     p=new ExplosionParticle(e,size);
-    NextEntities.add(p);
+    HeapEntity.get(threadNum).add(p);
     myself=e instanceof Myself;
   }
   
@@ -15,7 +15,7 @@ class Explosion extends Enemy{
     pos=e.pos.copy();
     this.size=0;
     p=new ExplosionParticle(e,size,time);
-    NextEntities.add(p);
+    HeapEntity.get(threadNum).add(p);
     myself=e instanceof Myself;
   }
   
@@ -49,9 +49,9 @@ class Explosion extends Enemy{
 }
 
 void addExplosion(Entity e,float size){
-  NextEntities.add(new Explosion(e,size));
+  HeapEntity.get(0).add(new Explosion(e,size));
 }
 
 void addExplosion(Entity e,float size,float time){
-  NextEntities.add(new Explosion(e,size,time));
+  HeapEntity.get(0).add(new Explosion(e,size,time));
 }

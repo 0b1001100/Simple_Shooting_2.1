@@ -86,16 +86,16 @@ class ItemTable implements Cloneable{
   void addTable(Item i,float prob){
     if(!table.containsKey(i.getName())){
       table.put(i.getName(),i);
-      this.prob.put(i.getName(),constrain(prob,0,100));
+      this.prob.put(i.getName(),prob);
     }else{
-      this.prob.replace(i.getName(),constrain(prob,0,100));
+      this.prob.replace(i.getName(),prob);
     }
     float sum=0;
     for(float f:this.prob.values()){
       sum+=f;
     }
     for(String s:this.prob.keySet()){
-      this.prob.replace(s,sum==0?0:this.prob.get(s)/sum*100);
+      this.prob.replace(s,sum==0?0:(this.prob.get(s)/sum*100));
     }
   }
   

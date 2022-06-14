@@ -11,7 +11,7 @@
     }
   },
   {
-    "time":20,
+    "time":10,
     "type":"add",
     "param":{
       "number":20,
@@ -21,7 +21,7 @@
     }
   },
   {
-    "time":20,
+    "time":40,
     "type":"auto",
     "param":{
       "disp":false,
@@ -29,6 +29,28 @@
       "name":[
         "Turret",
         "Plus"
+      ]
+    }
+  },
+  {
+    "time":90,
+    "type":"add",
+    "param":{
+      "number":25,
+      "dist":5,
+      "offset":0,
+      "name":"Plus"
+    }
+  },
+  {
+    "time":100,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.03,
+      "name":[
+        "Plus",
+        "White"
       ]
     }
   }

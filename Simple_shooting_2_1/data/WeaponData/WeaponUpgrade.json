@@ -25,18 +25,37 @@
       "cooltime":-15
     },
     {
-      "name":["power","weight"],
-      "power":3,
-      "weight":-20
+      "name":["scale","weight"],
+      "scale":35,
+      "weight":-10
     },
     {
-      "name":["projectile"],
-      "projectile":1
+      "name":["duration"],
+      "duration":30
     },
     {
       "name":["power","cooltime"],
       "power":4,
       "cooltime":-10
+    }
+  ],
+  "Mirror":[
+    {
+      "name":["cooltime"],
+      "cooltime":-10
+    },
+    {
+      "name":["scale","weight"],
+      "scale":10,
+      "weight":-10
+    },
+    {
+      "name":["duration"],
+      "duration":30
+    },
+    {
+      "name":["projectile"],
+      "projectile":1
     }
   ]
 }

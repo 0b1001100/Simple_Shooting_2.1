@@ -1,5 +1,8 @@
-Map<Float,Entity>EntityX=new TreeMap<Float,Entity>();
-Map<Float,String>EntityDataX=new HashMap<Float,String>();
+HashMap<Float,Entity>EntityX=new HashMap<Float,Entity>();
+HashMap<Float,String>EntityDataX=new HashMap<Float,String>();
+ArrayList<TreeMap<Float,Entity>>HeapEntityX=new ArrayList<TreeMap<Float,Entity>>();
+ArrayList<HashMap<Float,String>>HeapEntityDataX=new ArrayList<HashMap<Float,String>>();
+Float[]SortedX;
 
 class Enemy extends Entity implements Cloneable{
   HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
@@ -208,7 +211,7 @@ class Turret extends Enemy{
   }
   
   private void init(){
-    setHP(1);
+    setHP(2);
     setSize(28);
     useWeapon=new EnergyBullet(this);
     maxSpeed=0.7;
@@ -235,7 +238,7 @@ class Plus extends Enemy{
   }
   
   private void init(){
-    setHP(2);
+    setHP(5);
     setSize(28);
     useWeapon=new EnergyBullet(this);
     maxSpeed=0.7;
@@ -264,7 +267,7 @@ class White extends Enemy{
   
   private void init(){
     exp=3;
-    setHP(3);
+    setHP(7);
     setSize(28);
     useWeapon=new EnergyBullet(this);
     maxSpeed=0.8;

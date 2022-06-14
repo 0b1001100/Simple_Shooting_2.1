@@ -1,6 +1,5 @@
 class GameProcess{
   ComponentSet UpgradeSet;
-  menuManage mainMenu;
   Color menuColor=new Color(230,230,230);
   PShader menuShader;
   PShader backgroundShader;
@@ -10,7 +9,7 @@ class GameProcess{
   boolean upgrade=false;
   boolean pause=false;
   boolean done=false;
-  String menu="Main";
+  boolean menu=false;
   float deadTimer=0;
   int x=16;
   int y=9;
@@ -28,7 +27,6 @@ class GameProcess{
    public void init(){
     Entities=new ArrayList<Entity>();
     UpgradeSet=new ComponentSet();
-    mainMenu=new menuManage();
     player=new Myself();
     stage=new Stage();
     backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
@@ -126,13 +124,22 @@ class GameProcess{
         player.update();
       }
     }
-    if(!upgrade){
+    if(menu){
+      rectMode(CORNER);
+      noStroke();
+      fill(0,100);
+      pushMatrix();
+      resetMatrix();
+      rect(0,0,width,height);
+      popMatrix();
+    }
+    if(!(upgrade||menu)){
       stage.update();
       UpdateProcess.clear();
       byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
       float block=Entities.size()/(float)ThreadNumber;
       for(byte b=0;b<ThreadNumber;b++){
-        UpdateProcess.add(new EntityProcess(round(block*b),round(block*(b+1))));
+        UpdateProcess.add(new EntityProcess(round(block*b),round(block*(b+1)),b));
       }
       try{
         for(EntityProcess e:UpdateProcess){
@@ -153,8 +160,26 @@ class GameProcess{
         }
       }
       Entities.clear();
+      HeapEntity.forEach(l->{
+        Entities.addAll(l);
+        l.clear();
+      });
       Entities.addAll(NextEntities);
       NextEntities.clear();
+      HeapEntityX.forEach(m->{
+        m.forEach((k,v)->{
+          EntityX.put(k,v);
+        });
+        m.clear();
+      });
+      SortedX=EntityX.keySet().toArray(new Float[EntityX.size()]);
+      Arrays.parallelSort(SortedX);
+      HeapEntityDataX.forEach(m->{
+        m.forEach((k,v)->{
+          EntityDataX.put(k,v);
+        });
+        m.clear();
+      });
     }
   }
   
@@ -196,138 +221,10 @@ class GameProcess{
     popMatrix();
   }
   
-   public void switchMenu(){
-    if((key=='c'|keyCode==CONTROL)&menu.equals("Main")&!animation){
-      mainMenu.init();
-      menu="Menu";
-      UItime=0f;
-      animation=true;
-    }else
-    if((key=='x'|keyCode==SHIFT|keyCode==LEFT)&menu.equals("Menu")&!animation){
-      if(mainMenu.layer.getDepth()>0){
-        mainMenu.back();
-        return;
-      }
-      menu="Main";
-      UItime=30f;
-      animation=true;
-    }
-    if(!animation)return;
-    float normUItime=UItime/30;
-    background(menuColor.getRed()*normUItime,menuColor.getGreen()*normUItime,
-               menuColor.getBlue()*normUItime);
-    blendMode(BLEND);
-    float Width=width/x;
-    float Height=height/y;
-    for(int i=0;i<y;i++){//y
-      for(int j=0;j<x;j++){//x
-        fill(toRGB(menuColor));
-        noStroke();
-        rectMode(CENTER);
-        float scale=min(max(UItime*(y/9)-(j+i),0),1);
-        rect(Width*j+Width/2,Height*i+Height/2,Width*scale,Height*scale);
-      }
-    }
-    drawMenu();
-    updateMenu();
-    menuShading();
-    switch(menu){
-      case "Main":UItime-=vectorMagnification;if(UItime<0){animation=false;mainMenu.dispose();}break;
-      case "Menu":UItime+=vectorMagnification;if(UItime>30)animation=false;break;
-    }
-  }
-  
-   public void drawMenu(){
-    mainMenu.display();
-  }
-  
-   public void updateMenu(){
-    mainMenu.update();
-  }
-  
    public void keyProcess(){
-    if(keyPress&(key=='c'|keyCode==CONTROL|key=='x'|keyCode==SHIFT|keyCode==LEFT))switchMenu();
-  }
-  
-   public void menuShading(){
-    menuShader.set("time",UItime);
-    menuShader.set("xy",(float)x,(float)y);
-    menuShader.set("resolution",(float)width,(float)height);
-    menuShader.set("menuColor",(float)menuColor.getRed()/255,(float)menuColor.getGreen()/255,(float)menuColor.getBlue()/255,1.0f);
-    menuShader.set("tex",g);
-    filter(menuShader);
-  }
-  
-  class menuManage{
-    ComponentSetLayer layer;
-    HashMap<String,ComponentSet>componentMap=new HashMap<String,ComponentSet>();
-    ComponentSet main;
-    boolean pStack=false;
-    boolean first=true;
-    
-    menuManage(){
-    }
-    
-     public void init(){
-      layer=new ComponentSetLayer();
-      main=null;
-      initMain();
-      if(first){
-        first=false;
-      }
-    }
-    
-     public void initMain(){
-      main=new ComponentSet();
-      layer.addLayer("Main",main);
-      MenuButton equip=new MenuButton("装備");
-      equip.setBounds(100,120,120,25);
-      equip.addListener(()->{
-        layer.toChild("equ");
-      });
-      MenuButton item=new MenuButton("アイテム");
-      item.setBounds(100,160,120,25);
-      item.addListener(()->{
-        layer.toChild("Item");
-      });
-      MenuButton archive=new MenuButton("アーカイブ");
-      archive.setBounds(100,200,120,25);
-      archive.addListener(()->{
-        layer.toChild("arc");
-      });
-      MenuButton setting=new MenuButton("設定");
-      setting.setBounds(100,240,120,25);
-      setting.addListener(()->{
-        layer.toChild("conf");
-      });
-      main.add(equip);
-      main.add(item);
-      main.add(archive);
-      main.add(setting);
-      main.setSubSelectButton(RIGHT);
-      componentMap.put("main",main);
-    }
-    
-     public void display(){
-      layer.display();
-    }
-    
-     public void update(){
-      boolean Stack=false;
-      layer.update();
-      pStack=Stack;
-    }
-    
-     public void dispose(){
-      main=null;
-    }
-    
-     public boolean isMain(){
-      return layer.getLayerName().equals("Main");
-    }
-    
-     public void back(){
-      layer.toParent();
+    if(!upgrade&&keyPress&&(key=='c'|keyCode==CONTROL)){
+      menu=!menu;
+      pause=menu;
     }
   }
 }

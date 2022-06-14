@@ -2,18 +2,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class EntityProcess implements Callable<String>{
   long pTime=0;
+  byte number;
   int s;
   int l;
   
-  EntityProcess(int s,int l){
+  EntityProcess(int s,int l,byte num){
     this.s=s;
     this.l=l;
+    number=num;
   }
   
   String call(){
     pTime=System.nanoTime();
+    ArrayList<Entity>next=HeapEntity.get(number);
     for(int i=s;i<l;i++){
       Entity e=Entities.get(i);
+      e.threadNum=number;
       if(player.isDead){
         if((e instanceof Explosion)||(e instanceof Particle)){
           e.update();
@@ -24,7 +28,7 @@ class EntityProcess implements Callable<String>{
         e.update();
       }
       if(!e.isDead){
-        NextEntities.add(e);
+        next.add(e);
       }
     }
     EnemyTime=(System.nanoTime()-pTime)/1000000f;
@@ -33,8 +37,6 @@ class EntityProcess implements Callable<String>{
 }
 
 class EntityCollision implements Callable<String>{
-  ArrayList<Float>arrayX;
-  ArrayList<Entity>entity;
   TreeMap<Float,Enemy>overEntity;
   float hue;
   byte number;
@@ -49,13 +51,11 @@ class EntityCollision implements Callable<String>{
   }
   
   String call(){
-    arrayX=new ArrayList<Float>(EntityX.keySet());
-    entity=new ArrayList<Entity>(EntityX.values());
     for(int i=s;i<l;i++){
-      Entity E=entity.get(i);
+      Entity E=EntityX.get(SortedX[i]);
       if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
-      switch(EntityDataX.get(arrayX.get(i))){
-        case "s":Collision(E,i);break;//kore
+      switch(EntityDataX.get(SortedX[i])){
+        case "s":Collision(E,i);break;
         case "e":break;
       }
     }
@@ -64,10 +64,10 @@ class EntityCollision implements Callable<String>{
   
   void Collision(Entity E,int i){
     ++i;
-    for(int j=i;j<EntityX.size();j++){
-      Entity e=entity.get(j);
+    for(int j=i,s=EntityX.size();j<s;j++){
+      Entity e=EntityX.get(SortedX[j]);
       if(E==e)break;
-      if(EntityDataX.get(arrayX.get(j)).equals("e")){
+      if(EntityDataX.get(SortedX[j]).equals("e")){
         continue;
       }
       if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){

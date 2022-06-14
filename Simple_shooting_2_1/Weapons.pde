@@ -130,7 +130,7 @@ class Weapon implements Equipment,Cloneable{
       if(parent instanceof Myself){
         NextEntities.add(new Bullet((Myself)parent,i));
       }else{
-        NextEntities.add(new Bullet(parent,this));
+        HeapEntity.get(parent.threadNum).add(new Bullet(parent,this));
       }
     }
   }
@@ -141,6 +141,8 @@ class Weapon implements Equipment,Cloneable{
 }
 
 class SubWeapon extends Weapon{
+  String[] params=new String[]{"name","projectile","scale","power","velocity","time","duration","cooltime","through"};
+  HashMap<String,Float>upgradeStatus;
   JSONObject obj;
   float scale=1;
   int duration=0;
@@ -159,29 +161,32 @@ class SubWeapon extends Weapon{
   
   void init(JSONObject o){
     obj=o;
-    name=o.getString("name");
-    bulletNumber=o.getInt("projectile")+addtionalProjectile;
-    scale=o.getFloat("scale");
-    power=o.getFloat("power");
-    speed=o.getFloat("velocity");
-    bulletMaxAge=o.getInt("time");
-    duration=o.getInt("duration");
-    coolTime=o.getFloat("cooltime");
-    through=o.getInt("through");
+    name=o.getString(params[0]);
+    bulletNumber=o.getInt(params[1])+addtionalProjectile;
+    scale=o.getFloat(params[2]);
+    power=o.getFloat(params[3]);
+    speed=o.getFloat(params[4]);
+    bulletMaxAge=o.getInt(params[5]);
+    duration=o.getInt(params[6]);
+    coolTime=o.getFloat(params[7]);
+    through=o.getInt(params[8]);
+    upgradeStatus=new HashMap<String,Float>();
+    for(String s:params)upgradeStatus.put(s,0f);
   }
   
   void upgrade(JSONArray a,int level){
     this.level=level;
     JSONObject add=a.getJSONObject(level-2);
-    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
-    bulletNumber+=(param.contains("projectile")?add.getInt("projectile"):0)+addtionalProjectile;
-    scale+=(param.contains("scale")?add.getFloat("scale"):0);
-    power+=(param.contains("power")?add.getFloat("power"):0);
-    speed+=(param.contains("velocity")?add.getFloat("velocity"):0);
-    bulletMaxAge+=(param.contains("time")?add.getInt("time"):0);
-    duration+=(param.contains("duration")?add.getInt("duration"):0);
-    coolTime+=(param.contains("cooltime")?add.getFloat("cooltime"):0);
-    through+=(param.contains("through")?add.getInt("through"):0);
+    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).getStringArray()));
+    param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
+    bulletNumber=obj.getInt(params[1])+upgradeStatus.get(params[1]).intValue()+addtionalProjectile;
+    scale=obj.getFloat(params[2])+upgradeStatus.get(params[2]);
+    power=obj.getFloat(params[3])+upgradeStatus.get(params[3]);
+    speed=obj.getFloat(params[4])+upgradeStatus.get(params[4]);
+    bulletMaxAge=obj.getInt(params[5])+upgradeStatus.get(params[5]).intValue();
+    duration=obj.getInt(params[6])+upgradeStatus.get(params[6]).intValue();
+    coolTime=obj.getFloat(params[7])+upgradeStatus.get(params[7]);
+    through=obj.getInt(params[8])+upgradeStatus.get(params[8]).intValue();
   }
   
   void update(){
@@ -290,6 +295,25 @@ class GrenadeWeapon extends SubWeapon{
   void shot(){
     for(int i=0;i<this.bulletNumber;i++){
         NextEntities.add(new GrenadeBullet(this,i));
+    }
+  }
+}
+
+class MirrorWeapon extends SubWeapon{
+  
+  MirrorWeapon(){
+    super();
+  }
+  
+  MirrorWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  void shot(){
+    float offset=random(0,TWO_PI);
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new MirrorBullet(this,i,bulletNumber,offset));
     }
   }
 }

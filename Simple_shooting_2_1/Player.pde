@@ -45,7 +45,7 @@ class Myself extends Entity{
     weapons.add(new EnergyBullet(this));
     weapons.add(new DiffuseBullet(this));
     weapons.add(new PulseBullet(this));
-    subWeapons.add(masterTable.get("G_Shot").getWeapon());
+    //subWeapons.add(masterTable.get("Mirror").getWeapon());
     resetWeapon();
     camera=new Camera();
     camera.setTarget(this);

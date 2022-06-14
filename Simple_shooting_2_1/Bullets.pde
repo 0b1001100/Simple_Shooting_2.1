@@ -140,7 +140,7 @@ class SubBullet extends Bullet{
   }
   
   void setNear(int num){
-    if(nearEnemy.size()>0){
+    if(nearEnemy.size()>num){
       float rad=-atan2(pos,nearEnemy.get(num).pos)+HALF_PI+random(radians(-2),radians(2));
       vel=new PVector(cos(rad)*speed,sin(rad)*speed);
     }
@@ -257,6 +257,81 @@ class GrenadeBullet extends SubBullet{
         ((Enemy)e).Hit(parent.power*3);
         isDead=true;
         addExplosion(this,scale,0.3);
+      }
+    }
+  }
+}
+
+class MirrorBullet extends SubBullet{
+  float axis=0;
+  float offset=0;
+  float rad=0;
+  PVector LeftUP;
+  PVector RightUP;
+  PVector LeftDown;
+  PVector RightDown;
+  PVector vector;
+  
+  MirrorBullet(SubWeapon w,int num,int sum,float offset){
+    super(w);
+    offset+=(num==0?0:(float)num/(float)sum)*TWO_PI;
+    pos=player.pos.copy().add(new PVector(maxAge,0).rotate(offset));
+    axis+=offset;
+    this.offset=atan2(scale*0.5,scale*0.125)+offset;
+    rad=dist(0,0,scale,scale*0.25)+offset;
+    vel=new PVector(0,0);
+    LeftUP=new PVector(maxAge-scale*0.125,scale*0.5);
+    RightUP=new PVector(maxAge+scale*0.125,scale*0.5);
+    LeftDown=new PVector(maxAge-scale*0.125,-scale*0.5);
+    RightDown=new PVector(maxAge+scale*0.125,-scale*0.5);
+    vector=new PVector(0,scale);
+    bulletColor=new Color(0,255,220);
+  }
+  
+  void display(){
+    noFill();
+    rectMode(CENTER);
+    if(Debug){
+      stroke(255);
+      rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+    }
+    stroke(toColor(bulletColor));
+    pushMatrix();
+    translate(pos.x,pos.y);
+    rotate(axis);
+    rect(0,0,scale*0.25,scale);
+    resetMatrix();
+    translate(pos.x,pos.y);
+    rotate(axis);
+    LeftUP=Project(new PVector(-scale*0.125,scale*0.5));
+    RightUP=Project(new PVector(scale*0.125,scale*0.5));
+    LeftDown=Project(new PVector(-scale*0.125,-scale*0.5));
+    RightDown=Project(new PVector(scale*0.125,-scale*0.5));
+    Center=Project(new PVector(0,0));
+    resetMatrix();
+    rotate(axis);
+    vector=Project(new PVector(0,scale));
+    popMatrix();
+  }
+  
+  void update(){
+    if(duration<0){
+      isDead=true;
+      return;
+    }
+    axis+=TWO_PI/(maxAge*2*PI/(speed*vectorMagnification));
+    pos=player.pos.copy().add(new PVector(maxAge,0).rotate(axis));
+    AxisSize=new PVector(max(abs(LeftUP.x-RightDown.x),abs(RightUP.x-LeftDown.x)),max(abs(LeftUP.y-RightDown.y),abs(RightUP.y-LeftDown.y)));
+    putAABB();
+    duration-=vectorMagnification;
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if((e instanceof Enemy)&&!(e instanceof Explosion)){
+      if(CircleCollision(e.pos,e.size,LeftDown,vector)||
+         CircleCollision(e.pos,e.size,RightDown,vector)){
+        ((Enemy)e).Hit(this.parent);
       }
     }
   }
