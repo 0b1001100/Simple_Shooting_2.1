@@ -70,6 +70,7 @@ boolean mousePress=false;
 boolean keyRelease=false;
 boolean keyPress=false;
 boolean changeScene=true;
+boolean pause=false;
 String nowPressedKey;
 String nowMenu="Main";
 String pMenu="Main";
@@ -86,10 +87,11 @@ boolean colorInverse=false;
 static final String ShaderPath=".\\data\\shader\\";
 static final String StageConfPath=".\\data\\StageConfig\\";
 static final String WeaponInitPath=".\\data\\WeaponData\\WeaponInit.json";
+static final String ImagePath=".\\data\\images\\";
 
 {PJOGL.profile=4;}
 
-void setup() {
+void setup(){
   size(1280, 720, P2D);
   ((GLWindow)surface.getNative()).addWindowListener(new com.jogamp.newt.event.WindowListener() {
     void windowDestroyed(com.jogamp.newt.event.WindowEvent e) {
@@ -125,8 +127,7 @@ void setup() {
     }
   }
   );
-  PFont font=createFont("SansSerif.plain", 15);
-  textFont(font);
+  textFont(createFont("SansSerif.plain", 15));
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
   Lighting=loadShader(ShaderPath+"Lighting.glsl");
   GravityLens=loadShader(ShaderPath+"GravityLens.glsl");
@@ -150,17 +151,16 @@ void draw() {
   }
   eventProcess();
   if(scene==2){
+    byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
     if(pEntityNum!=EntityX.size()){
-      CollisionProcess.clear();
-      byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
       float block=EntityX.size()/(float)ThreadNumber;
       for(byte b=0;b<ThreadNumber;b++){
-        CollisionProcess.add(new EntityCollision(round(block*b),round(block*(b+1)),b));
+        CollisionProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
       }
     }
     CollisionFuture.clear();
-    for(EntityCollision e:CollisionProcess){
-      CollisionFuture.add(exec.submit(e));
+    for(int i=0;i<ThreadNumber;i++){
+      CollisionFuture.add(exec.submit(CollisionProcess.get(i)));
     }
     for(Future<?> f:CollisionFuture){
       try {
@@ -192,8 +192,12 @@ void LoadData(){
     try{
       JSONObject o=a.getJSONObject(i);
       String name=o.getString("name");
-      WeaponConstructor.put(name,Class.forName("Simple_shooting_2_1$"+name+"Weapon").getDeclaredConstructor(Simple_shooting_2_1.class,JSONObject.class));
-      masterTable.addTable(new Item(o,"weapon"),o.getFloat("weight"));
+      if(o.getString("type").equals("weapon")){
+        WeaponConstructor.put(name,Class.forName("Simple_shooting_2_1$"+name+"Weapon").getDeclaredConstructor(Simple_shooting_2_1.class,JSONObject.class));
+        masterTable.addTable(new Item(o,"weapon"),o.getFloat("weight"));
+      }else if(o.getString("type").equals("item")){
+        masterTable.addTable(new Item(o,"item"),o.getFloat("weight"));
+      }
     }catch(ClassNotFoundException|NoSuchMethodException g){g.printStackTrace();}
   }
   Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
@@ -314,6 +318,8 @@ void initThread(){
     HeapEntity.add(new ArrayList<Entity>());
     HeapEntityX.add(new TreeMap<Float,Entity>());
     HeapEntityDataX.add(new HashMap<Float,String>());
+    CollisionProcess.add(new EntityCollision(0,0,(byte)0));
+    UpdateProcess.add(new EntityProcess(0,0,(byte)0));
   }
 }
 
@@ -720,6 +726,14 @@ class Entity implements Egent, Cloneable {
   }
   
   void Collision(Entity e){
+  }
+  
+  void displayAABB(){
+    rectMode(CENTER);
+    noFill();
+    strokeWeight(1);
+    stroke(255);
+    rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
   }
 }
 

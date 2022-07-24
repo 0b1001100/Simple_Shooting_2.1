@@ -5,6 +5,15 @@
     "G_Shot",
     "Grenade",
     "Turret",
-    "Mirror"
+    "Mirror",
+    "PlasmaField",
+    "Laser",
+    "Lightning",
+    "projectile",
+    "scale",
+    "power",
+    "speed",
+    "duration",
+    "cooltime"
   ]
 }

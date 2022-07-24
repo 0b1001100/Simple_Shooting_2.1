@@ -21,11 +21,7 @@ class Explosion extends Enemy{
   
   void display(){
     if(Debug){
-      rectMode(CENTER);
-      strokeWeight(1);
-      stroke(255);
-      noFill();
-      rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+      displayAABB();
     }
   }
   
@@ -45,6 +41,26 @@ class Explosion extends Enemy{
   @Override
   void Hit(Weapon w){
     return;
+  }
+}
+
+class BulletExplosion extends Explosion{
+  HashSet<Entity>HitEnemy;
+  Weapon parent;
+  
+  BulletExplosion(Entity e,float size,float time,boolean my,Weapon w){
+    super(e,size,time);
+    HitEnemy=new HashSet<Entity>();
+    myself=my;
+    parent=w;
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!HitEnemy.contains(e)){
+      HitEnemy.add(e);
+      ((Enemy)e).Hit(parent);
+    }
   }
 }
 

@@ -31,8 +31,14 @@ class EntityProcess implements Callable<String>{
         next.add(e);
       }
     }
-    EnemyTime=(System.nanoTime()-pTime)/1000000f;
+    EntityTime=(System.nanoTime()-pTime)/1000000f;
     return "";
+  }
+  
+  void setData(int s,int l,byte num){
+    this.s=s;
+    this.l=l;
+    number=num;
   }
 }
 
@@ -74,6 +80,13 @@ class EntityCollision implements Callable<String>{
         E.Collision(e);
       }
     }
+  }
+  
+  void setData(int s,int l,byte num){
+    this.s=s;
+    this.l=l;
+    number=num;
+    hue=s==0?0:255*(s/(float)EntityX.size());
   }
 }
 

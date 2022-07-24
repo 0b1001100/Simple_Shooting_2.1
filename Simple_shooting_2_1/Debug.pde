@@ -2,9 +2,8 @@ import com.jogamp.newt.event.awt.AWTKeyAdapter;
 
 boolean Debug=false;
 long RunTimeBuffer=0;
-float ParticleTime=0;
-float BulletTime=0;
-float EnemyTime=0;
+float EntityTime=0;
+float DrawTime=0;
 
 void Debug(){
   if(keyPress&&nowPressedKeyCode==99&&PressedKeyCode.contains("99")){
@@ -20,10 +19,10 @@ void Debug(){
     for(int i=0;i<5;i++){
       switch(i){
         case 0:Text="RunTime(ms):"+(System.nanoTime()-RunTimeBuffer)/1000000f;break;
-        case 1:Text="ParticleTime(ms):"+ParticleTime;break;
-        case 2:Text="BulletTime(ms):"+BulletTime;break;
-        case 3:Text="EnemyTime(ms):"+EnemyTime;break;
-        case 4:Text="EntityNumber:"+Entities.size();break;
+        case 1:Text="EntityDraw(ms):"+DrawTime;break;
+        case 2:Text="EntityTime(ms):"+EntityTime;break;
+        case 3:Text="EntityNumber:"+Entities.size();break;
+        case 4:Text="Memory(MB)"+nf(((float)(Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()))/1048576f,0,3);break;
       }
       text(Text,30,100+i*20);
     }

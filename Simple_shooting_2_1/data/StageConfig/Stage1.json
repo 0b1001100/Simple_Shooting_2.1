@@ -4,7 +4,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.01,
+      "freq":0.015,
       "name":[
         "Turret"
       ]
@@ -21,11 +21,22 @@
     }
   },
   {
-    "time":40,
+    "time":20,
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.022,
+      "name":[
+        "Turret"
+      ]
+    }
+  },
+  {
+    "time":60,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.022,
       "name":[
         "Turret",
         "Plus"
@@ -33,7 +44,7 @@
     }
   },
   {
-    "time":90,
+    "time":120,
     "type":"add",
     "param":{
       "number":25,
@@ -43,7 +54,28 @@
     }
   },
   {
-    "time":100,
+    "time":120,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.025,
+      "name":[
+        "Plus"
+      ]
+    }
+  },
+  {
+    "time":180,
+    "type":"add",
+    "param":{
+      "number":25,
+      "dist":5,
+      "offset":0,
+      "name":"White"
+    }
+  },
+  {
+    "time":180,
     "type":"auto",
     "param":{
       "disp":false,
@@ -51,6 +83,60 @@
       "name":[
         "Plus",
         "White"
+      ]
+    }
+  },
+  {
+    "time":240,
+    "type":"add",
+    "param":{
+      "number":20,
+      "dist":4,
+      "offset":0,
+      "name":"Large_R"
+    }
+  },
+  {
+    "time":240,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.03,
+      "name":[
+        "White",
+        "Large_R"
+      ]
+    }
+  },
+  {
+    "time":300,
+    "type":"add",
+    "param":{
+      "number":20,
+      "dist":4,
+      "offset":0,
+      "name":"White"
+    }
+  },
+  {
+    "time":300,
+    "type":"add",
+    "param":{
+      "number":25,
+      "dist":4,
+      "offset":0,
+      "name":"Large_R"
+    }
+  },
+  {
+    "time":300,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.03,
+      "name":[
+        "Plus",
+        "Large_R"
       ]
     }
   }

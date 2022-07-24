@@ -1,24 +1,28 @@
 ItemTable masterTable=new ItemTable();
 ItemTable playerTable=new ItemTable();
 JSONObject UpgradeArray;
+int sumLevel=0;
 
 class Item{
   protected SubWeapon w;
+  protected JSONObject initData;
   protected JSONArray upgradeData;
   protected PImage image;
   protected String name="";
   protected String type;
+  protected float data;
   protected int weight=0;
-  protected int level=0;
+  protected int level=1;
   
   Item(JSONObject o,String type){
+    initData=o;
     name=o.getString("name");
     weight=o.getInt("weight");
     switch(type){
       case "weapon":try{
                       w=(SubWeapon)WeaponConstructor.get(name).newInstance(CopyApplet,o);
                     }catch(InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}break;
-      case "Item":break;
+      case "item":data=o.getFloat("value");break;
     }
     upgradeData=UpgradeArray.getJSONArray(name);
     this.type=type;
@@ -26,13 +30,26 @@ class Item{
   
   void update(){
     if(level>1){
-      w.upgrade(upgradeData,level);
-      JSONObject add=upgradeData.getJSONObject(level-2);
-      HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
-      if(param.contains("weight")){
-        weight=upgradeData.getJSONObject(level-2).getInt("weight");
+      if(type.equals("weapon")){
+        w.upgrade(upgradeData,level);
+        JSONObject add=upgradeData.getJSONObject(level-2);
+        HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
+        if(param.contains("weight")){
+          weight=upgradeData.getJSONObject(level-2).getInt("weight");
+          playerTable.addTable(this,weight);
+        }
+      }else if(type.equals("item")){
+        if(Arrays.asList(upgradeData.getJSONObject(level-2).getJSONArray("name").getStringArray()).contains("weight")){
+          weight=upgradeData.getJSONObject(level-2).getInt("weight");
+          playerTable.addTable(this,weight);
+        }
       }
     }
+  }
+  
+  void reset(){
+    level=1;
+    if(type.equals("weapon"))w.init(initData);
   }
   
   JSONArray getUpgradeArray(){
@@ -47,8 +64,20 @@ class Item{
     return name;
   }
   
+  String getType(){
+    return type;
+  }
+  
   int getWeight(){
     return weight;
+  }
+  
+  float getData(){
+    return data;
+  }
+  
+  float getData(int i){
+    return upgradeData.getJSONObject(i-2).getFloat("value");
   }
 }
 
@@ -129,11 +158,41 @@ class ItemTable implements Cloneable{
     return null;
   }
   
+  Item getRandomWeapon(){
+    while(true){
+      Item i=getRandom();
+      if(i.type.equals("weapon"))return i;
+    }
+  }
+  
+  Item getRandomItem(){
+    while(true){
+      Item i=getRandom();
+      if(i.type.equals("item"))return i;
+    }
+  }
+  
+  java.util.Collection<Item> getAll(){
+    return table.values();
+  }
+  
   ItemTable clone(){
     ItemTable New=new ItemTable();
     New.table.putAll(table);
     New.prob.putAll(prob);
     return New;
+  }
+  
+  int tableSize(){
+    return table.size();
+  }
+  
+  int probSize(){
+    ArrayList<String> l=new ArrayList<String>();
+    prob.forEach((k,v)->{
+      if(v>0)l.add(k);
+    });
+    return l.size();
   }
 }
 

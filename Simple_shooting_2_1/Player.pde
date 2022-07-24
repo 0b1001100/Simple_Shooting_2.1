@@ -43,9 +43,7 @@ class Myself extends Entity{
     absAttak=Attak.getMax().doubleValue();
     absDefence=Defence.getMax().doubleValue();
     weapons.add(new EnergyBullet(this));
-    weapons.add(new DiffuseBullet(this));
     weapons.add(new PulseBullet(this));
-    //subWeapons.add(masterTable.get("Mirror").getWeapon());
     resetWeapon();
     camera=new Camera();
     camera.setTarget(this);
@@ -277,5 +275,29 @@ class Myself extends Entity{
       damage+=d;
     }
     hit=true;
+  }
+}
+
+class Satellite extends Entity{
+  SatelliteWeapon satellite;
+  
+  Satellite(SatelliteWeapon w){
+    satellite=w;
+  }
+  
+  void init(){
+    
+  }
+  
+  void display(){
+    
+  }
+  
+  void update(){
+    
+  }
+  
+  void shot(){
+    
   }
 }

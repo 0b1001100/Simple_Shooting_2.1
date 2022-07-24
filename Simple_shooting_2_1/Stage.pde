@@ -81,16 +81,16 @@ class Stage{
   }
   
   void update(){
-    if(freq!=0&&random(0,1)<freq){
+    if(freq!=0&&random(0,1)<freq*vectorMagnification){
       float r=TWO_PI*random(0,1);
       PVector v=new PVector(cos(r)*(width+height),sin(r)*(width+height));
       for(int i=0;i<4;i++){
         PVector p=new PVector();
         switch(i){
-          case 0:p=SegmentCrossPoint(player.pos.copy().sub(width/2,height/2),new PVector(width,0),player.pos.copy(),v);break;
-          case 1:p=SegmentCrossPoint(player.pos.copy().sub(width/2,-height/2),new PVector(width,0),player.pos.copy(),v);break;
-          case 2:p=SegmentCrossPoint(player.pos.copy().sub(width/2,height/2),new PVector(0,height),player.pos.copy(),v);break;
-          case 3:p=SegmentCrossPoint(player.pos.copy().sub(-width/2,height/2),new PVector(0,height),player.pos.copy(),v);break;
+          case 0:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(width,0),player.pos.copy(),v);break;
+          case 1:p=SegmentCrossPoint(scroll.copy().mult(-1).add(0,height),new PVector(width,0),player.pos.copy(),v);break;
+          case 2:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(0,height),player.pos.copy(),v);break;
+          case 3:p=SegmentCrossPoint(scroll.copy().mult(-1).add(width,0),new PVector(0,height),player.pos.copy(),v);break;
         }
         if(p!=null){
           v=p;

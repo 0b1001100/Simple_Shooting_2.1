@@ -1,13 +1,14 @@
 class GameProcess{
   ComponentSet UpgradeSet;
   Color menuColor=new Color(230,230,230);
+  PFont font_20;
+  PFont font_15;
   PShader menuShader;
   PShader backgroundShader;
   float UItime=0;
   boolean gameOver=false;
   boolean animation=false;
   boolean upgrade=false;
-  boolean pause=false;
   boolean done=false;
   boolean menu=false;
   float deadTimer=0;
@@ -22,6 +23,8 @@ class GameProcess{
   
    public void setup(){
     init();
+    font_20=createFont("SansSerif.plain",20);
+    font_15=createFont("SansSerif.plain",15);
   }
   
    public void init(){
@@ -29,7 +32,21 @@ class GameProcess{
     UpgradeSet=new ComponentSet();
     player=new Myself();
     stage=new Stage();
+    pause=false;
+    sumLevel=0;
+    addtionalProjectile=0;
+    addtionalScale=1;
+    addtionalPower=1;
+    addtionalSpeed=1;
+    addtionalDuration=1;
+    reductionCoolTime=1;
     backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
+    playerTable.getAll().forEach(i->{
+      i.reset();
+      playerTable.addTable(i,i.weight);
+    });
+    player.subWeapons.clear();
+    player.subWeapons.add(masterTable.get("Laser").getWeapon());
   }
   
    public void process(){
@@ -69,15 +86,22 @@ class GameProcess{
         }
       });
       player.update();
+      stage.update();
     }else{
-      EnemyTime=BulletTime=ParticleTime=0;
+      EntityTime=0;
       if(player.levelup){
         upgrade=true;
-        int num=3;
+        int num=min(playerTable.probSize(),3);
         Item[]list=new Item[num];
         ItemTable copy=playerTable.clone();
         for(int i=0;i<num;i++){
-          list[i]=copy.getRandom();
+          list[i]=copy.getRandomWeapon();
+          switch(i){
+            case 0:if(sumLevel>=17&&0.4>random(1))list[i]=copy.getRandomItem();break;
+            case 1:if(sumLevel>=9&&0.4>random(1))list[i]=copy.getRandomItem();break;
+            case 2:if(sumLevel>=4&&0.4>random(1))list[i]=copy.getRandomItem();break;
+            case 3:if(sumLevel>=22&&0.4>random(1))list[i]=copy.getRandomItem();break;
+          }
           copy.removeTable(list[i].getName());
         }
         UpgradeSet.removeAll();
@@ -87,10 +111,38 @@ class GameProcess{
           Item item=list[i];
           buttons[i].addListener(()->{
             if(player.subWeapons.contains(item.getWeapon())){
-              item.getWeapon().upgrade(item.getUpgradeArray(),item.getWeapon().level+1);
-            }else{
+              ++item.level;
+              item.update();
+              ++sumLevel;
+            }else if(item.getType().equals("weapon")){
               player.subWeapons.add(item.getWeapon());
+              ++sumLevel;
+            }else if(item.getType().equals("item")){
+              if(item.level==1){
+                switch(item.getName()){
+                  case "projectile":addtionalProjectile+=(int)item.getData();break;
+                  case "scale":addtionalScale+=item.getData()*0.01;break;
+                  case "power":addtionalPower+=item.getData()*0.01;break;
+                  case "speed":addtionalSpeed+=item.getData()*0.01;break;
+                  case "duration":addtionalDuration+=item.getData()*0.01;break;
+                  case "cooltime":reductionCoolTime-=item.getData()*0.01;break;
+                }
+              }else{
+                ++item.level;
+                item.update();
+                switch(item.getName()){
+                  case "projectile":addtionalProjectile+=(int)item.getData(item.level);break;
+                  case "scale":addtionalScale+=item.getData(item.level)*0.01;break;
+                  case "power":addtionalPower+=item.getData(item.level)*0.01;break;
+                  case "speed":addtionalSpeed+=item.getData(item.level)*0.01;break;
+                  case "duration":addtionalDuration+=item.getData(item.level)*0.01;break;
+                  case "cooltime":reductionCoolTime-=item.getData(item.level)*0.01;break;
+                }
+              }
             }
+            player.subWeapons.forEach(w->{
+              w.reInit();
+            });
             pause=false;
             upgrade=false;
           });
@@ -134,16 +186,14 @@ class GameProcess{
       popMatrix();
     }
     if(!(upgrade||menu)){
-      stage.update();
-      UpdateProcess.clear();
       byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
       float block=Entities.size()/(float)ThreadNumber;
       for(byte b=0;b<ThreadNumber;b++){
-        UpdateProcess.add(new EntityProcess(round(block*b),round(block*(b+1)),b));
+        UpdateProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
       }
       try{
-        for(EntityProcess e:UpdateProcess){
-          entityFuture.add(exec.submit(e));
+        for(int i=0;i<ThreadNumber;i++){
+          entityFuture.add(exec.submit(UpdateProcess.get(i)));
         }
       }catch(Exception e){println(e);
       }
@@ -184,6 +234,7 @@ class GameProcess{
   }
   
   public void drawShape(){
+    long pTime=System.nanoTime();
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
@@ -202,10 +253,11 @@ class GameProcess{
     LensData.clear();
     displayHUD();
     popMatrix();
+    DrawTime=(System.nanoTime()-pTime)/1000000f;
   }
   
   public void displayHUD(){
-    pushMatrix();
+    push();
     resetMatrix();
     rectMode(CORNER);
     noFill();
@@ -216,9 +268,13 @@ class GameProcess{
     noStroke();
     rect(202.5f,32.5f,(width-225)*player.exp/player.nextLevel,25);
     textSize(20);
+    textFont(font_20);
     textAlign(RIGHT);
     text("LEVEL "+player.Level,190,52);
-    popMatrix();
+    textFont(font_15);
+    textAlign(CENTER);
+    text("Time "+nf(floor(stage.time*0.0002777777777777777777777777777777),2,0)+":"+nf(floor((stage.time*0.0166666666666666666666666666666)%60),2,0),width*0.5,78);
+    pop();
   }
   
    public void keyProcess(){

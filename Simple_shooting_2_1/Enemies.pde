@@ -6,18 +6,18 @@ Float[]SortedX;
 
 class Enemy extends Entity implements Cloneable{
   HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
+  PVector addtionalVel=new PVector();
   Weapon useWeapon=null;
   Weapon ShotWeapon=null;
   ItemTable dropTable;
-  boolean Expl=false;
   boolean inScreen=true;
   boolean hit=false;
   double damage=0;
+  float maxAddtionalSpeed=35;
   float rotateSpeed=10;
   float protate=0;
   float playerDistsq=0;
   float hue=0;
-  float exp=1;
   protected double maxHP=10d;
   protected double HP=10d;
   
@@ -32,11 +32,7 @@ class Enemy extends Entity implements Cloneable{
   void display(){
     if(!inScreen)return;
     if(Debug){
-      strokeWeight(1);
-      stroke(255);
-      noFill();
-      rectMode(CENTER);
-      rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+      displayAABB();
     }
     pushMatrix();
     translate(pos.x,pos.y);
@@ -56,7 +52,6 @@ class Enemy extends Entity implements Cloneable{
   }
   
   void update(){
-    Expl=false;
     Rotate();
     move();
     Center=pos;
@@ -88,7 +83,7 @@ class Enemy extends Entity implements Cloneable{
       Speed=0;
     }
     addVel(accelSpeed,false);
-    pos.add(vel);
+    pos.add(vel).add(addtionalVel);
     inScreen=-scroll.x<pos.x+size/2&pos.x-size/2<-scroll.x+width&-scroll.y<pos.y+size/2&pos.y-size/2<-scroll.y+height;
   }
   
@@ -100,9 +95,12 @@ class Enemy extends Entity implements Cloneable{
       Speed+=accel*vectorMagnification;
     }
     vel.add(cos(-rotate-HALF_PI)*Speed,sin(-rotate-HALF_PI)*Speed).mult(vectorMagnification);
-    vel.mult(0.95);
+    addtionalVel.mult(0.95);
     if(vel.magSq()>maxSpeed*maxSpeed*vectorMagnification){
       vel.normalize().mult(maxSpeed).mult(vectorMagnification);
+    }
+    if(addtionalVel.magSq()>maxAddtionalSpeed*maxAddtionalSpeed*vectorMagnification){
+      addtionalVel.normalize().mult(maxAddtionalSpeed).mult(vectorMagnification);
     }
   }
   
@@ -136,6 +134,8 @@ class Enemy extends Entity implements Cloneable{
     if(!isDead&&HP<=0){
       Down();
       return;
+    }else{
+      NextEntities.add(new Particle(this,(int)(size*0.5),1));
     }
   }
   
@@ -146,23 +146,22 @@ class Enemy extends Entity implements Cloneable{
     if(!isDead&&HP<=0){
       Down();
       return;
+    }else{
+      NextEntities.add(new Particle(this,(int)(size*0.5),1));
     }
   }
   
   void Down(){
     isDead=true;
     NextEntities.add(new Particle(this,(int)size*3,1));
-    NextEntities.add(new Exp(this,exp));
+    NextEntities.add(new Exp(this,ceil(((float)maxHP)*0.5)));
   }
   
   @Override
   void Collision(Entity e){
     if(e instanceof Explosion){
-      if(!Expl){
-        if(qDist(pos,e.pos,(e.size+size)*0.5)){
-          Hit(((Explosion)e).power*vectorMagnification);
-          Expl=true;
-        }
+      if(qDist(pos,e.pos,(e.size+size)*0.5)){
+        Hit(((Explosion)e).power);
       }
     }else if(e instanceof Enemy){
       if(qDist(pos,e.pos,(size+e.size)*0.5)){
@@ -172,7 +171,9 @@ class Enemy extends Entity implements Cloneable{
         e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
         pos.sub(d);
         if(vel.magSq()>maxSpeed*maxSpeed){
-          vel.normalize().mult(maxSpeed);
+          PVector v=vel.copy().normalize().mult(maxSpeed);
+          addtionalVel=vel.copy().sub(v);
+          vel=v;
         }
       }
     }else if(e instanceof Bullet){
@@ -182,6 +183,7 @@ class Enemy extends Entity implements Cloneable{
         float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
         float d=(player.size+size)*0.5-dist(player.pos,pos);
         vel=new PVector(-cos(r)*d,-sin(r)*d);
+        addtionalVel=new PVector(0,0);
         pos.add(vel);
         player.Hit(1);
       }
@@ -266,7 +268,6 @@ class White extends Enemy{
   }
   
   private void init(){
-    exp=3;
     setHP(7);
     setSize(28);
     useWeapon=new EnergyBullet(this);
@@ -283,20 +284,19 @@ class White extends Enemy{
   }
 }
 
-class Normal extends Enemy{
+class Large_R extends Enemy{
   
-  Normal(){
+  Large_R(){
     init();
   }
   
-  Normal(PVector pos){
+  Large_R(PVector pos){
     init();
     this.pos=pos;
   }
   
   private void init(){
-    exp=2;
-    setHP(1);
+    setHP(10);
     useWeapon=new EnergyBullet(this);
     maxSpeed=1;
     rotateSpeed=3;
