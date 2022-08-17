@@ -66,13 +66,13 @@ class Bullet extends Entity{
     if(!isMine)bulletColor=new Color(255,0,0);
   }
   
-  void display(){
-    strokeWeight(1);
+  void display(PGraphics g){
+    g.strokeWeight(1);
     if(Debug){
-      displayAABB();
+      displayAABB(g);
     }
-    stroke(toColor(bulletColor));
-    line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    g.stroke(toColor(bulletColor));
+    g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
     if(age/duration>0.9)bulletColor=bulletColor.darker();
   }
   
@@ -113,7 +113,17 @@ class Bullet extends Entity{
     rotate=-rotate;
   }
   
-  void refrectFromNormal(PVector n){
+  void reflect(PVector c,float r){
+    pos=getCrossPoint(pos,vel,c,r);
+    reflectFromNormal(atan2(pos,c));
+  }
+  
+  void reflectFromNormal(PVector n){
+    vel=vel.copy().add(n.mult(dot(vel.copy().mult(-1),n)*2));
+  }
+  
+  void reflectFromNormal(float r){
+    PVector n=new PVector(1,0).rotate(r);
     vel=vel.copy().add(n.mult(dot(vel.copy().mult(-1),n)*2));
   }
 }
@@ -170,15 +180,15 @@ class GravityBullet extends SubBullet{
     screen=new PVector(pos.x-player.pos.x+width*0.5,height-(pos.y-player.pos.y+height*0.5));
   }
   
-  void display(){
+  void display(PGraphics g){
     if(Debug){
-      displayAABB();
+      displayAABB(g);
     }
     if(stop){
       LensData.add(this);
     }else{
-      stroke(200,110,255);
-      line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+      g.stroke(200,110,255);
+      g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
     }
   }
   
@@ -282,7 +292,7 @@ class GrenadeBullet extends SubBullet{
   }
 }
 
-class MirrorBullet extends SubBullet{
+class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   HashSet<Entity>HitEnemy;
   HashSet<Entity>nextHitEnemy;
   float axis=0;
@@ -312,32 +322,35 @@ class MirrorBullet extends SubBullet{
     bulletColor=new Color(0,255,220);
   }
   
-  void display(){
-    noFill();
-    rectMode(CENTER);
+  void display(PGraphics g){
+    g.noFill();
+    g.rectMode(CENTER);
     if(Debug){
-      displayAABB();
+      displayAABB(g);
     }
-    stroke(toColor(bulletColor));
-    pushMatrix();
-    translate(pos.x,pos.y);
-    rotate(axis);
-    rect(0,0,scale*0.25,scale);
-    resetMatrix();
-    translate(pos.x,pos.y);
-    rotate(axis);
-    LeftUP=Project(new PVector(-scale*0.125,scale*0.5));
-    RightUP=Project(new PVector(scale*0.125,scale*0.5));
-    LeftDown=Project(new PVector(-scale*0.125,-scale*0.5));
-    RightDown=Project(new PVector(scale*0.125,-scale*0.5));
-    Center=Project(new PVector(0,0));
-    resetMatrix();
-    rotate(axis);
-    vector=Project(new PVector(0,scale));
-    popMatrix();
+    g.stroke(toColor(bulletColor));
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(axis);
+    g.rect(0,0,scale*0.25,scale);
+    g.popMatrix();
+    pos=player.pos.copy().add(new PVector(scale*5,0).rotate(axis));
   }
   
   void update(){
+    pushMatrix();
+    resetMatrix();
+    translate(pos.x,pos.y);
+    rotate(axis);
+    LeftUP=Project(-scale*0.125,scale*0.5,g);
+    RightUP=Project(scale*0.125,scale*0.5,g);
+    LeftDown=Project(-scale*0.125,-scale*0.5,g);
+    RightDown=Project(scale*0.125,-scale*0.5,g);
+    Center=Project(0,0,g);
+    resetMatrix();
+    rotate(axis);
+    vector=Project(0,scale,g);
+    popMatrix();
     HitEnemy.clear();
     nextHitEnemy.forEach(e->{HitEnemy.add(e);});
     nextHitEnemy.clear();
@@ -346,7 +359,6 @@ class MirrorBullet extends SubBullet{
       return;
     }
     axis+=TWO_PI/(scale*10*PI/(speed*vectorMagnification));
-    pos=player.pos.copy().add(new PVector(scale*5,0).rotate(axis));
     AxisSize=new PVector(max(abs(LeftUP.x-RightDown.x),abs(RightUP.x-LeftDown.x)),max(abs(LeftUP.y-RightDown.y),abs(RightUP.y-LeftDown.y)));
     putAABB();
     duration-=vectorMagnification;
@@ -367,7 +379,7 @@ class MirrorBullet extends SubBullet{
   }
 }
 
-class PlasmaFieldBullet extends SubBullet{
+class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
   HashMap<Entity,Float>cooltimes;
   HashSet<Entity>outEntity;
   HashSet<PVector>hitPosition;
@@ -379,22 +391,22 @@ class PlasmaFieldBullet extends SubBullet{
   }
   
   @Override
-  void display(){
+  void display(PGraphics g){
     if(Debug){
-      displayAABB();
+      displayAABB(g);
     }
-    fill(195,255,0,10);
-    stroke(255,50);
-    strokeWeight(1);
-    ellipse(pos.x,pos.y,scale,scale);
-    stroke(255);
+    g.fill(195,255,0,10);
+    g.stroke(255,50);
+    g.strokeWeight(1);
+    g.ellipse(pos.x,pos.y,scale,scale);
+    g.stroke(255);
     for(PVector v:hitPosition){
       int num=(int)random(4+scale*0.02,8+scale*0.02);
       v.sub(pos).div(num);
       PVector p=pos.copy();
       for(int i=0;i<num;i++){
         PVector e=pos.copy().add(v.copy().mult(i+1).add(i==num-1?0:random(scale*0.05),i==num-1?0:random(scale*0.05)));
-        line(p.x,p.y,e.x,e.y);
+        g.line(p.x,p.y,e.x,e.y);
         p=e;
       }
     }
@@ -447,7 +459,7 @@ class SatelliteBullet extends SubBullet{
   }
 }
 
-class LaserBullet extends SubBullet{
+class LaserBullet extends SubBullet implements ExcludeGPGPU{
   HashSet<Entity>HitEnemy;
   HashSet<Entity>nextHitEnemy;
   ArrayList<PVector>points;
@@ -466,35 +478,36 @@ class LaserBullet extends SubBullet{
     vertex=new LinkedHashMap<PVector,Integer>();
   }
   
-  void display(){
+  @Override
+  void display(PGraphics g){
     if(Debug){
-      displayAABB();
+      displayAABB(g);
     }
-    strokeWeight(2);
+    g.strokeWeight(2);
     if(!pause){
       points.add(pos.copy());
       while(points.size()>memory){
         points.remove(0);
       }
     }
-    stroke(toColor(bulletColor),100);
-    if(vertex.size()>0){
+    g.stroke(toColor(bulletColor),100);
+    if(vertex.size()>0&&!pause){
       ArrayList<PVector>vertexArray=new ArrayList<PVector>(vertex.keySet());
       for(int i=0;i<=vertex.size();i++){
         switch(i){
-          case 0:line(points.get(0).x,points.get(0).y,vertexArray.get(0).x,vertexArray.get(0).y);break;
+          case 0:g.line(points.get(0).x,points.get(0).y,vertexArray.get(0).x,vertexArray.get(0).y);break;
           default:if(i==vertex.size()){
-                    line(points.get(points.size()-1).x,points.get(points.size()-1).y,vertexArray.get(i-1).x,vertexArray.get(i-1).y);
+                    g.line(points.get(points.size()-1).x,points.get(points.size()-1).y,vertexArray.get(i-1).x,vertexArray.get(i-1).y);
                   }else{
-                    line(vertexArray.get(i-1).x,vertexArray.get(i-1).y,vertexArray.get(i).x,vertexArray.get(i).y);
+                    g.line(vertexArray.get(i-1).x,vertexArray.get(i-1).y,vertexArray.get(i).x,vertexArray.get(i).y);
                   }break;
         }
       }
     }else if(points.size()>0){
-      line(points.get(0).x,points.get(0).y,points.get(points.size()-1).x,points.get(points.size()-1).y);
+      g.line(points.get(0).x,points.get(0).y,points.get(points.size()-1).x,points.get(points.size()-1).y);
     }
-    stroke(toColor(bulletColor));
-    line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    g.stroke(toColor(bulletColor));
+    g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
   }
   
   void update(){
@@ -565,9 +578,15 @@ class LaserBullet extends SubBullet{
       }
     }
   }
+  
+  @Override
+  void reflect(PVector c,float r){
+    super.reflect(c,r);
+    vertex.put(pos.copy(),0);
+  }
 }
 
-class LightningBullet extends SubBullet{
+class LightningBullet extends SubBullet implements ExcludeGPGPU{
   int frame=0;
   float rad=0;
   
@@ -589,13 +608,14 @@ class LightningBullet extends SubBullet{
     }
   }
   
-  void display(){
+  @Override
+  void display(PGraphics g){
     if(Debug){
-      displayAABB();
+      displayAABB(g);
     }
-    strokeWeight(scale);
-    stroke(255,255,240);
-    line(pos,vel);
+    g.strokeWeight(scale);
+    g.stroke(255,255,240);
+    g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
   }
   
   void update(){
@@ -616,6 +636,41 @@ class LightningBullet extends SubBullet{
   }
 }
 
+class ReflectorBullet extends SubBullet{
+  HashSet<Entity>HitEnemy;
+  HashSet<Entity>nextHitEnemy;
+  
+  ReflectorBullet(SubWeapon w,int num){
+    super(w);
+    setNear(num);
+    bulletColor=new Color(230,230,230);
+    HitEnemy=new HashSet<Entity>();
+    nextHitEnemy=new HashSet<Entity>();
+  }
+  
+  @Override
+  void update(){
+    HitEnemy.clear();
+    nextHitEnemy.forEach(e->{HitEnemy.add(e);});
+    nextHitEnemy.clear();
+    super.update();
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(e instanceof Enemy){
+      if(CircleCollision(e.pos,e.size,pos,vel)){
+        nextHitEnemy.add(e);
+        if(!HitEnemy.contains(e)){
+          reflectFromNormal(atan2(pos,e.pos));
+          ((Enemy)e).Hit(parent);
+          ((Enemy)e).addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
+        }
+      }
+    }
+  }
+}
+
 class HomingBullet extends SubBullet{
   float mag=0.0005;
   int num;
@@ -625,11 +680,6 @@ class HomingBullet extends SubBullet{
     setNear(num);
     bulletColor=new Color(0,0,255);
     this.num=num;
-  }
-  
-  @Override
-  void display(){
-    super.display();
   }
   
   @Override

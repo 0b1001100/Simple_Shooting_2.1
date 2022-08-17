@@ -1,7 +1,12 @@
+import java.awt.datatransfer.*;
+
 Color menuRightColor=new Color(0,150,255);
 
 class GameComponent{
   protected FocusEvent Fe=new FocusEvent(){void getFocus(){} void lostFocus(){}};
+  protected ResizeEvent re=(p,d)->{};
+  protected WindowResizeEvent wre=()->{};
+  protected PFont font;
   protected PVector pos;
   protected PVector dist;
   protected PVector center;
@@ -26,6 +31,7 @@ class GameComponent{
     pos=new PVector(x,y);
     dist=new PVector(dx,dy);
     center=new PVector(x+dx/2,y+dy/2);
+    re.resized(pos,dist);
     return this;
   }
   
@@ -59,6 +65,7 @@ class GameComponent{
   
   void update(){
     pFocus=focus;
+    if(windowResized)wre.Event();
   }
   
   void executeEvent(){
@@ -77,7 +84,113 @@ class GameComponent{
     Fe=e;
   }
   
+  void addWindowResizeEvent(WindowResizeEvent e){
+    wre=e;
+  }
+  
   void back(){}
+}
+
+class LineTextField extends GameComponent{
+  protected EnterEvent e=(l)->{};
+  protected float textOffset=0;
+  protected float offset=0;
+  protected float time=0;
+  protected int pIndex=0;
+  protected int index=0;
+  StringBuilder text;
+  PFont font;
+  
+  LineTextField(){
+    text=new StringBuilder();
+  }
+  
+  void display(){
+    
+  }
+  
+  void mousePress(){
+    onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
+    if(onMouse){
+      requestFocus();
+    }else{
+      removeFocus();
+    }
+    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    super.update();
+  }
+  
+  void keyProcess(){
+    pushStyle();
+    textFont(font);
+    if(focus&&(keyPress||(keyPressTime>0.5&&(keyPressTime-floor(keyPressTime))%0.1<0.05))){
+      pIndex=index;
+      if(nowPressedKeyCode==BACKSPACE&&index!=0){
+        text.delete(index-1,index);
+        index--;
+      }else
+      if(nowPressedKeyCode==147){
+        text.delete(index,index+1);
+      }else
+      if(nowPressedKeyCode==LEFT){
+        index=max(0,--index);
+      }else
+      if(nowPressedKeyCode==RIGHT){
+        index=min(++index,text.length());
+      }else
+      if(nowPressedKeyCode==UP){
+        upProcess();
+      }else
+      if(nowPressedKeyCode==DOWN){
+        downProcess();
+      }else
+      if(nowPressedKeyCode==ENTER){
+        EnterEvent();
+      }else if(PressedKeyCode.size()==2&&PressedKeyCode.contains("17")&&PressedKeyCode.contains("86")){
+        try{
+          text=new StringBuilder((String)Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor));
+          index=text.length();
+        }catch(UnsupportedFlavorException|IOException e){
+        }
+      }else{
+        if(nowPressedKeyCode==8||nowPressedKey.equals(str((char)-1)))if(nowPressedKeyCode!=0)return;
+        if(index==text.length()){
+          text.append(nowPressedKeyCode==0?(PressedKeyCode.contains("16")?'_':"\\"):nowPressedKey);
+        }else{
+          text.insert(index,nowPressedKeyCode==0?(PressedKeyCode.contains("16")?'_':"\\"):nowPressedKey);
+        }
+        ++index;
+      }
+      setOffset();
+    }
+    if(keyPressed)time=0;
+    popStyle();
+  }
+  
+  void upProcess(){
+    
+  }
+  
+  void downProcess(){
+    
+  }
+  
+  void clearText(){
+    index=0;
+    text.setLength(0);
+  }
+  
+  protected void setOffset(){
+    offset=textWidth(text.substring(0,index));
+  }
+  
+  void EnterEvent(){
+    e.Event(this);
+  }
+  
+  void addEnterListener(EnterEvent e){
+    this.e=e;
+  }
 }
 
 class ButtonItem extends GameComponent{
@@ -85,6 +198,12 @@ class ButtonItem extends GameComponent{
   protected boolean pCursor=false;
   protected boolean setCursor=false;
   protected String text="";
+  
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.8);
+    };
+  }
   
   ButtonItem(){
     
@@ -125,6 +244,12 @@ class CheckBox extends GameComponent{
   protected boolean pCursor=false;
   protected boolean setCursor=false;
   protected String text="";
+  
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.5);
+    };
+  }
   
   CheckBox(boolean value){
     this.value=value;
@@ -275,6 +400,12 @@ class TextBox extends GameComponent{
   String text="";
   float fontSize=15;
   
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.8);
+    };
+  }
+  
   TextBox(){
     Parsed=false;
   }
@@ -295,7 +426,7 @@ class TextBox extends GameComponent{
       float l=0;
       for(char c:s.toCharArray()){
         l+=g.textFont.width(c)*fontSize;
-        if((l>dist.x||c=='\n')&&c!=','&&c!='.'&&c!='、'&&c!='。'){
+        if((l>dist.x||c=='\n')&&c!=','&&c!='.'&&(int)c!=12289&&(int)c!=12290){
           l=0;
           t+=c=='\n'?"":"\n";
           t+=c;
@@ -427,6 +558,12 @@ class ItemList extends GameComponent{
   int selectedNumber=0;
   int menuNumber=0;
   
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",15);
+    };
+  }
+  
   ItemList(){
     keyMove=true;
   }
@@ -471,6 +608,7 @@ class ItemList extends GameComponent{
     pg.beginDraw();
     pg.background(toColor(background));
     pg.textSize(15);
+    pg.textFont(font);
     for(String s:Contents){
       if(floor(scroll/Height)<=num&num<=floor((scroll+dist.y)/Height)){
         pg.fill(0);
@@ -503,6 +641,7 @@ class ItemList extends GameComponent{
   }
   
   void subDraw(){
+    pushStyle();
     blendMode(BLEND);
     fill(#707070);
     noStroke();
@@ -511,11 +650,13 @@ class ItemList extends GameComponent{
     rect(sPos.x,sPos.y+25,sDist.x,sDist.y-25);
     textSize(15);
     textAlign(CENTER);
+    textFont(font);
     fill(0);
     text("説明",sPos.x+5+textWidth("説明")/2,sPos.y+17.5);
     textAlign(LEFT);
     text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
          Explanation.get(selectedItem):"Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45);
+    popStyle();
   }
   
   void update(){
@@ -918,6 +1059,7 @@ class MenuButton extends TextButton{
   MenuTextBox box=new MenuTextBox();
   Color sideLineColor=new Color(toColor(menuRightColor));
   boolean displayBox=false;
+  PFont font;
   
   MenuButton(){
     setBackground(new Color(220,220,220));
@@ -945,6 +1087,9 @@ class MenuButton extends TextButton{
   }
   
   void display(){
+    pushStyle();
+    if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
+    textFont(font);
     blendMode(BLEND);
     strokeWeight(1);
     fill(!focus?toColor(background):toColor(selectbackground));
@@ -958,6 +1103,7 @@ class MenuButton extends TextButton{
     textSize(dist.y*0.5);
     text(text,center.x,center.y+dist.y*0.2);
     if(displayBox)box.display();
+    popStyle();
   }
   
   void update(){
@@ -1028,6 +1174,7 @@ class MenuCheckBox extends CheckBox{
   }
   
   void display(){
+    pushStyle();
     blendMode(BLEND);
     strokeWeight(1);
     fill(!focus?toColor(background):toColor(selectbackground));
@@ -1037,10 +1184,12 @@ class MenuCheckBox extends CheckBox{
     stroke(!focus?color(0,0,0,0):toColor(menuRightColor));
     line(pos.x,pos.y,pos.x,pos.y+dist.y);
     fill(!focus?toColor(foreground):toColor(selectforeground));
+    textFont(font);
     textAlign(CENTER);
     textSize(dist.y*0.5);
     text(text+":"+(value?"ON":"OFF"),center.x,center.y+dist.y*0.2);
     if(displayBox)box.display();
+    popStyle();
   }
   
   void update(){
@@ -1614,6 +1763,10 @@ interface FocusEvent{
   void lostFocus();
 }
 
+interface ResizeEvent{
+  void resized(PVector p,PVector d);
+}
+
 interface SelectEvent{
   void selectEvent();
 }
@@ -1632,4 +1785,12 @@ interface ItemSelect{
 
 interface ListDisp{
   void display(PVector pos,PVector dist);
+}
+
+interface EnterEvent{
+  void Event(LineTextField l);
+}
+
+interface WindowResizeEvent{
+  void Event();
 }

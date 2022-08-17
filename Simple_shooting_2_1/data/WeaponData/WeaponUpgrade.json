@@ -231,6 +231,73 @@
     {
       "name":["cooltime"],
       "cooltime":20
+    },
+    {
+      "name":["power","cooltime"],
+      "power":2,
+      "cooltime":15
+    },
+    {
+      "name":["projectile"],
+      "projectile":1
+    },
+    {
+      "name":["cooltime","weight"],
+      "cooltime":20,
+      "weight":20
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":3
+    },
+    {
+      "name":["cooltime"],
+      "cooltime":20
+    },
+    {
+      "name":["cooltime","projectile","weight"],
+      "cooltime":20,
+      "projectile":1,
+      "weight":0
+    }
+  ],
+  "Reflector":[
+    {
+      "name":["power"],
+      "power":2
+    },
+    {
+      "name":["verocity","cooltime"],
+      "verocity":1,
+      "cooltime":15
+    },
+    {
+      "name":["projectile","duration","weight"],
+      "projectile":1,
+      "duration":20,
+      "weight":15
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["duration","power"],
+      "duration":20,
+      "power":1
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":10,
+      "power":2
+    },
+    {
+      "name":["duration","projectile","weight"],
+      "duration":20,
+      "projectile":1,
+      "weight":0
     }
   ],
   "projectile":[
@@ -242,12 +309,32 @@
   ],
   "scale":[
     {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
       "name":["value","weight"],
       "value":10,
       "weight":0
     }
   ],
   "power":[
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
     {
       "name":["value","weight"],
       "value":10,
@@ -256,6 +343,18 @@
   ],
   "speed":[
     {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
       "name":["value","weight"],
       "value":10,
       "weight":0
@@ -263,12 +362,32 @@
   ],
   "duration":[
     {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
       "name":["value","weight"],
       "value":10,
       "weight":0
     }
   ],
   "cooltime":[
+    {
+      "name":["value"],
+      "value":10
+    },
+    {
+      "name":["value"],
+      "value":10
+    },
     {
       "name":["value","weight"],
       "value":10,

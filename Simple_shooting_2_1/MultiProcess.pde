@@ -90,6 +90,34 @@ class EntityCollision implements Callable<String>{
   }
 }
 
+class EntityDraw implements Callable<PGraphics>{
+  PGraphics g;
+  int s;
+  int l;
+  
+  EntityDraw(int s,int l){
+    this.s=s;
+    this.l=l;
+    this.g=createGraphics(width,height);
+  }
+  
+  PGraphics call(){
+    g.beginDraw();
+    g.translate(scroll.x,scroll.y);
+    g.background(0,0);
+    for(int i=s;i<l;i++){
+      Entities.get(i).display(g);
+    }
+    g.endDraw();
+    return g;
+  }
+  
+  void setData(int s,int l){
+    this.s=s;
+    this.l=l;
+  }
+}
+
 class CollisionData{
   byte number;
   byte end;

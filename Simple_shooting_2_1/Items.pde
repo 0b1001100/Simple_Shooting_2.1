@@ -22,13 +22,13 @@ class Item{
       case "weapon":try{
                       w=(SubWeapon)WeaponConstructor.get(name).newInstance(CopyApplet,o);
                     }catch(InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}break;
-      case "item":data=o.getFloat("value");break;
+      case "item":data=o.getFloat("value");w=null;break;
     }
     upgradeData=UpgradeArray.getJSONArray(name);
     this.type=type;
   }
   
-  void update(){
+  void update() throws NullPointerException{
     if(level>1){
       if(type.equals("weapon")){
         w.upgrade(upgradeData,level);
@@ -49,6 +49,7 @@ class Item{
   
   void reset(){
     level=1;
+    weight=initData.getInt("weight");
     if(type.equals("weapon"))w.init(initData);
   }
   
@@ -193,6 +194,10 @@ class ItemTable implements Cloneable{
       if(v>0)l.add(k);
     });
     return l.size();
+  }
+  
+  boolean contains(String s){
+    return table.containsKey(s);
   }
 }
 

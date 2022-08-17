@@ -1,7 +1,13 @@
 class Explosion extends Enemy{
   ExplosionParticle p;
+  HashSet<Entity>HitEnemy;
   boolean myself=false;
+  boolean inf=false;
   float power=10;
+  
+  {
+    HitEnemy=new HashSet<Entity>();
+  }
   
   Explosion(Entity e,float size){
     pos=e.pos.copy();
@@ -19,9 +25,23 @@ class Explosion extends Enemy{
     myself=e instanceof Myself;
   }
   
-  void display(){
+  Explosion(Entity e,float size,float time,float power){
+    pos=e.pos.copy();
+    this.size=0;
+    this.power=power;
+    p=new ExplosionParticle(e,size,time);
+    HeapEntity.get(threadNum).add(p);
+    myself=e instanceof Myself;
+  }
+  
+  Explosion Infinity(boolean inf){
+    this.inf=inf;
+    return this;
+  }
+  
+  void display(PGraphics g){
     if(Debug){
-      displayAABB();
+      displayAABB(g);
     }
   }
   
@@ -35,22 +55,37 @@ class Explosion extends Enemy{
   
   @Override
   void Collision(Entity e){
-    if(!(e instanceof Explosion))e.Collision(this);
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!HitEnemy.contains(e)){
+      HitEnemy.add(e);
+      if(inf){
+        if(e instanceof BossEnemy){
+          ((Enemy)e).Hit(power);
+          return;
+        }
+        ((Enemy)e).Down();
+        e.dead.deadEvent(e);
+      }else{
+        ((Enemy)e).Hit(power);
+      }
+    }
   }
   
   @Override
   void Hit(Weapon w){
     return;
   }
+  
+  @Override
+  void Down(){
+    isDead=false;
+  }
 }
 
 class BulletExplosion extends Explosion{
-  HashSet<Entity>HitEnemy;
   Weapon parent;
   
   BulletExplosion(Entity e,float size,float time,boolean my,Weapon w){
     super(e,size,time);
-    HitEnemy=new HashSet<Entity>();
     myself=my;
     parent=w;
   }

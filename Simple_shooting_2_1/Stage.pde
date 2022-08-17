@@ -30,6 +30,11 @@ class Stage{
     Collections.sort(this.t.get(name),t[0].c);
   }
   
+  void addSchedule(String name,TimeSchedule... t){
+    if(this.t.containsKey(name))this.t.get(name).addAll(Arrays.asList(t));
+    Collections.sort(this.t.get(name),t[0].c);
+  }
+  
   void addSpown(EnemySpown s,float offset,Enemy e){
     addSpown(s,offset,120,e);
   }
@@ -76,6 +81,10 @@ class Stage{
     autoEnemy.addAll(Arrays.asList(e));
   }
   
+  void clearSpown(){
+    spown.clear();
+  }
+  
   void display(){
     spown.forEach(s->{s.display();});
   }
@@ -106,13 +115,7 @@ class Stage{
         }
       }catch(CloneNotSupportedException f){}
     }
-    while(time>t.get(name).get(frag).getTime()*60){
-      TimeSchedule T=t.get(name).get(frag);
-      if(time>T.getTime()*60){
-        T.getProcess().Process(this);
-        if(!endSchedule)++frag;
-      }
-    }
+    scheduleUpdate();
     ArrayList<SpownPoint>nextSpown=new ArrayList<SpownPoint>(spown.size());
     spown.forEach(s->{
       s.update();
@@ -120,6 +123,16 @@ class Stage{
     });
     spown=nextSpown;
     time+=vectorMagnification;
+  }
+  
+  void scheduleUpdate(){
+    while(time>t.get(name).get(frag).getTime()*60){
+      TimeSchedule T=t.get(name).get(frag);
+      if(time>T.getTime()*60){
+        T.getProcess().Process(this);
+        if(!endSchedule)++frag;
+      }
+    }
   }
 }
 
@@ -155,6 +168,7 @@ class SpownPoint{
     time-=vectorMagnification;
     if(time<0){
       isDead=true;
+      e.init();
       e.setPos(pos);
       NextEntities.add(e);
       return;

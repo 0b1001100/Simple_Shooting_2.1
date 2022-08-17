@@ -30,6 +30,7 @@ class Myself extends Entity{
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
+  int levelupNumber=0;
   int remain=3;
   
   Myself(){
@@ -48,23 +49,24 @@ class Myself extends Entity{
     camera=new Camera();
     camera.setTarget(this);
     addDeadListener((e)->{
-      addExplosion(this,250,1);
-      NextEntities.add(new Particle(this,(int)size*3,1));
+      HeapEntity.get(0).add(new Explosion(this,250,1).Infinity(true));
+      NextEntities.add(new Particle(this,(int)(size*3),1));
     });
   }
   
-  void display(){
-    pushMatrix();
-    translate(pos.x,pos.y);
-    rotate(-rotate);
-    strokeWeight(1);
-    noFill();
-    stroke(c.getRed(),c.getGreen(),c.getBlue());
-    ellipse(0,0,size,size);
-    strokeWeight(3);
-    arc(0,0,size*1.5,size*1.5,
+  @Override
+  void display(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(-rotate);
+    g.strokeWeight(1);
+    g.noFill();
+    g.stroke(c.getRed(),c.getGreen(),c.getBlue());
+    g.ellipse(0,0,size,size);
+    g.strokeWeight(3);
+    g.arc(0,0,size*1.5,size*1.5,
         radians(-5)-PI/2-selectedWeapon.diffuse/2,radians(5)-PI/2+selectedWeapon.diffuse/2);
-    popMatrix();
+    g.popMatrix();
     if(!camera.moveEvent){
       drawUI();
     }
@@ -80,13 +82,16 @@ class Myself extends Entity{
     while(exp>=nextLevel){
       exp-=nextLevel;
       ++Level;
-      nextLevel=10+(Level-1)*10*ceil(Level/7f);
+      nextLevel=10+(Level-1)*10*ceil(Level/10f);
       levelup=true;
+      ++levelupNumber;
     }
     if(!camera.moveEvent){
-      Rotate();
-      move();
-      shot();
+      if(!Command){
+        Rotate();
+        move();
+        shot();
+      }
       if(HP.get().intValue()<=0){
         isDead=true;
         return;
@@ -233,9 +238,6 @@ class Myself extends Entity{
     if(keyPress&&ModifierKey==TAB){
       changeWeapon();
     }
-    if(keyPress&&PressedKey.contains("q")){
-      addExplosion(this,600);
-    }
   }
   
   boolean hit(PVector pos){
@@ -255,7 +257,7 @@ class Myself extends Entity{
   void Collision(Entity e){
     if(e instanceof Explosion){
       if(!((Explosion)e).myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
-        Hit(((Explosion)e).power*vectorMagnification);
+        Hit(((Explosion)e).power);
       }
     }else if(e instanceof Enemy){
       e.Collision(this);

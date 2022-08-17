@@ -12,6 +12,8 @@ class GameProcess{
   boolean done=false;
   boolean menu=false;
   float deadTimer=0;
+  int ssbo;
+  int[] vbo=new int[1];
   int x=16;
   int y=9;
   
@@ -29,9 +31,11 @@ class GameProcess{
   
    public void init(){
     Entities=new ArrayList<Entity>();
+    nearEnemy.clear();
     UpgradeSet=new ComponentSet();
     player=new Myself();
     stage=new Stage();
+    StageFlag.clear();
     pause=false;
     sumLevel=0;
     addtionalProjectile=0;
@@ -47,6 +51,7 @@ class GameProcess{
     });
     player.subWeapons.clear();
     player.subWeapons.add(masterTable.get("Laser").getWeapon());
+    player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
   }
   
    public void process(){
@@ -60,7 +65,8 @@ class GameProcess{
     filter(backgroundShader);
     drawShape();
     if(gameOver){
-      scene=0;
+      StageFlag.add("Game_Over");
+      scene=3;
       done=true;
       return;
     }
@@ -89,76 +95,12 @@ class GameProcess{
       stage.update();
     }else{
       EntityTime=0;
-      if(player.levelup){
-        upgrade=true;
-        int num=min(playerTable.probSize(),3);
-        Item[]list=new Item[num];
-        ItemTable copy=playerTable.clone();
-        for(int i=0;i<num;i++){
-          list[i]=copy.getRandomWeapon();
-          switch(i){
-            case 0:if(sumLevel>=17&&0.4>random(1))list[i]=copy.getRandomItem();break;
-            case 1:if(sumLevel>=9&&0.4>random(1))list[i]=copy.getRandomItem();break;
-            case 2:if(sumLevel>=4&&0.4>random(1))list[i]=copy.getRandomItem();break;
-            case 3:if(sumLevel>=22&&0.4>random(1))list[i]=copy.getRandomItem();break;
-          }
-          copy.removeTable(list[i].getName());
+      if(player.levelup||upgrade){
+        if(player.levelupNumber>0){
+          upgrade();
         }
-        UpgradeSet.removeAll();
-        MenuButton[]buttons=new MenuButton[num];
-        for(int i=0;i<num;i++){
-          buttons[i]=(MenuButton)new MenuButton(list[i].getName()).setBounds(width/2-150,height/2-60+45*i,300,30);
-          Item item=list[i];
-          buttons[i].addListener(()->{
-            if(player.subWeapons.contains(item.getWeapon())){
-              ++item.level;
-              item.update();
-              ++sumLevel;
-            }else if(item.getType().equals("weapon")){
-              player.subWeapons.add(item.getWeapon());
-              ++sumLevel;
-            }else if(item.getType().equals("item")){
-              if(item.level==1){
-                switch(item.getName()){
-                  case "projectile":addtionalProjectile+=(int)item.getData();break;
-                  case "scale":addtionalScale+=item.getData()*0.01;break;
-                  case "power":addtionalPower+=item.getData()*0.01;break;
-                  case "speed":addtionalSpeed+=item.getData()*0.01;break;
-                  case "duration":addtionalDuration+=item.getData()*0.01;break;
-                  case "cooltime":reductionCoolTime-=item.getData()*0.01;break;
-                }
-              }else{
-                ++item.level;
-                item.update();
-                switch(item.getName()){
-                  case "projectile":addtionalProjectile+=(int)item.getData(item.level);break;
-                  case "scale":addtionalScale+=item.getData(item.level)*0.01;break;
-                  case "power":addtionalPower+=item.getData(item.level)*0.01;break;
-                  case "speed":addtionalSpeed+=item.getData(item.level)*0.01;break;
-                  case "duration":addtionalDuration+=item.getData(item.level)*0.01;break;
-                  case "cooltime":reductionCoolTime-=item.getData(item.level)*0.01;break;
-                }
-              }
-            }
-            player.subWeapons.forEach(w->{
-              w.reInit();
-            });
-            pause=false;
-            upgrade=false;
-          });
-        }
-        UpgradeSet.addAll(buttons);
-        player.levelup=false;
       }
-      if(upgrade){
-        fill(240);
-        noStroke();
-        rectMode(CENTER);
-        rect(width/2,height/2,400,600);
-        UpgradeSet.display();
-        UpgradeSet.update();
-      }
-      if(player.isDead){
+      if(player.isDead&&!menu){
         deadTimer+=0.016f*vectorMagnification;
         if(deadTimer>maxDeadTime){
           player.remain--;
@@ -192,10 +134,15 @@ class GameProcess{
         UpdateProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
       }
       try{
+        entityFuture.clear();
         for(int i=0;i<ThreadNumber;i++){
           entityFuture.add(exec.submit(UpdateProcess.get(i)));
         }
       }catch(Exception e){println(e);
+      }
+      if(doGPGPU){
+      //getPixelData();
+      //updatePixels();
       }
       for(Future<?> f:entityFuture){
         try {
@@ -239,10 +186,39 @@ class GameProcess{
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
     stage.display();
-    for(Entity e:Entities){
-      e.display();
+    if(doGPGPU){
+      loadPixels();
+      byte ThreadNumber=(byte)min(Entities.size(),(int)drawNumber);
+      float block=Entities.size()/(float)ThreadNumber;
+      for(byte b=0;b<ThreadNumber-1;b++){
+        DrawProcess.get(b).setData(round(block*b),round(block*(b+1)));
+      }
+      try{
+        drawFuture.clear();
+        for(int i=0;i<ThreadNumber-1;i++){
+          drawFuture.add(exec.submit(DrawProcess.get(i)));
+        }
+      }catch(Exception e){println(e);
+      }
+      for(int i=round(block*(ThreadNumber-1));i<round(block*ThreadNumber);i++){
+        Entities.get(i).display(g);
+      }
+      for(Future<PGraphics> f:drawFuture){
+        try{
+          image(f.get(),-scroll.x,-scroll.y);
+        }
+        catch(ConcurrentModificationException e) {
+          e.printStackTrace();
+        }
+        catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+        }
+        catch(NullPointerException g) {
+        }
+      }
+    }else{
+      Entities.forEach(e->{e.display(g);});
     }
-    if(!player.isDead)player.display();
+    if(!player.isDead)player.display(g);
     for(GravityBullet G:LensData){
       GravityLens.set("texture",g);
       GravityLens.set("center",G.screen.x,G.screen.y);
@@ -273,14 +249,220 @@ class GameProcess{
     text("LEVEL "+player.Level,190,52);
     textFont(font_15);
     textAlign(CENTER);
-    text("Time "+nf(floor(stage.time*0.0002777777777777777777777777777777),2,0)+":"+nf(floor((stage.time*0.0166666666666666666666666666666)%60),2,0),width*0.5,78);
+    text("Time "+nf(floor(stage.time/3600),2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5,78);
     pop();
   }
   
    public void keyProcess(){
-    if(!upgrade&&keyPress&&(key=='c'|keyCode==CONTROL)){
+    if(keyPress&&keyCode==CONTROL){
       menu=!menu;
-      pause=menu;
+      if(!upgrade)pause=menu;
     }
+  }
+  
+  void upgrade(){
+    if(player.levelup){
+      upgrade=true;
+      int num=min(playerTable.probSize(),3);
+      Item[]list=new Item[num];
+      ItemTable copy=playerTable.clone();
+      for(int i=0;i<num;i++){
+        list[i]=copy.getRandomWeapon();
+        switch(i){
+          case 0:if(sumLevel>=17&&0.5>random(1))list[i]=copy.getRandomItem();break;
+          case 1:if(sumLevel>=9&&0.5>random(1))list[i]=copy.getRandomItem();break;
+          case 2:if(sumLevel>=4&&0.5>random(1))list[i]=copy.getRandomItem();break;
+          case 3:if(sumLevel>=2&&0.4>random(1))list[i]=copy.getRandomItem();break;
+        }
+        copy.removeTable(list[i].getName());
+      }
+      UpgradeSet.removeAll();
+      MenuButton[]buttons=new MenuButton[num];
+      for(int i=0;i<num;i++){
+        buttons[i]=(MenuButton)new MenuButton(list[i].getName()+"  Level"+(list[i].getWeapon()==null?list[i].level:(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1))).setBounds(width/2-150,height/2-60+45*i,300,30);
+        int[] lambdaI={i};
+        buttons[i].addWindowResizeEvent(()->{
+          buttons[lambdaI[0]].setBounds(width/2-150,height/2-60+45*lambdaI[0],300,30);
+        });
+        Item item=list[i];
+        buttons[i].addListener(()->{
+          if(player.subWeapons.contains(item.getWeapon())){
+            ++item.level;
+            item.update();
+            ++sumLevel;
+          }else if(item.getType().equals("weapon")){
+            player.subWeapons.add(item.getWeapon());
+            ++sumLevel;
+          }else if(item.getType().equals("item")){
+            if(item.level==1){
+              switch(item.getName()){
+                case "projectile":addtionalProjectile+=(int)item.getData();break;
+                case "scale":addtionalScale+=item.getData()*0.01;break;
+                case "power":addtionalPower+=item.getData()*0.01;break;
+                case "speed":addtionalSpeed+=item.getData()*0.01;break;
+                case "duration":addtionalDuration+=item.getData()*0.01;break;
+                case "cooltime":reductionCoolTime-=item.getData()*0.01;break;
+              }
+              ++item.level;
+            }else{
+              item.update();
+              switch(item.getName()){
+                case "projectile":addtionalProjectile+=(int)item.getData(item.level);break;
+                case "scale":addtionalScale+=item.getData(item.level)*0.01;break;
+                case "power":addtionalPower+=item.getData(item.level)*0.01;break;
+                case "speed":addtionalSpeed+=item.getData(item.level)*0.01;break;
+                case "duration":addtionalDuration+=item.getData(item.level)*0.01;break;
+                case "cooltime":reductionCoolTime-=item.getData(item.level)*0.01;break;
+              }
+              ++item.level;
+            }
+          }
+          player.subWeapons.forEach(w->{
+            w.reInit();
+          });
+          --player.levelupNumber;
+          if(player.levelupNumber<1){
+            pause=false;
+          }else{
+            player.levelup=true;
+          }
+          upgrade=false;
+        });
+      }
+      UpgradeSet.addAll(buttons);
+      player.levelup=false;
+    }else if(upgrade){
+      fill(240);
+      noStroke();
+      rectMode(CENTER);
+      rect(width/2,height/2,400,600);
+      UpgradeSet.display();
+      UpgradeSet.update();
+    }
+  }
+  
+  void commandProcess(java.util.List<Token>tokens){
+    java.util.List<Token>ex_space_tokens=new ArrayList<Token>();
+    tokens.forEach(t->{
+      if(!t.getText().matches(" +"))ex_space_tokens.add(t);
+    });
+    switch(ex_space_tokens.get(0).getText()){
+      case "time":command_time(ex_space_tokens);break;
+      case "level":command_level(ex_space_tokens);break;
+      case "give":command_give(ex_space_tokens);break;
+      case "kill":command_kill(ex_space_tokens);break;
+      case "function":command_function(ex_space_tokens);break;
+      case "exit":command_exit();break;
+    }
+  }
+  
+  void command_time(java.util.List<Token>tokens){
+    stage.time=max(0,setParameter(stage.time,tokens.get(1).getText(),float(tokens.get(2).getText())*60));
+    stage.scheduleUpdate();
+    stage.clearSpown();
+  }
+  
+  void command_level(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().equals("@p")){
+      int targetLevel=(int)setParameter((float)player.Level,tokens.get(2).getText(),float(tokens.get(3).getText()));
+      if(player.Level<targetLevel){
+        player.levelup=true;
+        player.levelupNumber=targetLevel-player.Level;
+        player.Level=targetLevel;
+      }else{
+        player.Level=targetLevel;
+      }
+      player.nextLevel=10+(player.Level-1)*10*ceil(player.Level/10f);
+    }else{
+      Item i=masterTable.get(tokens.get(1).getText().replace("\"",""));
+      Weapon w=i.getWeapon();
+      if(player.subWeapons.contains(w)){
+        int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),float(tokens.get(3).getText()));
+        try{
+          if(i.level<targetLevel){
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              ++sumLevel;
+            }
+          }else{
+            i.reset();
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              ++sumLevel;
+            }
+          }
+        }catch(NullPointerException e){
+          
+        }
+      }
+    }
+  }
+  
+  void command_give(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))){
+      if(!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){
+        player.subWeapons.add(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon());
+      }else{
+        addWarning("You already have "+tokens.get(1).getText());
+      }
+    }else{
+      addWarning(tokens.get(1).getText()+" doesn't exist");
+    }
+  }
+  
+  void command_weapon(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))&&!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){}
+  }
+  
+  void command_kill(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().equals("@p")){
+      player.HP.set(0);
+    }else{
+      try{
+        Class c=Class.forName("Simple_shooting_2_1$"+tokens.get(1).getText().replace("\"",""));
+        Entities.forEach(e->{
+          if(c.isInstance(e))e.isDead=true;
+        });
+      }catch(ClassNotFoundException e){
+        addWarning("Class "+tokens.get(1).getText()+" doesn't exist");
+      }
+    }
+  }
+  
+  void command_function(java.util.List<Token>tokens){
+    try{
+      String[] functions=loadStrings(tokens.get(1).getText().replace("\"",""));
+      for(String s:functions){
+        CharStream cs=CharStreams.fromString(s);
+        command_lexer lexer=new command_lexer(cs);
+        CommonTokenStream command_tokens=new CommonTokenStream(lexer);
+        command_parser parser=new command_parser(command_tokens);
+        parser.removeErrorListeners();
+        parser.addErrorListener(ThrowingErrorListener.INSTANCE.setWarningMap(DebugWarning));
+        parser.command();
+        if(parser.getNumberOfSyntaxErrors()>0)continue;
+        main.commandProcess(command_tokens.getTokens());
+      }
+    }catch(NullPointerException e){
+      addWarning("No such file");
+    }
+  }
+  
+  void command_exit(){
+    scene=0;
+    done=true;
+  }
+  
+  float setParameter(float data,String type,float num){
+    if(type.equals("add")){
+      return data+num;
+    }else if(type.equals("set")){
+      return num;
+    }else if(type.equals("sub")){
+      return data-num;
+    }
+    return data;
   }
 }

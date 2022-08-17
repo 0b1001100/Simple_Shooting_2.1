@@ -26,6 +26,7 @@ ExecutorService exec;
 
 ArrayList<Future<?>>CollisionFuture=new ArrayList<Future<?>>();
 ArrayList<Future<?>>entityFuture=new ArrayList<Future<?>>();
+ArrayList<Future<PGraphics>>drawFuture=new ArrayList<Future<PGraphics>>();
 
 ArrayList<EntityCollision>CollisionProcess=new ArrayList<EntityCollision>();
 byte collisionNumber=16;
@@ -34,28 +35,37 @@ int minDataNumber=4;
 ArrayList<EntityProcess>UpdateProcess=new ArrayList<EntityProcess>();
 byte updateNumber=16;
 
+ArrayList<EntityDraw>DrawProcess=new ArrayList<EntityDraw>();
+byte drawNumber=4;
+
 float vectorMagnification=1;
 
+PShader FXAAShader;
 PShader colorInv;
 PShader Lighting;
 PShader GravityLens;
+PShader menuShader;
 java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
 
 GameProcess main;
 Stage stage;
 
 ComponentSetLayer starts=new ComponentSetLayer();
+ComponentSet resultSet;
 
 ItemTable MastarTable;
 
-GL4 gl;
+GL4 gl4;
 
 JSONObject LanguageData;
 JSONObject Language;
 JSONObject conf;
 
+PFont font_50;
+
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
+ArrayList<String>StageFlag=new ArrayList<String>();
 java.util.List<Entity>Entities=new ArrayList<Entity>(50);
 java.util.List<Entity>NextEntities=new ArrayList<Entity>();
 ArrayList<ArrayList<Entity>>HeapEntity=new ArrayList<ArrayList<Entity>>();
@@ -71,11 +81,18 @@ boolean keyRelease=false;
 boolean keyPress=false;
 boolean changeScene=true;
 boolean pause=false;
+boolean windowResized=false;
+boolean resultAnimation=false;
+boolean launched=false;
 String nowPressedKey;
 String nowMenu="Main";
 String pMenu="Main";
 String StageName="";
+float keyPressTime=0;
+float resultTime=0;
 long pTime=0;
+int compute_program;
+int compute_shader;
 int nowPressedKeyCode;
 int ModifierKey=0;
 int pEntityNum=0;
@@ -83,6 +100,7 @@ int pscene=0;
 int scene=0;
 
 boolean colorInverse=false;
+boolean FXAA=false;
 
 static final String ShaderPath=".\\data\\shader\\";
 static final String StageConfPath=".\\data\\StageConfig\\";
@@ -92,7 +110,9 @@ static final String ImagePath=".\\data\\images\\";
 {PJOGL.profile=4;}
 
 void setup(){
-  size(1280, 720, P2D);
+  size(1280,720,P2D);
+  hint(DISABLE_OPENGL_ERRORS);
+  //noSmooth();
   ((GLWindow)surface.getNative()).addWindowListener(new com.jogamp.newt.event.WindowListener() {
     void windowDestroyed(com.jogamp.newt.event.WindowEvent e) {
     }
@@ -118,29 +138,44 @@ void setup(){
       pscreen.sub(w.getWidth(), w.getHeight()).div(2);
       scroll.sub(pscreen);
       pscreen=new PVector(w.getWidth(), w.getHeight());
+      windowResized=true;
     }
   }
-  );((GLWindow)surface.getNative()).addKeyListener(new com.jogamp.newt.event.KeyListener() {
+  );
+  ((GLWindow)surface.getNative()).addKeyListener(new com.jogamp.newt.event.KeyListener() {
     void keyPressed(com.jogamp.newt.event.KeyEvent e){
     }
     void keyReleased(com.jogamp.newt.event.KeyEvent e){
     }
   }
   );
-  textFont(createFont("SansSerif.plain", 15));
+  gl4=((PJOGL)((PGraphicsOpenGL)g).pgl).gl.getGL4();
+  compute_shader=gl4.glCreateShader(GL4.GL_COMPUTE_SHADER);
+  String[] vlines = new String[]{join(loadStrings(ShaderPath+"Merge.glsl"), "\n")};
+  int[] vlengths = new int[]{vlines[0].length()};
+  gl4.glShaderSource(compute_shader,vlines.length,vlines,vlengths,0);
+  gl4.glCompileShader(compute_shader);
+  compute_program=gl4.glCreateProgram();
+  gl4.glAttachShader(compute_program, compute_shader);
+  gl4.glLinkProgram(compute_program);
+  textFont(createFont("SansSerif.plain",15));
+  font_50=createFont("SansSerif.plain",50);
+  FXAAShader=loadShader(ShaderPath+"FXAA.glsl");
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
   Lighting=loadShader(ShaderPath+"Lighting.glsl");
   GravityLens=loadShader(ShaderPath+"GravityLens.glsl");
+  menuShader=loadShader(ShaderPath+"Menu.glsl");
   blendMode(ADD);
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
-  //initGPGPU();
+  initGPGPU();
+  if(doGPGPU)try{initMergeGPGPU();}catch(Exception e){e.printStackTrace();}
   LoadData();
   initThread();
 }
 
-void draw() {
+void draw(){
   switch(scene) {
     case 0:Menu();
     break;
@@ -148,6 +183,7 @@ void draw() {
     break;
     case 2:Field();
     break;
+    case 3:Result();
   }
   eventProcess();
   if(scene==2){
@@ -175,15 +211,25 @@ void draw() {
       }
     }
   }
-  printFPS();
   Shader();
+  printFPS();
   updatePreValue();
   updateFPS();
 }
-
+/*
+void dispose(){
+  CL.clReleaseMemObject(input_pixel);
+  CL.clReleaseMemObject(output_pixel);
+  CL.clReleaseProgram(program);
+  CL.clReleaseKernel(kernel);
+  CL.clReleaseCommandQueue(queue);
+  CL.clReleaseContext(context);
+}
+*/
 void LoadData(){
   conf=loadJSONObject(".\\data\\save\\config.json");
   useGPGPU=conf.getBoolean("GPGPU");
+  if(useGPGPU)initGPGPU();
   LoadLanguage();
   LanguageData=loadJSONObject(".\\data\\lang\\Languages.json");
   UpgradeArray=loadJSONObject(".\\data\\WeaponData\\WeaponUpgrade.json");
@@ -254,6 +300,9 @@ void initMenu(){
   });
   MenuTextBox confBox=new MenuTextBox(Language.getString("ex"));
   confBox.setBounds(width-320,100,300,500);
+  confBox.addWindowResizeEvent(()->{
+    confBox.setBounds(width-320,100,300,500);
+  });
   //---
     MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),colorInverse);
     Colorinv.setBounds(250,180,120,25);
@@ -305,14 +354,72 @@ void initMenu(){
   starts.addSubChild("main","stage",toSet(stage));
   starts.addSubChild("main","confMenu",toSet(Colorinv,Lang),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
+  if(launched){
+    starts.toChild("main");
+  }else{
+    launched=true;
+  }
 }
 
-void Load() {
+void Load(){
   background(0);
   scene=2;
 }
 
+void Result(){
+  if(changeScene){
+    resetMatrix();
+    resultAnimation=true;
+    resultTime=0;
+    MenuButton resultButton=new MenuButton("OK");
+    resultButton.setBounds(width*0.5-60,height*0.7,120,25);
+    resultButton.addWindowResizeEvent(()->{
+      resultButton.setBounds(width*0.5-60,height*0.7,120,25);
+    });
+    resultButton.addListener(()->{
+      scene=0;
+    });
+    resultButton.requestFocus();
+    resultSet=toSet(resultButton);
+  }
+  background(230);
+  if(resultAnimation){
+    float normUItime=resultTime/30;
+    background(320*normUItime);
+    blendMode(BLEND);
+    float Width=width/main.x;
+    float Height=height/main.y;
+    for(int i=0;i<main.y;i++){
+      for(int j=0;j<main.x;j++){
+        fill(230);
+        noStroke();
+        rectMode(CENTER);
+        float scale=min(max(resultTime*(main.y/9)-(j+i),0),1);
+        rect(Width*j+Width/2,Height*i+Height/2,Width*scale,Height*scale);
+      }
+    }
+    resultTime+=vectorMagnification;
+    if(resultTime>30)resultAnimation=false;
+  }
+  textAlign(CENTER);
+  fill(0);
+  textSize(50);
+  textFont(font_50);
+  text(StageFlag.contains("Game_Over")?"Game over":"Stage clear",width*0.5,height*0.2);
+  resultSet.display();
+  resultSet.update();
+  if(resultAnimation){
+    menuShader.set("time",resultTime);
+    menuShader.set("xy",(float)main.x,(float)main.y);
+    menuShader.set("resolution",(float)width,(float)height);
+    menuShader.set("menuColor",230f/255f,230f/255f,230f/255f,1.0);
+    menuShader.set("tex",g);
+    filter(menuShader);
+  }
+}
+
 void initThread(){
+  collisionNumber=updateNumber=(byte)min(16,Runtime.getRuntime().availableProcessors());
   exec=Executors.newFixedThreadPool(collisionNumber);
   for(int i=0;i<updateNumber;i++){
     HeapEntity.add(new ArrayList<Entity>());
@@ -320,6 +427,9 @@ void initThread(){
     HeapEntityDataX.add(new HashMap<Float,String>());
     CollisionProcess.add(new EntityCollision(0,0,(byte)0));
     UpdateProcess.add(new EntityProcess(0,0,(byte)0));
+  }
+  for(int i=0;i<drawNumber-1;i++){
+    DrawProcess.add(new EntityDraw(0,0));
   }
 }
 
@@ -366,6 +476,12 @@ void eventProcess() {
   } else {
     changeScene=false;
   }
+  if((PressedKeyCode.size()>1||(PressedKeyCode.size()==1&&!PressedKeyCode.contains("16")))&&(nowPressedKeyCode==147||!nowPressedKey.equals(str((char)-1)))){
+    keyPressTime+=vectorMagnification/60;
+  }else{
+    keyPressTime=0;
+  }
+  if(!keyPressed)PressedKey.clear();
 }
 
 void updateFPS() {
@@ -378,6 +494,7 @@ void updateFPS() {
 }
 
 void updatePreValue() {
+  windowResized=false;
   keyRelease=false;
   keyPress=false;
   pmousePress=mousePressed;
@@ -390,6 +507,15 @@ void updatePreValue() {
 
 void Shader(){
   if (player!=null) {
+  }
+  if(FXAA){
+    FXAAShader.set("resolution",width,height);
+    FXAAShader.set("input_texture",g);
+    if(scene==2){
+      applyShader(FXAAShader);
+    }else{
+      filter(FXAAShader);
+    }
   }
 }
 
@@ -416,7 +542,7 @@ void applyShader(PShader s){
   popMatrix();
 }
 
-PMatrix3D getMatrixLocalToWindow() {
+PMatrix3D getMatrixLocalToWindow(PGraphics g) {
   PMatrix3D projection = ((PGraphics2D)g).projection;
   PMatrix3D modelview = ((PGraphics2D)g).modelview;
 
@@ -431,7 +557,23 @@ PMatrix3D getMatrixLocalToWindow() {
 }
 
 PVector unProject(float winX, float winY) {
-  PMatrix3D mat = getMatrixLocalToWindow();
+  PMatrix3D mat = getMatrixLocalToWindow(g);
+  mat.invert();
+
+  float[] in = {winX, winY, 1.0f, 1.0f};
+  float[] out = new float[4];
+  mat.mult(in, out);
+
+  if (out[3] == 0 ) {
+    return null;
+  }
+
+  PVector result = new PVector(out[0]/out[3], out[1]/out[3], out[2]/out[3]);
+  return result;
+}
+
+PVector unProject(float winX, float winY,PGraphics g) {
+  PMatrix3D mat = getMatrixLocalToWindow(g);
   mat.invert();
 
   float[] in = {winX, winY, 1.0f, 1.0f};
@@ -447,7 +589,22 @@ PVector unProject(float winX, float winY) {
 }
 
 PVector Project(float winX, float winY) {
-  PMatrix3D mat = getMatrixLocalToWindow();
+  PMatrix3D mat = getMatrixLocalToWindow(g);
+
+  float[] in = {winX, winY, 1.0f, 1.0f};
+  float[] out = new float[4];
+  mat.mult(in, out);
+
+  if (out[3] == 0 ) {
+    return null;
+  }
+
+  PVector result = new PVector(out[0]/out[3], out[1]/out[3], out[2]/out[3]);
+  return result;
+}
+
+PVector Project(float winX, float winY,PGraphics g) {
+  PMatrix3D mat = getMatrixLocalToWindow(g);
 
   float[] in = {winX, winY, 1.0f, 1.0f};
   float[] out = new float[4];
@@ -476,6 +633,14 @@ PVector Project(float winX, float winY) {
   return ret;
 }
 
+void updateUniform2f(String uniformName,float uniformValue1,float uniformValue2){
+  int loc=gl4.glGetUniformLocation(compute_program,uniformName);
+  gl4.glUniform2f(loc,uniformValue1,uniformValue2);
+  if (loc!=-1){
+    gl4.glUniform2f(loc,uniformValue1,uniformValue2);
+  }
+}
+
 boolean onMouse(float x, float y, float dx, float dy) {
   return x<=mouseX&mouseX<=x+dx&y<=mouseY&mouseY<=y+dy;
 }
@@ -486,6 +651,14 @@ PVector unProject(PVector v){
 
 PVector Project(PVector v){
   return Project(v.x,v.y);
+}
+
+PVector unProject(PVector v,PGraphics g){
+  return unProject(v.x,v.y,g);
+}
+
+PVector Project(PVector v,PGraphics g){
+  return Project(v.x,v.y,g);
 }
 
 float Sigmoid(float t) {
@@ -620,36 +793,86 @@ PVector LineCrossPoint(PVector s1, PVector v1, PVector l2, PVector v2) {
   return s1.add(v1.copy().mult(t));
 }
 
+PVector getCrossPoint(PVector pos,PVector vel,PVector C,float r) {
+  
+  float a=vel.y;
+  float b=-vel.x;
+  float c=-a*pos.x-b*pos.y;
+  
+  float d=abs((a*C.x+b*C.y+c)/mag(a,b));
+  
+  float theta = atan2(b, a);
+  
+  if(d>r){
+    return null;
+  }else if(d==r){
+    PVector point;
+    
+    if(a*C.x+b*C.y+c>0)theta+=PI;
+
+    float crossX=r*cos(theta)+C.x;
+    float crossY=r*sin(theta)+C.y;
+
+    point=new PVector(crossX, crossY);
+    return point;
+  }else{
+    float alpha,beta,phi;
+    phi=acos(d/r);
+    alpha=theta-phi;
+    beta=theta+phi;
+    
+    if(a*C.x+b*C.y+c>0){
+      alpha+=PI;
+      beta+=PI;
+    }
+    
+    PVector c1=new PVector(r*cos(alpha)+C.x,r*sin(alpha)+C.y);
+    PVector c2=new PVector(r*cos(beta)+C.x,r*sin(beta)+C.y);
+    
+    if(dist(c1,pos)<dist(c2,pos)){
+      if(sign(c1.x-pos.x)==sign(vel.x)){
+        return c1;
+      }else{
+        return c2;
+      }
+    }else{
+      return c2;
+    }
+  }
+}
+
 color toColor(Color c) {
-  return color(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha());
+  return color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
 }
 
 color toRGB(Color c) {
-  return color(c.getRed(), c.getGreen(), c.getBlue(), 255);
+  return color(c.getRed(),c.getGreen(),c.getBlue(),255);
 }
 
 Color toAWTColor(color c) {
-  return new Color((c>>16)&0xFF, (c>>8)&0xFF, c&0xFF, (c>>24)&0xFF);
+  return new Color((c>>16)&0xFF,(c>>8)&0xFF,c&0xFF,(c>>24)&0xFF);
 }
 
 Color mult(Color C, float c) {
-  return new Color(round(C.getRed()*c), round(C.getGreen()*c), round(C.getBlue()*c), C.getAlpha());
+  return new Color(round(C.getRed()*c),round(C.getGreen()*c),round(C.getBlue()*c),C.getAlpha());
 }
 
 Color cloneColor(Color c) {
-  return new Color(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha());
+  return new Color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
 }
 
-void keyPressed(processing.event.KeyEvent e) {
+void keyPressed(){
+  keyPressTime=0;
   keyPress=true;
-  ModifierKey=e.getKeyCode();
+  ModifierKey=keyCode;
   PressedKey.add(str(key));
   PressedKeyCode.add(str(keyCode));
   nowPressedKey=str(key);
   nowPressedKeyCode=keyCode;
 }
 
-void keyReleased(processing.event.KeyEvent e) {
+void keyReleased(){
+  keyPressTime=0;
   keyRelease=false;
   ModifierKey=-1;
   PressedKeyCode.remove(str(keyCode));
@@ -677,10 +900,10 @@ class Entity implements Egent, Cloneable {
   Entity() {
   }
 
-  void display() {
+  void display(PGraphics g){
   }
 
-  void update() {
+  void update(){
     if(isDead&&!pDead){
       dead.deadEvent(this);
       pDead=isDead;
@@ -728,12 +951,12 @@ class Entity implements Egent, Cloneable {
   void Collision(Entity e){
   }
   
-  void displayAABB(){
-    rectMode(CENTER);
-    noFill();
-    strokeWeight(1);
-    stroke(255);
-    rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+  void displayAABB(PGraphics g){
+    g.rectMode(CENTER);
+    g.noFill();
+    g.strokeWeight(1);
+    g.stroke(255);
+    g.rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
   }
 }
 
@@ -825,8 +1048,11 @@ class Camera {
   }
 }
 
+interface ExcludeGPGPU{
+}
+
 interface Egent {
-  void display();
+  void display(PGraphics g);
 
   void update();
 }

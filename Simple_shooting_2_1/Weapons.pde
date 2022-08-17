@@ -178,8 +178,9 @@ class SubWeapon extends Weapon{
     for(String s:params)upgradeStatus.put(s,0f);
   }
   
-  void upgrade(JSONArray a,int level){
+  void upgrade(JSONArray a,int level) throws NullPointerException{
     this.level=level;
+    if(level-2>=a.size())throw new NullPointerException();
     JSONObject add=a.getJSONObject(level-2);
     HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).getStringArray()));
     param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
@@ -398,6 +399,24 @@ class LightningWeapon extends SubWeapon{
     }
     offset++;
     offset%=12;
+  }
+}
+
+class ReflectorWeapon extends SubWeapon{
+  
+  ReflectorWeapon(){
+    super();
+  }
+  
+  ReflectorWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new ReflectorBullet(this,i));
+    }
   }
 }
 

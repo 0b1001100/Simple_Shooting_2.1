@@ -84,6 +84,18 @@
     "through":0
   },
   {
+    "name":"Reflector",
+    "type":"weapon",
+    "weight":19,
+    "projectile":1,
+    "scale":0,
+    "power":2,
+    "velocity":3,
+    "duration":90,
+    "cooltime":150,
+    "through":0
+  },
+  {
     "name":"projectile",
     "type":"item",
     "value":1,

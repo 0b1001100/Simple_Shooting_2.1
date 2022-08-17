@@ -27,10 +27,11 @@ class Exp extends Entity{
     }
   }
   
-  void display(){
-    fill(toColor(c));
-    noStroke();
-    rect(pos.x,pos.y,size,size);
+  @Override
+  void display(PGraphics g){
+    g.fill(toColor(c));
+    g.noStroke();
+    g.rect(pos.x,pos.y,size,size);
   }
   
   void update(){
