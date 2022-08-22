@@ -7,5 +7,17 @@
   "ex_color_inverse":"メニュー画面のダークモードの切り替え",
   "language":"言語",
   "ex_language":"言語の選択",
-  "menu":"メニュー"
+  "operation_ex":"操作説明",
+  "mouse_click":"マウスクリック",
+  "move":"移動",
+  "shot":"射撃",
+  "back":"戻る",
+  "menu":"メニュー",
+  "tu_move":"WASDで移動",
+  "tu_shot":"左クリックで射撃",
+  "tu_shot_2":"長押しで連射",
+  "tu_attack":"射撃で倒す",
+  "tu_exp":"近づいて経験値を取得",
+  "tu_upgrade":"アップグレードを選択",
+  "tu_dead":"敵に当たると残機が減少"
 }

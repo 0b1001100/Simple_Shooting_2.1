@@ -1,16 +1,23 @@
 class GameProcess{
+  HashSet<String>EventSet;
+  ComponentSet HUDSet;
   ComponentSet UpgradeSet;
-  menuManage mainMenu;
+  WallEntity[] wall=null;
   Color menuColor=new Color(230,230,230);
+  PVector FieldSize=null;
+  PFont font_20;
+  PFont font_15;
   PShader menuShader;
+  PShader backgroundShader;
   float UItime=0;
   boolean gameOver=false;
   boolean animation=false;
   boolean upgrade=false;
-  boolean pause=false;
   boolean done=false;
-  String menu="Main";
+  boolean menu=false;
   float deadTimer=0;
+  int ssbo;
+  int[] vbo=new int[1];
   int x=16;
   int y=9;
   
@@ -20,93 +27,324 @@ class GameProcess{
     setup();
   }
   
-  void setup(){
+   public void setup(){
     init();
+    font_20=createFont("SansSerif.plain",20);
+    font_15=createFont("SansSerif.plain",15);
   }
   
-  void init(){
-    Particles=Collections.synchronizedList(new ArrayList<Particle>());
-    eneBullets=Collections.synchronizedList(new ArrayList<Bullet>());
-    Bullets=Collections.synchronizedList(new ArrayList<Bullet>());
-    Enemies=Collections.synchronizedList(new ArrayList<Enemy>());
-    Exps=Collections.synchronizedList(new ArrayList<Exp>());
-    ParticleHeap=Collections.synchronizedList(new ArrayList<Particle>());
-    eneBulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
-    BulletHeap=Collections.synchronizedList(new ArrayList<Bullet>());
-    EnemyHeap=Collections.synchronizedList(new ArrayList<Enemy>());
-    ExpHeap=Collections.synchronizedList(new ArrayList<Exp>());
-    UpgradeSet=new ComponentSet();
-    mainMenu=new menuManage();
-    player=new Myself();
-    stage=new Stage();
+   public void init(){
+     FieldSize=null;
+     EventSet=new HashSet<String>();
+     HUDSet=new ComponentSet();
+     UpgradeSet=new ComponentSet();
+     stageLayer=new ComponentSetLayer();
+     stageLayer.addLayer("root",UpgradeSet);
+     stageLayer.addSubChild("root","HUD",HUDSet);
+     Entities=new ArrayList<Entity>();
+     nearEnemy.clear();
+     player=new Myself();
+     stage=new Stage();
+     StageFlag.clear();
+     pause=false;
+     sumLevel=0;
+     addtionalProjectile=0;
+     addtionalScale=1;
+     addtionalPower=1;
+     addtionalSpeed=1;
+     addtionalDuration=1;
+     reductionCoolTime=1;
+     backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
+     playerTable.getAll().forEach(i->{
+       i.reset();
+       playerTable.addTable(i,i.weight);
+     });
+     player.subWeapons.clear();
+     switch(StageName){
+       case "Tutorial":initTutorial();break;
+       case "Stage1":player.subWeapons.add(masterTable.get("Laser").getWeapon());
+                     player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
+                     break;
+     }
   }
   
-  void process(){
+  private void initTutorial(){
+    player.canMagnet=false;
+    HUDText tu_upgrade=new HUDText(Language.getString("tu_upgrade"));
+    tu_upgrade.setBounds(width*0.5+200,height*0.5-200,0,0);
+    tu_upgrade.addWindowResizeEvent(()->{
+      tu_upgrade.setBounds(width*0.5+200,height*0.5-200,0,0);
+    });
+    tu_upgrade.setProcess(()->{
+      if(!upgrade){
+        tu_upgrade.Dispose();
+        tu_upgrade.setFlag(false);
+      }
+    });
+    tu_upgrade.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+3,s->{if(!stageList.contains("Stage1"))stageList.addContent("Stage1");StageFlag.add("Clear_Tutorial");scene=3;}));
+    });
+    HUDText tu_exp=new HUDText(Language.getString("tu_exp"));
+    tu_exp.setProcess(()->{
+      if(player.levelup){
+        tu_exp.Dispose();
+        tu_exp.setFlag(false);
+      }
+    });
+    tu_exp.addDisposeListener(()->{
+      tu_upgrade.startDisplay();
+    });
+    HUDText tu_attack=new HUDText(Language.getString("tu_attack"));
+    tu_attack.setProcess(()->{
+      if(tu_attack.target.isDead){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_attack.endDisplay()));
+        tu_attack.setFlag(false);
+      }
+    });
+    tu_attack.addDisposeListener(()->{
+      tu_exp.startDisplay();
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+1,s->player.canMagnet=true));
+    });
+    HUDText tu_shot_2=new HUDText(Language.getString("tu_shot_2"));
+    tu_shot_2.setTarget(player);
+    tu_shot_2.setProcess(()->{
+      if(mousePressed&&mouseButton==LEFT){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot_2.endDisplay()));
+        tu_shot_2.setFlag(false);
+      }
+    });
+    tu_shot_2.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->{
+        DummyEnemy e=new DummyEnemy();
+        tu_attack.setTarget(e);
+        if(dist(new PVector(0,0),player.pos)<100){
+          stage.addSpown(player.pos.copy().add(0,200),e);
+        }else{
+          stage.addSpown(new PVector(0,0),e);
+        }
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+3,s2->{tu_attack.startDisplay();}));
+      }));
+    });
+    HUDText tu_shot=new HUDText(Language.getString("tu_shot"));
+    tu_shot.setTarget(player);
+    tu_shot.setProcess(()->{
+      if(mousePressed&&mouseButton==LEFT){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot.endDisplay()));
+        tu_shot.setFlag(false);
+      }
+    });
+    tu_shot.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot_2.startDisplay()));
+    });
+    HUDText tu_move=new HUDText(Language.getString("tu_move"));
+    tu_move.setTarget(player);
+    tu_move.setProcess(()->{
+      if(player.Speed>=3){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_move.endDisplay()));
+        tu_move.setFlag(false);
+      }
+    });
+    tu_move.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot.startDisplay()));
+    });
+    stage.addProcess("Tutorial",new TimeSchedule(2,s->tu_move.startDisplay()));
+    HUDSet.addAll(tu_move,tu_shot,tu_shot_2,tu_attack,tu_exp,tu_upgrade);
+  }
+  
+   public void process(){
     if(player.levelup)pause=true;
     if(player.isDead){
       pause=true;
     }
     done=false;
     background(0);
+    backgroundShader.set("offset",player.pos.x,-player.pos.y);
+    filter(backgroundShader);
     drawShape();
     if(gameOver){
-      scene=0;
+      StageFlag.add("Game_Over");
+      scene=3;
       done=true;
       return;
     }
     Debug();
-    if(!pause){
-      updateShape();
-    }else{
-      pauseProcess();
-    }
+    updateShape();
     keyProcess();
+    EventProcess();
+    EventSet.clear();
     done=true;
   }
 
-  void updateShape(){
-    try{
-      particleFuture=exec.submit(particleTask);
-      enemyFuture=exec.submit(enemyTask);
-      bulletFuture=exec.submit(bulletTask);
-    }catch(Exception e){
+  public void updateShape(){
+    if(!pause){
+      for(int i=0;i<nearEnemy.size();i++){
+        Enemy e=nearEnemy.get(i);
+        if(e!=null&&(e.isDead||!e.inScreen)){
+          nearEnemy.remove(e);
+          i--;
+        }
+      }
+      Collections.sort(nearEnemy,new Comparator<Enemy>(){
+        @Override
+        public int compare(Enemy e1,Enemy e2) {
+          return Float.compare(e1.playerDistsq,e2.playerDistsq);
+        }
+      });
+      player.update();
+      stage.update();
+    }else{
+      EntityTime=0;
+      if(player.levelup||upgrade){
+        if(player.levelupNumber>0){
+          upgrade();
+        }
+      }
+      if(player.isDead&&!menu){
+        deadTimer+=0.016f*vectorMagnification;
+        if(deadTimer>maxDeadTime){
+          player.remain--;
+          if(player.remain<=0){
+            gameOver=true;
+            pause=false;
+            return;
+          }
+          player.isDead=player.pDead=false;
+          player.invincibleTime=3;
+          player.HP.reset();
+          pause=false;
+          deadTimer=0;
+          if(StageName.equals("Tutorial")){
+            player.pos=new PVector(0,0);
+            player.rotate=0;
+          }
+        }
+        player.update();
+      }
     }
-    stage.update();
+    if(menu){
+      rectMode(CORNER);
+      noStroke();
+      fill(0,100);
+      pushMatrix();
+      resetMatrix();
+      rect(0,0,width,height);
+      popMatrix();
+    }
+    if(!(upgrade||menu)){
+      byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
+      float block=Entities.size()/(float)ThreadNumber;
+      for(byte b=0;b<ThreadNumber;b++){
+        UpdateProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
+      }
+      try{
+        entityFuture.clear();
+        for(int i=0;i<ThreadNumber;i++){
+          entityFuture.add(exec.submit(UpdateProcess.get(i)));
+        }
+      }catch(Exception e){println(e);
+      }
+      if(doGPGPU){
+      //getPixelData();
+      //updatePixels();
+      }
+      for(Future<?> f:entityFuture){
+        try {
+          f.get();
+        }
+        catch(ConcurrentModificationException e) {
+          e.printStackTrace();
+        }
+        catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+        }
+        catch(NullPointerException g) {
+        }
+      }
+      Entities.clear();
+      HeapEntity.forEach(l->{
+        Entities.addAll(l);
+        l.clear();
+      });
+      Entities.addAll(NextEntities);
+      NextEntities.clear();
+      HeapEntityDataX.forEach(m->{
+        m.forEach(d->{
+          EntityDataX.add(d);
+        });
+        m.clear();
+      });
+      SortedDataX=EntityDataX.toArray(new AABBData[0]);
+      Arrays.parallelSort(SortedDataX,new Comparator<AABBData>(){
+        @Override
+        public int compare(AABBData d1, AABBData d2) {
+          return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
+        }
+      });
+    }
   }
   
-  void drawShape(){
+  public void drawShape(){
+    long pTime=System.nanoTime();
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
     stage.display();
-    for(Particle p:Particles){
-        p.display();
+    if(doGPGPU){
+      loadPixels();
+      byte ThreadNumber=(byte)min(Entities.size(),(int)drawNumber);
+      float block=Entities.size()/(float)ThreadNumber;
+      for(byte b=0;b<ThreadNumber-1;b++){
+        DrawProcess.get(b).setData(round(block*b),round(block*(b+1)));
+      }
+      try{
+        drawFuture.clear();
+        for(int i=0;i<ThreadNumber-1;i++){
+          drawFuture.add(exec.submit(DrawProcess.get(i)));
+        }
+      }catch(Exception e){println(e);
+      }
+      for(int i=round(block*(ThreadNumber-1));i<round(block*ThreadNumber);i++){
+        Entities.get(i).display(g);
+      }
+      for(Future<PGraphics> f:drawFuture){
+        try{
+          image(f.get(),-scroll.x,-scroll.y);
+        }
+        catch(ConcurrentModificationException e) {
+          e.printStackTrace();
+        }
+        catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+        }
+        catch(NullPointerException g) {
+        }
+      }
+    }else{
+      Entities.forEach(e->{e.display(g);});
     }
-    for(Exp e:Exps){
-      e.display();
+    if(!player.isDead)player.display(g);
+    for(GravityBullet G:LensData){
+      GravityLens.set("texture",g);
+      GravityLens.set("center",G.screen.x,G.screen.y);
+      GravityLens.set("resolution",width,height);
+      GravityLens.set("g",G.scale*0.1);
+      applyShader(GravityLens);
     }
-    Lighting.set("resolution", width, height);
-    for(int i=0;i<1;i++){
-      Lighting.set("texture",g);
-      filter(Lighting);
-    }
-    for(Bullet b:eneBullets){
-      b.display();
-    }
-    for(Bullet b:Bullets){
-      b.display();
-    }
-    if(!player.isDead)player.display();
-    for(Enemy e:Enemies){
-      e.display();
-    }
+    LensData.clear();
     displayHUD();
     popMatrix();
+    DrawTime=(System.nanoTime()-pTime)/1000000f;
   }
   
-  void displayHUD(){
-    pushMatrix();
+  public void displayHUD(){
+    push();
     resetMatrix();
+    if(upgrade){
+      fill(240);
+      noStroke();
+      rectMode(CENTER);
+      rect(width/2,height/2,400,600);
+    }
+    stageLayer.display();
+    stageLayer.update();
     rectMode(CORNER);
     noFill();
     stroke(200);
@@ -114,203 +352,289 @@ class GameProcess{
     rect(200,30,width-230,30);
     fill(255);
     noStroke();
-    rect(202.5,32.5,(width-225)*player.exp/player.nextLevel,25);
+    rect(202.5f,32.5f,(width-225)*player.exp/player.nextLevel,25);
     textSize(20);
+    textFont(font_20);
     textAlign(RIGHT);
     text("LEVEL "+player.Level,190,52);
-    popMatrix();
+    textFont(font_15);
+    textAlign(CENTER);
+    text("Time "+nf(floor(stage.time/3600),2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5,78);
+    pop();
   }
   
-  void pauseProcess(){
-    EnemyTime=BulletTime=ParticleTime=0;
-    if(player.levelup){
-      upgrade=true;
+   public void keyProcess(){
+    if(keyPress&&keyCode==CONTROL){
+      menu=!menu;
+      if(!upgrade)pause=menu;
+    }
+  }
+  
+  void EventProcess(){
+    if(EventSet.contains("end_upgrade")){
       UpgradeSet.removeAll();
-      MenuButton first=(MenuButton)new MenuButton("Green").setBounds(width/2-150,height/2-45,300,30);
-      first.addListener(()->{
-        player.weapons.get(0).bulletNumber++;
+      if(player.levelupNumber<1){
         pause=false;
-        upgrade=false;
-      });
-      MenuButton second=(MenuButton)new MenuButton("Red").setBounds(width/2-150,height/2,300,30);
-      second.addListener(()->{
-        pause=false;
-        upgrade=false;
-      });
-      MenuButton third=(MenuButton)new MenuButton("Blue").setBounds(width/2-150,height/2+45,300,30);
-      third.addListener(()->{
-        player.weapons.get(2).bulletNumber++;
-        pause=false;
-        upgrade=false;
-      });
-      UpgradeSet.addAll(first,second,third);
+      }else{
+        player.levelup=true;
+      }
+    }
+  }
+  
+  void upgrade(){
+    if(player.levelup){
+      EventSet.add("start_upgrade");
+      upgrade=true;
+      int num=min(playerTable.probSize(),3);
+      Item[]list=new Item[num];
+      ItemTable copy=playerTable.clone();
+      for(int i=0;i<num;i++){
+        list[i]=copy.getRandomWeapon();
+        switch(i){
+          case 0:if(sumLevel>=17&&0.5>random(1))list[i]=copy.getRandomItem();break;
+          case 1:if(sumLevel>=9&&0.5>random(1))list[i]=copy.getRandomItem();break;
+          case 2:if(sumLevel>=4&&0.5>random(1))list[i]=copy.getRandomItem();break;
+          case 3:if(sumLevel>=2&&0.4>random(1))list[i]=copy.getRandomItem();break;
+        }
+        copy.removeTable(list[i].getName());
+      }
+      UpgradeSet.removeAll();
+      MenuButton[]buttons=new MenuButton[num];
+      for(int i=0;i<num;i++){
+        buttons[i]=(MenuButton)new MenuButton(list[i].getName()+"  Level"+(list[i].getWeapon()==null?list[i].level:(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1))).setBounds(width/2-150,height/2-60+45*i,300,30);
+        int[] lambdaI={i};
+        buttons[i].addWindowResizeEvent(()->{
+          buttons[lambdaI[0]].setBounds(width/2-150,height/2-60+45*lambdaI[0],300,30);
+        });
+        Item item=list[i];
+        buttons[i].addListener(()->{
+          if(player.subWeapons.contains(item.getWeapon())){
+            ++item.level;
+            item.update();
+            ++sumLevel;
+          }else if(item.getType().equals("weapon")){
+            player.subWeapons.add(item.getWeapon());
+            ++sumLevel;
+          }else if(item.getType().equals("item")){
+            if(item.level==1){
+              switch(item.getName()){
+                case "projectile":addtionalProjectile+=(int)item.getData();break;
+                case "scale":addtionalScale+=item.getData()*0.01;break;
+                case "power":addtionalPower+=item.getData()*0.01;break;
+                case "speed":addtionalSpeed+=item.getData()*0.01;break;
+                case "duration":addtionalDuration+=item.getData()*0.01;break;
+                case "cooltime":reductionCoolTime-=item.getData()*0.01;break;
+              }
+              ++item.level;
+            }else{
+              item.update();
+              switch(item.getName()){
+                case "projectile":addtionalProjectile+=(int)item.getData(item.level);break;
+                case "scale":addtionalScale+=item.getData(item.level)*0.01;break;
+                case "power":addtionalPower+=item.getData(item.level)*0.01;break;
+                case "speed":addtionalSpeed+=item.getData(item.level)*0.01;break;
+                case "duration":addtionalDuration+=item.getData(item.level)*0.01;break;
+                case "cooltime":reductionCoolTime-=item.getData(item.level)*0.01;break;
+              }
+              ++item.level;
+            }
+          }
+          player.subWeapons.forEach(w->{
+            w.reInit();
+          });
+          --player.levelupNumber;
+          upgrade=false;
+          EventSet.add("end_upgrade");
+        });
+      }
+      UpgradeSet.addAll(buttons);
       player.levelup=false;
     }
-    if(upgrade){
-      fill(240);
-      noStroke();
-      rectMode(CENTER);
-      rect(width/2,height/2,400,600);
-      UpgradeSet.display();
-      UpgradeSet.update();
+  }
+  
+  void setWall(){
+    if(FieldSize==null)return;
+    if(wall==null){
+      wall=new WallEntity[4];
+      wall[0]=new WallEntity(FieldSize.copy().mult(-0.5),new PVector(FieldSize.x,0));
+      wall[1]=new WallEntity(new PVector(FieldSize.x*-0.5,FieldSize.y*0.5),new PVector(FieldSize.x,0));
+      wall[2]=new WallEntity(new PVector(FieldSize.x*0.5,FieldSize.y*-0.5),new PVector(0,FieldSize.y));
+      wall[3]=new WallEntity(FieldSize.copy().mult(-0.5),new PVector(0,FieldSize.y));
+      Entities.addAll(Arrays.asList(wall));
     }
-    if(player.isDead){
-      deadTimer+=0.016*vectorMagnification;
-      if(deadTimer>maxDeadTime){
-        player.remain--;
-        if(player.remain<=0){
-          gameOver=true;
-          pause=false;
-          return;
+  }
+  
+  void commandProcess(java.util.List<Token>tokens){
+    java.util.List<Token>ex_space_tokens=new ArrayList<Token>();
+    tokens.forEach(t->{
+      if(!t.getText().matches(" +"))ex_space_tokens.add(t);
+    });
+    switch(ex_space_tokens.get(0).getText()){
+      case "time":command_time(ex_space_tokens);break;
+      case "level":command_level(ex_space_tokens);break;
+      case "give":command_give(ex_space_tokens);break;
+      case "kill":command_kill(ex_space_tokens);break;
+      case "function":command_function(ex_space_tokens);break;
+      case "exit":command_exit();break;
+    }
+  }
+  
+  void command_time(java.util.List<Token>tokens){
+    stage.time=max(0,setParameter(stage.time,tokens.get(1).getText(),float(tokens.get(2).getText())*60));
+    stage.scheduleUpdate();
+    stage.clearSpown();
+  }
+  
+  void command_level(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().equals("@p")){
+      int targetLevel=(int)setParameter((float)player.Level,tokens.get(2).getText(),float(tokens.get(3).getText()));
+      if(player.Level<targetLevel){
+        player.levelup=true;
+        player.levelupNumber=targetLevel-player.Level;
+        player.Level=targetLevel;
+      }else{
+        player.Level=targetLevel;
+      }
+      player.nextLevel=10+(player.Level-1)*10*ceil(player.Level/10f);
+    }else{
+      Item i=masterTable.get(tokens.get(1).getText().replace("\"",""));
+      Weapon w=i.getWeapon();
+      if(player.subWeapons.contains(w)){
+        int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),float(tokens.get(3).getText()));
+        try{
+          if(i.level<targetLevel){
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              ++sumLevel;
+            }
+          }else{
+            i.reset();
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              ++sumLevel;
+            }
+          }
+        }catch(NullPointerException e){
+          
         }
-        player.isDead=player.pDead=false;
-        player.invincibleTime=3;
-        player.HP.reset();
-        pause=false;
-        deadTimer=0;
-        return;
       }
+    }
+  }
+  
+  void command_give(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))){
+      if(!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){
+        player.subWeapons.add(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon());
+      }else{
+        addWarning("You already have "+tokens.get(1).getText());
+      }
+    }else{
+      addWarning(tokens.get(1).getText()+" doesn't exist");
+    }
+  }
+  
+  void command_weapon(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))&&!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){}
+  }
+  
+  void command_kill(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().equals("@p")){
+      player.HP.set(0);
+    }else{
       try{
-        particleFuture=exec.submit(particleTask);
-        enemyFuture=exec.submit(enemyTask);
-        bulletFuture=exec.submit(bulletTask);
-      }catch(Exception e){
+        Class c=Class.forName("Simple_shooting_2_1$"+tokens.get(1).getText().replace("\"",""));
+        Entities.forEach(e->{
+          if(c.isInstance(e))e.isDead=true;
+        });
+      }catch(ClassNotFoundException e){
+        addWarning("Class "+tokens.get(1).getText()+" doesn't exist");
       }
     }
   }
   
-  void switchMenu(){
-    if((key=='c'|keyCode==CONTROL)&menu.equals("Main")&!animation){
-      mainMenu.init();
-      menu="Menu";
-      UItime=0f;
-      animation=true;
-    }else
-    if((key=='x'|keyCode==SHIFT|keyCode==LEFT)&menu.equals("Menu")&!animation){
-      if(mainMenu.layer.getDepth()>0){
-        mainMenu.back();
-        return;
+  void command_function(java.util.List<Token>tokens){
+    try{
+      String[] functions=loadStrings(tokens.get(1).getText().replace("\"",""));
+      for(String s:functions){
+        CharStream cs=CharStreams.fromString(s);
+        command_lexer lexer=new command_lexer(cs);
+        CommonTokenStream command_tokens=new CommonTokenStream(lexer);
+        command_parser parser=new command_parser(command_tokens);
+        parser.removeErrorListeners();
+        parser.addErrorListener(ThrowingErrorListener.INSTANCE.setWarningMap(DebugWarning));
+        parser.command();
+        if(parser.getNumberOfSyntaxErrors()>0)continue;
+        main.commandProcess(command_tokens.getTokens());
       }
-      menu="Main";
-      UItime=30f;
-      animation=true;
-    }
-    if(!animation)return;
-    float normUItime=UItime/30;
-    background(menuColor.getRed()*normUItime,menuColor.getGreen()*normUItime,
-               menuColor.getBlue()*normUItime);
-    blendMode(BLEND);
-    float Width=width/x;
-    float Height=height/y;
-    for(int i=0;i<y;i++){//y
-      for(int j=0;j<x;j++){//x
-        fill(toRGB(menuColor));
-        noStroke();
-        rectMode(CENTER);
-        float scale=min(max(UItime*(y/9)-(j+i),0),1);
-        rect(Width*j+Width/2,Height*i+Height/2,Width*scale,Height*scale);
-      }
-    }
-    drawMenu();
-    updateMenu();
-    menuShading();
-    switch(menu){
-      case "Main":UItime-=vectorMagnification;if(UItime<0){animation=false;mainMenu.dispose();}break;
-      case "Menu":UItime+=vectorMagnification;if(UItime>30)animation=false;break;
+    }catch(NullPointerException e){
+      addWarning("No such file");
     }
   }
   
-  void drawMenu(){
-    mainMenu.display();
+  void command_exit(){
+    scene=0;
+    done=true;
   }
   
-  void updateMenu(){
-    mainMenu.update();
+  float setParameter(float data,String type,float num){
+    if(type.equals("add")){
+      return data+num;
+    }else if(type.equals("set")){
+      return num;
+    }else if(type.equals("sub")){
+      return data-num;
+    }
+    return data;
+  }
+}
+
+class WallEntity extends Entity{
+  PVector dist;
+  PVector norm;
+  boolean move=false;
+  float time=0;
+  float weight=2;
+  
+  {
+    size=0;
   }
   
-  void keyProcess(){
-    if(keyPress&(key=='c'|keyCode==CONTROL|key=='x'|keyCode==SHIFT|keyCode==LEFT))switchMenu();
+  WallEntity(PVector pos,PVector dist){
+    this.pos=pos;
+    this.dist=dist;
+    this.norm=new PVector(-dist.y,dist.x).normalize();
   }
   
-  void menuShading(){
-    menuShader.set("time",UItime);
-    menuShader.set("xy",(float)x,(float)y);
-    menuShader.set("resolution",(float)width,(float)height);
-    menuShader.set("menuColor",(float)menuColor.getRed()/255,(float)menuColor.getGreen()/255,(float)menuColor.getBlue()/255,1.0);
-    menuShader.set("tex",g);
-    filter(menuShader);
+  @Override
+  void display(PGraphics g){
+    if(Debug)displayAABB(g);
+    g.strokeWeight(2);
+    g.stroke(255);
+    g.line(pos.x,pos.y,pos.x+dist.x,pos.y+dist.y);
   }
   
-  class menuManage{
-    ComponentSetLayer layer;
-    HashMap<String,ComponentSet>componentMap=new HashMap<String,ComponentSet>();
-    ComponentSet main;
-    boolean pStack=false;
-    boolean first=true;
-    
-    menuManage(){
-    }
-    
-    void init(){
-      layer=new ComponentSetLayer();
-      main=null;
-      initMain();
-      if(first){
-        first=false;
-      }
-    }
-    
-    void initMain(){
-      main=new ComponentSet();
-      layer.addLayer("Main",main);
-      MenuButton equip=new MenuButton("装備");
-      equip.setBounds(100,120,120,25);
-      equip.addListener(()->{
-        layer.toChild("equ");
-      });
-      MenuButton item=new MenuButton("アイテム");
-      item.setBounds(100,160,120,25);
-      item.addListener(()->{
-        layer.toChild("Item");
-      });
-      MenuButton archive=new MenuButton("アーカイブ");
-      archive.setBounds(100,200,120,25);
-      archive.addListener(()->{
-        layer.toChild("arc");
-      });
-      MenuButton setting=new MenuButton("設定");
-      setting.setBounds(100,240,120,25);
-      setting.addListener(()->{
-        layer.toChild("conf");
-      });
-      main.add(equip);
-      main.add(item);
-      main.add(archive);
-      main.add(setting);
-      main.setSubSelectButton(RIGHT);
-      componentMap.put("main",main);
-    }
-    
-    void display(){
-      layer.display();
-    }
-    
-    void update(){
-      boolean Stack=false;
-      layer.update();
-      pStack=Stack;
-    }
-    
-    void dispose(){
-      main=null;
-    }
-    
-    boolean isMain(){
-      return layer.getLayerName().equals("Main");
-    }
-    
-    void back(){
-      layer.toParent();
+  @Override
+  void update(){
+    Center=new PVector(pos.x+dist.x*0.5,pos.y+dist.y*0.5);
+    AxisSize=new PVector(dist.x==0?1:dist.x,dist.y==0?1:dist.y);
+    putAABB();
+    super.update();
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(((e instanceof Enemy)&&!(e instanceof Explosion))){
+      PVector copy=e.pos.copy();
+      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
+      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
+    }else if(e instanceof Myself){
+      PVector copy=e.pos.copy();
+      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
+      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
+    }else if(e instanceof Bullet){
+      e.Collision(this);
     }
   }
 }

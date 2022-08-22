@@ -1,63 +1,25 @@
 import java.util.concurrent.atomic.AtomicInteger;
 
-Future<?> CollisionFuture1;
-Future<?> CollisionFuture2;
-Future<?> CollisionFuture3;
-
-EntityCollision p1;
-EntityCollision p2;
-EntityCollision p3;
-
-Future<?> BulletCollision1;
-Future<?> BulletCollision2;
-
-class ParticleProcess implements Callable<String>{
+class EntityProcess implements Callable<String>{
   long pTime=0;
+  byte number;
+  int s;
+  int l;
   
-  ParticleProcess(){
-    
+  EntityProcess(int s,int l,byte num){
+    this.s=s;
+    this.l=l;
+    number=num;
   }
   
   String call(){
     pTime=System.nanoTime();
-    ArrayList<Particle>nextParticles=new ArrayList<Particle>();
-    for(Particle p:Particles){
-      p.update();
-      if(!p.isDead)nextParticles.add(p);
-    }
-    Particles=nextParticles;
-    synchronized(ParticleHeap){
-    Particles.addAll(ParticleHeap);
-    ParticleHeap.clear();
-    }
-    ArrayList<Exp>nextExp=new ArrayList<Exp>();
-    for(Exp e:Exps){
-      e.update();
-      if(!e.isDead)nextExp.add(e);
-    }
-    Exps=nextExp;
-    synchronized(ExpHeap){
-      Exps.addAll(ExpHeap);
-      ExpHeap.clear();
-    }
-    ParticleTime=(System.nanoTime()-pTime)/1000000f;
-    return "";
-  }
-}
-
-class EnemyProcess implements Callable<String>{
-  long pTime=0;
-  
-  EnemyProcess(){
-  }
-  
-  String call(){
-    pTime=System.nanoTime();
-    player.update();
-    ArrayList<Enemy>nextEnemies=new ArrayList<Enemy>();
-    for(Enemy e:Enemies){
+    ArrayList<Entity>next=HeapEntity.get(number);
+    for(int i=s;i<l;i++){
+      Entity e=Entities.get(i);
+      e.threadNum=number;
       if(player.isDead){
-        if(e instanceof Explosion){
+        if((e instanceof Explosion)||(e instanceof Particle)){
           e.update();
         }else{
           e.putAABB();
@@ -65,65 +27,22 @@ class EnemyProcess implements Callable<String>{
       }else{
         e.update();
       }
-      if(!e.isDead)nextEnemies.add(e);
-    }
-    Enemies.clear();
-    Enemies.addAll(nextEnemies);
-    synchronized(EnemyHeap){
-      Enemies.addAll(EnemyHeap);
-      EnemyHeap.clear();
-    }
-    EnemyTime=(System.nanoTime()-pTime)/1000000f;
-    return "";
-  }
-}
-
-class BulletProcess implements Callable<String>{
-  long pTime=0;
-  
-  BulletProcess(){
-    
-  }
-  
-  String call(){
-    pTime=System.nanoTime();
-    ArrayList<Bullet>nextBullets=new ArrayList<Bullet>();
-    for(Bullet b:Bullets){
-      if(b.isDead)continue;
-      b.update();
-      if(!b.isDead)nextBullets.add(b);
-    }
-    Bullets=nextBullets;
-    synchronized(BulletHeap){
-      Bullets.addAll(BulletHeap);
-      BulletHeap.clear();
-    }
-    ArrayList<Bullet>nextEneBullets=new ArrayList<Bullet>();
-    for(Bullet b:eneBullets){
-      if(b.isDead)continue;
-      if(player.isDead){
-        synchronized(Enemies){
-          for(Enemy e:Enemies)b.Collision(e);
-        }
-        b.putAABB();
-      }else{
-        b.update();
+      if(!e.isDead){
+        next.add(e);
       }
-      if(!b.isDead)nextEneBullets.add(b);
     }
-    eneBullets=nextEneBullets;
-    synchronized(eneBulletHeap){
-      eneBullets.addAll(eneBulletHeap);
-      eneBulletHeap.clear();
-    }
-    BulletTime=(System.nanoTime()-pTime)/1000000f;
+    EntityTime=(System.nanoTime()-pTime)/1000000f;
     return "";
+  }
+  
+  void setData(int s,int l,byte num){
+    this.s=s;
+    this.l=l;
+    number=num;
   }
 }
 
 class EntityCollision implements Callable<String>{
-  ArrayList<Float>arrayX;
-  ArrayList<Entity>entity;
   TreeMap<Float,Enemy>overEntity;
   float hue;
   byte number;
@@ -133,20 +52,17 @@ class EntityCollision implements Callable<String>{
   EntityCollision(int s,int l,byte num){
     this.s=s;
     this.l=l;
-    hue=s==0?0:255*(s/(float)EntityX.size());
+    hue=s==0?0:255*(s/(float)EntityDataX.size());
     number=num;
   }
   
   String call(){
-    arrayX=new ArrayList<Float>(EntityX.keySet());
-    entity=new ArrayList<Entity>(EntityX.values());
     for(int i=s;i<l;i++){
-      Entity E=entity.get(i);
-      float f=arrayX.get(i);
+      Entity E=SortedDataX[i].getEntity();
       if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
-      switch(EntityDataX.get(f)){
+      switch(SortedDataX[i].getType()){
         case "s":Collision(E,i);break;
-        case "e":continue;
+        case "e":break;
       }
     }
     return "";
@@ -154,18 +70,51 @@ class EntityCollision implements Callable<String>{
   
   void Collision(Entity E,int i){
     ++i;
-    for(int j=i;j<EntityX.size();j++){
-      Entity e=entity.get(j);
-      float f=arrayX.get(j);
-      if(EntityDataX.get(f).equals("e")){
-        if(E==e)break;
+    for(int j=i,s=EntityDataX.size();j<s;j++){
+      Entity e=SortedDataX[j].getEntity();
+      if(E==e)break;
+      if(SortedDataX[j].getType().equals("e")){
         continue;
       }
       if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){
         E.Collision(e);
-        e.Collision(E);
       }
     }
+  }
+  
+  void setData(int s,int l,byte num){
+    this.s=s;
+    this.l=l;
+    number=num;
+    hue=s==0?0:255*(s/(float)EntityDataX.size());
+  }
+}
+
+class EntityDraw implements Callable<PGraphics>{
+  PGraphics g;
+  int s;
+  int l;
+  
+  EntityDraw(int s,int l){
+    this.s=s;
+    this.l=l;
+    this.g=createGraphics(width,height);
+  }
+  
+  PGraphics call(){
+    g.beginDraw();
+    g.translate(scroll.x,scroll.y);
+    g.background(0,0);
+    for(int i=s;i<l;i++){
+      Entities.get(i).display(g);
+    }
+    g.endDraw();
+    return g;
+  }
+  
+  void setData(int s,int l){
+    this.s=s;
+    this.l=l;
   }
 }
 
@@ -197,5 +146,29 @@ class CollisionData{
   @Override
   String toString(){
     return number+":"+e;
+  }
+}
+
+class AABBData{
+  private float pos;
+  private String type="";
+  private Entity e;
+  
+  AABBData(float pos,String type,Entity e){
+    this.pos=pos;
+    this.type=type;
+    this.e=e;
+  }
+  
+  final float getPos(){
+    return pos;
+  }
+  
+  final String getType(){
+    return type;
+  }
+  
+  final Entity getEntity(){
+    return e;
   }
 }

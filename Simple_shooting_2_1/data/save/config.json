@@ -1,4 +1,23 @@
 {
   "Language": "ja_jp",
+  "Weapons": [
+    "G_Shot",
+    "Grenade",
+    "Turret",
+    "Mirror",
+    "PlasmaField",
+    "Laser",
+    "Lightning",
+    "Reflector",
+    "projectile",
+    "scale",
+    "power",
+    "speed",
+    "duration",
+    "cooltime"
+  ],
+  "Stage": [
+    "Tutorial"
+  ],
   "GPGPU": false
 }

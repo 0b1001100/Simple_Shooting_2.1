@@ -1,6 +1,5 @@
-class Particle{
+class Particle extends Entity{
   ArrayList<particleFragment>particles=new ArrayList<particleFragment>();
-  boolean isDead=false;
   Color pColor;
   float min=1;
   float max=5;
@@ -54,15 +53,17 @@ class Particle{
     return this;
   }
   
-  void display(){
+  @Override
+  void display(PGraphics g){
     for(particleFragment p:particles){
-      p.display();
+      p.display(g);
     }
   }
   
   void update(){
     ArrayList<particleFragment>nextParticles=new ArrayList<particleFragment>();
     for(particleFragment p:particles){
+      if(p.isDead)continue;
       p.setAlpha(p.alpha-(p instanceof StringFragment?1000f/p.alpha:2)*vectorMagnification);
       p.update();
       if(!p.isDead)nextParticles.add(p);
@@ -72,6 +73,10 @@ class Particle{
     if(time>255){
       isDead=true;
     }
+  }
+  
+  @Override
+  void putAABB(){
   }
 }
 
@@ -96,12 +101,13 @@ class ExplosionParticle extends Particle{
     maxTime=time;
   }
   
-  void display(){
+  @Override
+  void display(PGraphics g){
     nowSize=size*(time/maxTime)*2;
-    noFill();
-    stroke(toColor(pColor));
-    strokeWeight(1);
-    ellipse(pos.x,pos.y,nowSize,nowSize);
+    g.noFill();
+    g.stroke(toColor(pColor));
+    g.strokeWeight(1);
+    g.ellipse(pos.x,pos.y,nowSize,nowSize);
   }
   
   void update(){
@@ -125,15 +131,16 @@ class StringFragment extends particleFragment{
     text=s;
   }
   
-  void display(){
-    blendMode(BLEND);
-    textAlign(CENTER);
-    textSize(size+1);
-    fill(128,128,128,pColor.getAlpha());
-    text(text,pos.x,pos.y);
-    textSize(size);
-    fill(toColor(pColor));
-    text(text,pos.x,pos.y);
+  @Override
+  void display(PGraphics g){
+    g.blendMode(BLEND);
+    g.textAlign(CENTER);
+    g.textSize(size+1);
+    g.fill(128,128,128,pColor.getAlpha());
+    g.text(text,pos.x,pos.y);
+    g.textSize(size);
+    g.fill(toColor(pColor));
+    g.text(text,pos.x,pos.y);
   }
   
   void update(){
@@ -148,15 +155,16 @@ class LineFragment extends particleFragment{
     super(pos,vel,c,size);
   }
   
-  void display(){
+  @Override
+  void display(PGraphics g){
     if(!inScreen)return;
     if(alpha<=0){
       isDead=true;
       return;
     }
-    strokeWeight(1);
-    stroke(pColor.getRed(),pColor.getGreen(),pColor.getBlue(),pColor.getAlpha());
-    line(pos.x,pos.y,pos.x+vel.x*size*3,pos.y+vel.y*size*3);
+    g.strokeWeight(1);
+    g.stroke(pColor.getRed(),pColor.getGreen(),pColor.getBlue(),pColor.getAlpha());
+    g.line(pos.x,pos.y,pos.x+vel.x*size*3,pos.y+vel.y*size*3);
   }
   
   void update(){
@@ -164,7 +172,7 @@ class LineFragment extends particleFragment{
   }
 }
 
-class particleFragment{
+class particleFragment implements Egent{
   PVector pos;
   PVector vel;
   boolean inScreen=true;
@@ -197,20 +205,20 @@ class particleFragment{
     return this;
   }
   
-  void display(){
+  void display(PGraphics g){
+    inScreen=-scroll.x<pos.x-size/2&&pos.x+size/2<-scroll.x+width&&-scroll.y<pos.y-size/2&&pos.y+size/2<-scroll.y+height;
     if(!inScreen)return;
     if(alpha<=0){
       isDead=true;
       return;
     }
-    noStroke();
-    fill(pColor.getRed(),pColor.getGreen(),pColor.getBlue(),pColor.getAlpha());
-    rectMode(CENTER);
-    rect(pos.x,pos.y,size,size);
+    g.noStroke();
+    g.fill(pColor.getRed(),pColor.getGreen(),pColor.getBlue(),pColor.getAlpha());
+    g.rectMode(CENTER);
+    g.rect(pos.x,pos.y,size,size);
   }
   
   void update(){
     pos.add(vel.copy().mult(vectorMagnification));
-    inScreen=-scroll.x<pos.x-size/2&pos.x+size/2<-scroll.x+width&-scroll.y<pos.y-size/2&pos.y+size/2<-scroll.y+height;
   }
 }

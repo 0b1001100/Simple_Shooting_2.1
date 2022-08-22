@@ -1,29 +1,47 @@
 class Explosion extends Enemy{
   ExplosionParticle p;
+  HashSet<Entity>HitEnemy;
   boolean myself=false;
+  boolean inf=false;
   float power=10;
+  
+  {
+    HitEnemy=new HashSet<Entity>();
+  }
   
   Explosion(Entity e,float size){
     pos=e.pos.copy();
     this.size=0;
     p=new ExplosionParticle(e,size);
-    ParticleHeap.add(p);
+    HeapEntity.get(threadNum).add(p);
+    myself=e instanceof Myself;
   }
   
   Explosion(Entity e,float size,float time){
     pos=e.pos.copy();
     this.size=0;
     p=new ExplosionParticle(e,size,time);
-    ParticleHeap.add(p);
+    HeapEntity.get(threadNum).add(p);
+    myself=e instanceof Myself;
   }
   
-  void display(){
+  Explosion(Entity e,float size,float time,float power){
+    pos=e.pos.copy();
+    this.size=0;
+    this.power=power;
+    p=new ExplosionParticle(e,size,time);
+    HeapEntity.get(threadNum).add(p);
+    myself=e instanceof Myself;
+  }
+  
+  Explosion Infinity(boolean inf){
+    this.inf=inf;
+    return this;
+  }
+  
+  void display(PGraphics g){
     if(Debug){
-      rectMode(CENTER);
-      strokeWeight(1);
-      stroke(255);
-      noFill();
-      rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
+      displayAABB(g);
     }
   }
   
@@ -37,24 +55,54 @@ class Explosion extends Enemy{
   
   @Override
   void Collision(Entity e){
-    if(!(e instanceof Explosion))e.Collision(this);
-  }
-  
-  @Override
-  void Collision(){
-    
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
+      HitEnemy.add(e);
+      if(inf){
+        if(e instanceof BossEnemy){
+          ((Enemy)e).Hit(power);
+          return;
+        }
+        ((Enemy)e).Down();
+        e.dead.deadEvent(e);
+      }else{
+        ((Enemy)e).Hit(power);
+      }
+    }
   }
   
   @Override
   void Hit(Weapon w){
     return;
   }
+  
+  @Override
+  void Down(){
+    isDead=false;
+  }
+}
+
+class BulletExplosion extends Explosion{
+  Weapon parent;
+  
+  BulletExplosion(Entity e,float size,float time,boolean my,Weapon w){
+    super(e,size,time);
+    myself=my;
+    parent=w;
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
+      HitEnemy.add(e);
+      ((Enemy)e).Hit(parent);
+    }
+  }
 }
 
 void addExplosion(Entity e,float size){
-  EnemyHeap.add(new Explosion(e,size));
+  HeapEntity.get(0).add(new Explosion(e,size));
 }
 
 void addExplosion(Entity e,float size,float time){
-  EnemyHeap.add(new Explosion(e,size,time));
+  HeapEntity.get(0).add(new Explosion(e,size,time));
 }

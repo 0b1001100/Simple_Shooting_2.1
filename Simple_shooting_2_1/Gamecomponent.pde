@@ -1,15 +1,21 @@
+import java.awt.datatransfer.*;
+
 Color menuRightColor=new Color(0,150,255);
 
 class GameComponent{
   protected FocusEvent Fe=new FocusEvent(){void getFocus(){} void lostFocus(){}};
-  protected int Depth=0;
+  protected ResizeEvent re=(p,d)->{};
+  protected WindowResizeEvent wre=()->{};
+  protected PFont font;
   protected PVector pos;
   protected PVector dist;
   protected PVector center;
   protected boolean focus=false;
   protected boolean pFocus=false;
+  protected boolean canFocus=true;
   protected boolean FocusEvent=false;
   protected boolean keyMove=false;
+  protected boolean onMouse=false;
   protected Color background=new Color(200,200,200);
   protected Color selectbackground=new Color(255,255,255);
   protected Color foreground=new Color(0,0,0);
@@ -25,6 +31,7 @@ class GameComponent{
     pos=new PVector(x,y);
     dist=new PVector(dx,dy);
     center=new PVector(x+dx/2,y+dy/2);
+    re.resized(pos,dist);
     return this;
   }
   
@@ -58,6 +65,7 @@ class GameComponent{
   
   void update(){
     pFocus=focus;
+    if(windowResized)wre.Event();
   }
   
   void executeEvent(){
@@ -76,11 +84,241 @@ class GameComponent{
     Fe=e;
   }
   
-  int getDepth(){
-    return Depth;
+  void addWindowResizeEvent(WindowResizeEvent e){
+    wre=e;
   }
   
   void back(){}
+  
+  @Override
+  String toString(){
+    return "[pos:"+pos+",dist:"+dist+"]";
+  }
+}
+
+class Canvas extends GameComponent{
+  protected CanvasContent content=(g)->{};
+  protected PGraphics pg;
+  
+  {
+    canFocus=false;
+    setBounds(0,0,0,0);
+  }
+  
+  Canvas(PGraphics pg){
+    this.pg=pg;
+  }
+  
+  void setContent(CanvasContent c){
+    content=c;
+  }
+  
+  @Override
+  void display(){
+    content.display(pg);
+  }
+}
+
+class HUDText extends GameComponent{
+  disposeEvent de=()->{};
+  Process p=()->{};
+  Entity target;
+  boolean flag=true;
+  float offset=20;
+  float mainWidth=0;
+  String text="";
+  String type="";
+  float easeTime=0;
+  
+  {
+    canFocus=false;
+    font=createFont("SansSerif.plain",15);
+  }
+  
+  HUDText(String text){
+    this.text=text;
+    textFont(font);
+    mainWidth=textWidth(text);
+  }
+  
+  void setTarget(Entity e){
+    target=e;
+    pos=new PVector(0,0);
+  }
+  
+  void display(){
+    if(easeTime==0)return;
+    float w=((Sigmoid(easeTime/7)-0.5)/0.5f)*(offset+mainWidth);
+    pushMatrix();
+    resetMatrix();
+    translate(0,-ceil(offset+17));
+    strokeWeight(1);
+    noFill();
+    stroke(255);
+    beginShape(w>offset?POLYGON:LINES);
+    vertex(target==null?pos.x:target.pos.x+scroll.x,(target==null?pos.y:target.pos.y+scroll.y)+offset+17);
+    vertex((target==null?pos.x:target.pos.x+scroll.x)+min(w,offset),(target==null?pos.y:target.pos.y+scroll.y)+max(0,offset-w)+17);
+    if(w>offset)vertex((target==null?pos.x:target.pos.x+scroll.x)+min(w,offset+mainWidth),(target==null?pos.y:target.pos.y+scroll.y)+17);
+    endShape();
+    if(easeTime<45){
+      popMatrix();
+      return;
+    }
+    fill(255);
+    textFont(font);
+    textAlign(LEFT);
+    textSize(15);
+    text(text,(target==null?pos.x:target.pos.x+scroll.x)+offset,(target==null?pos.y:target.pos.y+scroll.y)+15);
+    popMatrix();
+  }
+  
+  void update(){
+    if(type.equals("start")){
+      easeTime+=vectorMagnification;
+      if(easeTime>=45){
+        easeTime=45;
+        type="";
+      }
+    }else if(type.equals("end")){
+      easeTime-=vectorMagnification;
+      if(easeTime<=0){
+        de.event();
+        easeTime=0;
+        type="";
+      }
+    }else if(easeTime>=45){
+      if(flag)p.execute();
+    }
+    super.update();
+  }
+  
+  void Dispose(){
+    type="";
+    easeTime=0;
+    de.event();
+  }
+  
+  void startDisplay(){
+    type="start";
+  }
+  
+  void endDisplay(){
+    type="end";
+  }
+  
+  void setFlag(boolean f){
+    flag=f;
+  }
+  
+  void addDisposeListener(disposeEvent de){
+    this.de=de;
+  }
+  
+  void setProcess(Process p){
+    this.p=p;
+  }
+}
+
+class LineTextField extends GameComponent{
+  protected EnterEvent e=(l)->{};
+  protected float textOffset=0;
+  protected float offset=0;
+  protected float time=0;
+  protected int pIndex=0;
+  protected int index=0;
+  StringBuilder text;
+  PFont font;
+  
+  LineTextField(){
+    text=new StringBuilder();
+  }
+  
+  void display(){
+    
+  }
+  
+  void mousePress(){
+    onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
+    if(onMouse){
+      requestFocus();
+    }else{
+      removeFocus();
+    }
+    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    super.update();
+  }
+  
+  void keyProcess(){
+    pushStyle();
+    textFont(font);
+    if(focus&&(keyPress||(keyPressTime>0.5&&(keyPressTime-floor(keyPressTime))%0.1<0.05))){
+      pIndex=index;
+      if(nowPressedKeyCode==BACKSPACE&&index!=0){
+        text.delete(index-1,index);
+        index--;
+      }else
+      if(nowPressedKeyCode==147){
+        text.delete(index,index+1);
+      }else
+      if(nowPressedKeyCode==LEFT){
+        index=max(0,--index);
+      }else
+      if(nowPressedKeyCode==RIGHT){
+        index=min(++index,text.length());
+      }else
+      if(nowPressedKeyCode==UP){
+        upProcess();
+      }else
+      if(nowPressedKeyCode==DOWN){
+        downProcess();
+      }else
+      if(nowPressedKeyCode==ENTER){
+        EnterEvent();
+      }else if(PressedKeyCode.size()==2&&PressedKeyCode.contains("17")&&PressedKeyCode.contains("86")){
+        try{
+          text=new StringBuilder((String)Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor));
+          index=text.length();
+        }catch(UnsupportedFlavorException|IOException e){
+        }
+      }else{
+        if(nowPressedKeyCode==8||nowPressedKey.equals(str((char)-1)))if(nowPressedKeyCode!=0)return;
+        if(index==text.length()){
+          text.append(nowPressedKeyCode==0?(PressedKeyCode.contains("16")?'_':"\\"):nowPressedKey);
+        }else{
+          text.insert(index,nowPressedKeyCode==0?(PressedKeyCode.contains("16")?'_':"\\"):nowPressedKey);
+        }
+        ++index;
+      }
+      setOffset();
+    }
+    if(keyPressed)time=0;
+    popStyle();
+  }
+  
+  void upProcess(){
+    
+  }
+  
+  void downProcess(){
+    
+  }
+  
+  void clearText(){
+    index=0;
+    text.setLength(0);
+  }
+  
+  protected void setOffset(){
+    offset=textWidth(text.substring(0,index));
+  }
+  
+  void EnterEvent(){
+    e.Event(this);
+  }
+  
+  void addEnterListener(EnterEvent e){
+    this.e=e;
+  }
 }
 
 class ButtonItem extends GameComponent{
@@ -88,6 +326,12 @@ class ButtonItem extends GameComponent{
   protected boolean pCursor=false;
   protected boolean setCursor=false;
   protected String text="";
+  
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.8);
+    };
+  }
   
   ButtonItem(){
     
@@ -102,7 +346,7 @@ class ButtonItem extends GameComponent{
   }
   
   void mouseProcess(){
-    boolean onMouse=mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
+    onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
     if(onMouse){
       setCursor=true;
       requestFocus();
@@ -129,6 +373,12 @@ class CheckBox extends GameComponent{
   protected boolean setCursor=false;
   protected String text="";
   
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.5);
+    };
+  }
+  
   CheckBox(boolean value){
     this.value=value;
   }
@@ -143,7 +393,7 @@ class CheckBox extends GameComponent{
   }
   
   void mouseProcess(){
-    boolean onMouse=mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
+    onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
     if(onMouse){
       setCursor=true;
       requestFocus();
@@ -278,6 +528,12 @@ class TextBox extends GameComponent{
   String text="";
   float fontSize=15;
   
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",fontSize);
+    };
+  }
+  
   TextBox(){
     Parsed=false;
   }
@@ -298,7 +554,7 @@ class TextBox extends GameComponent{
       float l=0;
       for(char c:s.toCharArray()){
         l+=g.textFont.width(c)*fontSize;
-        if((l>dist.x||c=='\n')&&c!=','&&c!='.'&&c!='、'&&c!='。'){
+        if((l>dist.x||c=='\n')&&c!=','&&c!='.'&&(int)c!=12289&&(int)c!=12290){
           l=0;
           t+=c=='\n'?"":"\n";
           t+=c;
@@ -368,7 +624,8 @@ class MultiButton extends GameComponent{
   }
   
   void mouseProcess(){
-    if(mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y){
+    onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
+    if(onMouse){
       requestFocus();
       focusIndex=floor((mouseX-pos.x)/(dist.x/Buttons.size()));
       reloadIndex();
@@ -420,7 +677,6 @@ class ItemList extends GameComponent{
   PVector sPos;
   PVector sDist;
   boolean showSub=true;
-  boolean onMouse=false;
   boolean moving=false;
   boolean pDrag=false;
   boolean drag=false;
@@ -429,6 +685,12 @@ class ItemList extends GameComponent{
   float keyTime=0;
   int selectedNumber=0;
   int menuNumber=0;
+  
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",15);
+    };
+  }
   
   ItemList(){
     keyMove=true;
@@ -444,6 +706,14 @@ class ItemList extends GameComponent{
     Contents.addAll(Arrays.asList(s));
     selectedNumber=0;
     changeEvent();
+  }
+  
+  int getSize(){
+    return Contents.size();
+  }
+  
+  boolean contains(String s){
+    return Contents.contains(s);
   }
   
   void addExplanation(String s,String e){
@@ -474,6 +744,7 @@ class ItemList extends GameComponent{
     pg.beginDraw();
     pg.background(toColor(background));
     pg.textSize(15);
+    pg.textFont(font);
     for(String s:Contents){
       if(floor(scroll/Height)<=num&num<=floor((scroll+dist.y)/Height)){
         pg.fill(0);
@@ -506,7 +777,9 @@ class ItemList extends GameComponent{
   }
   
   void subDraw(){
+    pushStyle();
     blendMode(BLEND);
+    rectMode(CORNER);
     fill(#707070);
     noStroke();
     rect(sPos.x,sPos.y,sDist.x,25);
@@ -514,16 +787,18 @@ class ItemList extends GameComponent{
     rect(sPos.x,sPos.y+25,sDist.x,sDist.y-25);
     textSize(15);
     textAlign(CENTER);
+    textFont(font);
     fill(0);
-    text("説明",sPos.x+5+textWidth("説明")/2,sPos.y+17.5);
+    text(Language.getString("ex"),sPos.x+5+textWidth(Language.getString("ex"))/2,sPos.y+17.5);
     textAlign(LEFT);
     text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
          Explanation.get(selectedItem):"Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45);
+    popStyle();
   }
   
   void update(){
     if(focus&&Contents.size()!=0){
-      onMouse=onMouse(pos.x,pos.y,dist.x,min(Height*Contents.size(),dist.y));
+      onMouse=canFocus&&onMouse(pos.x,pos.y,dist.x,min(Height*Contents.size(),dist.y));
       mouseProcess();
       if(mousePressed)moving=false;
       keyProcess();
@@ -921,6 +1196,7 @@ class MenuButton extends TextButton{
   MenuTextBox box=new MenuTextBox();
   Color sideLineColor=new Color(toColor(menuRightColor));
   boolean displayBox=false;
+  PFont font;
   
   MenuButton(){
     setBackground(new Color(220,220,220));
@@ -948,6 +1224,9 @@ class MenuButton extends TextButton{
   }
   
   void display(){
+    pushStyle();
+    if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
+    textFont(font);
     blendMode(BLEND);
     strokeWeight(1);
     fill(!focus?toColor(background):toColor(selectbackground));
@@ -961,6 +1240,7 @@ class MenuButton extends TextButton{
     textSize(dist.y*0.5);
     text(text,center.x,center.y+dist.y*0.2);
     if(displayBox)box.display();
+    popStyle();
   }
   
   void update(){
@@ -989,12 +1269,14 @@ class MenuTextBox extends TextBox{
   
   void display(){
     blendMode(BLEND);
+    rectMode(CORNER);
     noStroke();
     fill(toColor(background));
     rect(pos.x,pos.y,dist.x,dist.y);
     fill(#707070);
     rect(pos.x,pos.y,dist.x,25);
     fill(toColor(foreground));
+    textFont(font);
     textSize(fontSize);
     textAlign(CENTER);
     fill(0);
@@ -1031,6 +1313,7 @@ class MenuCheckBox extends CheckBox{
   }
   
   void display(){
+    pushStyle();
     blendMode(BLEND);
     strokeWeight(1);
     fill(!focus?toColor(background):toColor(selectbackground));
@@ -1040,10 +1323,12 @@ class MenuCheckBox extends CheckBox{
     stroke(!focus?color(0,0,0,0):toColor(menuRightColor));
     line(pos.x,pos.y,pos.x,pos.y+dist.y);
     fill(!focus?toColor(foreground):toColor(selectforeground));
+    textFont(font);
     textAlign(CENTER);
     textSize(dist.y*0.5);
     text(text+":"+(value?"ON":"OFF"),center.x,center.y+dist.y*0.2);
     if(displayBox)box.display();
+    popStyle();
   }
   
   void update(){
@@ -1057,12 +1342,13 @@ class MenuCheckBox extends CheckBox{
 }
 
 class ComponentSet{
-  ArrayList<GameComponent>conponents=new ArrayList<GameComponent>();
+  ArrayList<GameComponent>components=new ArrayList<GameComponent>();
   boolean keyMove=true;
   boolean Focus=true;
   int subSelectButton=-0xFFFFFF;
   int pSelectedIndex=0;
   int selectedIndex=0;
+  int memoryIndex=0;
   int type=0;
   
   static final int Down=0;
@@ -1071,12 +1357,11 @@ class ComponentSet{
   static final int Left=3;
   
   ComponentSet(){
-    
   }
   
   void add(GameComponent val){
-    conponents.add(val);
-    if(conponents.size()==1){
+    components.add(val);
+    if(components.size()==1){
       if(Focus){
         val.requestFocus();
       }else{
@@ -1092,52 +1377,77 @@ class ComponentSet{
   }
   
   void remove(GameComponent val){
-    conponents.remove(val);
+    components.remove(val);
   }
   
   void removeAll(){
-    conponents.clear();
+    components.clear();
   }
   
   void removeFocus(){
     Focus=false;
-    if(conponents.size()>0){
-      for(GameComponent c:conponents){
+    if(components.size()>0){
+      for(GameComponent c:components){
         c.removeFocus();
+        c.canFocus=false;
       }
-      conponents.get(selectedIndex).Fe.lostFocus();
+      components.get(selectedIndex).Fe.lostFocus();
     }
   }
   
   void requestFocus(){
     Focus=true;
-    if(conponents.size()>0){
-      conponents.get(selectedIndex).requestFocus();
-      conponents.get(selectedIndex).Fe.getFocus();
+    if(components.size()>0){
+      for(GameComponent c:components){
+        c.canFocus=true;
+      }
+      components.get(memoryIndex).requestFocus();
+      components.get(memoryIndex).Fe.getFocus();
+      selectedIndex=memoryIndex;
     }
   }
   
   void display(){
-    for(GameComponent c:conponents){
+    if(components.size()==0)return;
+    for(GameComponent c:components){
       c.display();
     }
   }
   
   void update(){
-    for(GameComponent c:conponents){
+    if(components.size()==0)return;
+    for(GameComponent c:components){
       c.update();
       if(c.FocusEvent){
-        for(GameComponent C:conponents){
+        for(GameComponent C:components){
           C.removeFocus();
         }
         c.requestFocus();
       }
-      if(c.focus)selectedIndex=conponents.indexOf(c);
+      if(c.focus)selectedIndex=components.indexOf(c);
     }
     keyEvent();
     if(pSelectedIndex!=selectedIndex){
-      conponents.get(pSelectedIndex).Fe.lostFocus();
-      conponents.get(selectedIndex).Fe.getFocus();
+      if(pSelectedIndex!=-1)components.get(pSelectedIndex).Fe.lostFocus();
+      if(selectedIndex!=-1)components.get(selectedIndex).Fe.getFocus();
+    }
+    pSelectedIndex=selectedIndex;
+  }
+  
+  void updateExcludingKey(){
+    for(GameComponent c:components){
+      c.update();
+      if(c.FocusEvent){
+        for(GameComponent C:components){
+          C.removeFocus();
+        }
+        c.requestFocus();
+      }
+      if(c.focus)selectedIndex=components.indexOf(c);
+    }
+    if(pSelectedIndex!=selectedIndex){
+      if(pSelectedIndex!=-1)components.get(pSelectedIndex).Fe.lostFocus();
+      if(selectedIndex!=-1)components.get(selectedIndex).Fe.getFocus();
     }
     pSelectedIndex=selectedIndex;
   }
@@ -1146,15 +1456,20 @@ class ComponentSet{
     subSelectButton=b;
   }
   
+  void setIndex(int i){
+    if(selectedIndex!=-1)memoryIndex=selectedIndex;
+    selectedIndex=i;
+  }
+  
   boolean onMouse(){
-    for(GameComponent c:conponents){
+    for(GameComponent c:components){
       if(c.pos.x<=mouseX&&mouseX<=c.pos.x+c.dist.x&&c.pos.y<=mouseY&&mouseY<=c.pos.y+c.dist.y)return true;
     }
     return false;
   }
   
   void keyEvent(){
-    if(keyPress&!conponents.get(selectedIndex).keyMove){
+    if(selectedIndex!=-1&&keyPress&!components.get(selectedIndex).keyMove){
       if(!onMouse()){
         if(type==0|type==1){
           switch(nowPressedKeyCode){
@@ -1169,29 +1484,29 @@ class ComponentSet{
         }
       }
       if(nowPressedKeyCode==ENTER|keyCode==subSelectButton){
-        conponents.get(selectedIndex).executeEvent();
+        components.get(selectedIndex).executeEvent();
       }
     }
   }
   
   void addSelect(){
-    for(GameComponent c:conponents){
+    for(GameComponent c:components){
       c.removeFocus();
     }
-    selectedIndex=selectedIndex>=conponents.size()-1?0:selectedIndex+1;
-    conponents.get(selectedIndex).requestFocus();
+    selectedIndex=selectedIndex>=components.size()-1?0:selectedIndex+1;
+    components.get(selectedIndex).requestFocus();
   }
   
   void subSelect(){
-    for(GameComponent c:conponents){
+    for(GameComponent c:components){
       c.removeFocus();
     }
-    selectedIndex=selectedIndex<=0?conponents.size()-1:selectedIndex-1;
-    conponents.get(selectedIndex).requestFocus();
+    selectedIndex=selectedIndex<=0?components.size()-1:selectedIndex-1;
+    components.get(selectedIndex).requestFocus();
   }
   
   GameComponent getSelected(){
-    return conponents.get(selectedIndex);
+    return components.get(selectedIndex);
   }
 }
 
@@ -1246,6 +1561,7 @@ class ComponentSetLayer{
   HashMap<String,Line<String,String>>Lines;
   HashMap<String,String>Parents;
   ArrayList<Float>returnKey;
+  boolean layerChanged=false;
   String nowLayer=null;
   String nowParent=null;
   int selectNumber=0;
@@ -1298,7 +1614,6 @@ class ComponentSetLayer{
       Lines.get(parent).addChild(name);
       Lines.put(name,new Line<String,String>(name));
       Parents.put(name,parent);
-      addContent(name,c);
       for(ComponentSet C:c){
         C.removeFocus();
       }
@@ -1311,7 +1626,6 @@ class ComponentSetLayer{
       Lines.get(parent).addChild(name);
       Lines.put(name,new Line<String,String>(name));
       Parents.put(name,parent);
-      addContent(name,c);
       for(ComponentSet C:c){
         C.removeFocus();
       }
@@ -1319,8 +1633,10 @@ class ComponentSetLayer{
   }
   
   void toChild(String name){
+    layerChanged=true;
     if(Lines.get(nowLayer).getChild().contains(name)){
       Layers.get(nowLayer).getSelectedComponent().removeFocus();
+      Layers.get(nowLayer).getSelectedComponent().setIndex(-1);
       nowLayer=name;
       nowParent=Layers.get(name).isSub()?nowParent:nowLayer;
       Layers.get(nowLayer).getSelectedComponent().requestFocus();
@@ -1332,20 +1648,14 @@ class ComponentSetLayer{
   void toParent(){
     if(Parents.get(nowLayer)==null)return;
     if(nowLayer.equals(nowParent)){
-      if(Layers.get(nowLayer).getSelectedComponent().getSelected().getDepth()>0){
-        Layers.get(nowLayer).getSelectedComponent().getSelected().back();
-        return;
-      }
       Layers.get(nowLayer).getSelectedComponent().removeFocus();
+      Layers.get(nowLayer).getSelectedComponent().setIndex(-1);
       nowLayer=Parents.get(nowLayer);
       nowParent=new String(nowLayer);
       Layers.get(nowLayer).getSelectedComponent().requestFocus();
     }else{
-      if(Layers.get(nowLayer).getSelectedComponent().getSelected().getDepth()>0){
-        Layers.get(nowLayer).getSelectedComponent().getSelected().back();
-        return;
-      }
       Layers.get(nowLayer).getSelectedComponent().removeFocus();
+      Layers.get(nowLayer).getSelectedComponent().setIndex(-1);
       nowLayer=Parents.get(nowLayer);
       Layers.get(nowLayer).getSelectedComponent().requestFocus();
     }
@@ -1356,11 +1666,12 @@ class ComponentSetLayer{
   }
   
   void display(){
-    if(nowLayer==null){
+    if(nowLayer==null||Layers.get(nowLayer).getComponents().size()==0){
       return;
     }else{
       int count=0;
       for(ComponentSet c:Layers.get(nowLayer).getComponents()){
+        if(c==null)continue;
         switch(showType){
           case 0:c.display();break;
           case 1:if(count==selectNumber)c.display();break;
@@ -1375,7 +1686,24 @@ class ComponentSetLayer{
   }
   
   void update(){
-    Layers.get(nowLayer).update();
+    if(nowLayer==null){
+      return;
+    }else{
+      int count=0;
+      for(ComponentSet c:Layers.get(nowLayer).getComponents()){
+        if(c==null)continue;
+        switch(showType){
+          case 0:c.update();break;
+          case 1:if(count==selectNumber)c.update();break;
+          case 2:if(count<=selectNumber)c.update();break;
+          case 3:if(count>=selectNumber)c.update();break;
+        }
+        ++count;
+      }
+      if(SubChildshowType==1&&!Layers.get(nowLayer).isSub())return;
+      updateSub(nowLayer);
+      layerChanged=false;
+    }
     keyProcess();
   }
   
@@ -1444,6 +1772,41 @@ class ComponentSetLayer{
     }
     if(s.equals(nowParent))return;
     displayParent(s);
+  }
+  
+  private void updateSub(String n){
+    if(Lines.containsKey(n)){
+      updateParent(n);
+      if(SubChildshowType==1&&n.equals(nowLayer))return;
+      updateChild(n);
+    }
+  }
+  
+  private void updateChild(String n){
+      for(String s:Lines.get(n).getChild()){
+        if(Layers.get(s).isSub()){
+          for(ComponentSet c:Layers.get(s).getComponents()){
+            c.updateExcludingKey();
+          }
+          if(SubChildshowType==1&&s.equals(nowLayer))return;
+          updateChild(s);
+        }
+      }
+  }
+  
+  private void updateParent(String n){
+    String s=Parents.get(n);
+    if(s==null)return;
+    if(SubChildshowType==2&&s.equals(nowParent))return;
+    for(ComponentSet c:Layers.get(s).getComponents()){
+      c.updateExcludingKey();
+      if(!layerChanged&&c.onMouse()&&mousePress){
+        String target=s;
+        while(!nowLayer.equals(target))toParent();
+      }
+    }
+    if(s.equals(nowParent))return;
+    updateParent(s);
   }
   
   protected final class Line<P,C>{
@@ -1542,6 +1905,10 @@ interface FocusEvent{
   void lostFocus();
 }
 
+interface ResizeEvent{
+  void resized(PVector p,PVector d);
+}
+
 interface SelectEvent{
   void selectEvent();
 }
@@ -1560,4 +1927,24 @@ interface ItemSelect{
 
 interface ListDisp{
   void display(PVector pos,PVector dist);
+}
+
+interface EnterEvent{
+  void Event(LineTextField l);
+}
+
+interface WindowResizeEvent{
+  void Event();
+}
+
+interface CanvasContent{
+  void display(PGraphics pg);
+}
+
+interface Process{
+  void execute();
+}
+
+interface disposeEvent{
+  void event();
 }

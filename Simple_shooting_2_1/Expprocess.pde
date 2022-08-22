@@ -2,6 +2,11 @@ class Exp extends Entity{
   boolean inScreen=true;
   float exp;
   
+  Exp(){
+    size=3;
+    setExp(1);
+  }
+  
   Exp(Entity e){
     pos=e.pos.copy();
     size=3;
@@ -27,16 +32,29 @@ class Exp extends Entity{
     }
   }
   
-  void display(){
-    fill(toColor(c));
-    noStroke();
-    rect(pos.x,pos.y,size,size);
+  @Override
+  void display(PGraphics g){
+    g.fill(toColor(c));
+    g.noStroke();
+    g.rect(pos.x,pos.y,size,size);
   }
   
   void update(){
-    if(qDist(player.pos,pos,player.size*2)){
+    if(inScreen&&qDist(player.pos,pos,player.magnetDist)&&player.canMagnet){
       player.exp+=this.exp;
       isDead=true;
     }
+  }
+  
+  void setPos(PVector p){
+    pos=p;
+  }
+  
+  @Override
+  void putAABB(){
+  }
+  
+  @Override
+  void Collision(Entity e){
   }
 }

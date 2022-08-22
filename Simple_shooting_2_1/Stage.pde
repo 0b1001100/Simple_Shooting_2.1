@@ -20,7 +20,7 @@ class Stage{
     time=0;
     frag=0;
     freq=0;
-    name="Stage1";
+    name=StageName;
   }
   
   void addProcess(String name,TimeSchedule... t){
@@ -28,6 +28,15 @@ class Stage{
     if(t.length==0)return;
     this.t.get(name).addAll(Arrays.asList(t));
     Collections.sort(this.t.get(name),t[0].c);
+  }
+  
+  void addSchedule(String name,TimeSchedule... t){
+    if(this.t.containsKey(name))this.t.get(name).addAll(Arrays.asList(t));
+    Collections.sort(this.t.get(name),t[0].c);
+  }
+  
+  void addSpown(PVector pos,Enemy e){
+    spown.add(new SpownPoint(pos,e));
   }
   
   void addSpown(EnemySpown s,float offset,Enemy e){
@@ -76,21 +85,25 @@ class Stage{
     autoEnemy.addAll(Arrays.asList(e));
   }
   
+  void clearSpown(){
+    spown.clear();
+  }
+  
   void display(){
     spown.forEach(s->{s.display();});
   }
   
   void update(){
-    if(freq!=0&&random(0,1)<freq){
+    if(freq!=0&&random(0,1)<freq*vectorMagnification){
       float r=TWO_PI*random(0,1);
       PVector v=new PVector(cos(r)*(width+height),sin(r)*(width+height));
       for(int i=0;i<4;i++){
         PVector p=new PVector();
         switch(i){
-          case 0:p=SegmentCrossPoint(player.pos.copy().sub(width/2,height/2),new PVector(width,0),player.pos.copy(),v);break;
-          case 1:p=SegmentCrossPoint(player.pos.copy().sub(width/2,-height/2),new PVector(width,0),player.pos.copy(),v);break;
-          case 2:p=SegmentCrossPoint(player.pos.copy().sub(width/2,height/2),new PVector(0,height),player.pos.copy(),v);break;
-          case 3:p=SegmentCrossPoint(player.pos.copy().sub(-width/2,height/2),new PVector(0,height),player.pos.copy(),v);break;
+          case 0:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(width,0),player.pos.copy(),v);break;
+          case 1:p=SegmentCrossPoint(scroll.copy().mult(-1).add(0,height),new PVector(width,0),player.pos.copy(),v);break;
+          case 2:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(0,height),player.pos.copy(),v);break;
+          case 3:p=SegmentCrossPoint(scroll.copy().mult(-1).add(width,0),new PVector(0,height),player.pos.copy(),v);break;
         }
         if(p!=null){
           v=p;
@@ -102,17 +115,11 @@ class Stage{
         if(displaySpown){
           spown.add(new SpownPoint(v.add(cos(r)*e.size,sin(r)*e.size),e));
         }else{
-          EnemyHeap.add(e.setPos(v.add(cos(r)*e.size,sin(r)*e.size)));
+          NextEntities.add(e.setPos(v.add(cos(r)*e.size,sin(r)*e.size)));
         }
       }catch(CloneNotSupportedException f){}
     }
-    while(time>t.get(name).get(frag).getTime()*60){
-      TimeSchedule T=t.get(name).get(frag);
-      if(time>T.getTime()*60){
-        T.getProcess().Process(this);
-        if(!endSchedule)++frag;
-      }
-    }
+    scheduleUpdate();
     ArrayList<SpownPoint>nextSpown=new ArrayList<SpownPoint>(spown.size());
     spown.forEach(s->{
       s.update();
@@ -121,10 +128,21 @@ class Stage{
     spown=nextSpown;
     time+=vectorMagnification;
   }
+  
+  void scheduleUpdate(){
+    while(time>t.get(name).get(frag).getTime()*60){
+      TimeSchedule T=t.get(name).get(frag);
+      if(time>T.getTime()*60){
+        T.getProcess().Process(this);
+        if(!endSchedule)++frag;
+      }
+    }
+  }
 }
 
 class SpownPoint{
   Enemy e;
+  boolean inScreen=false;
   boolean isDead=false;
   PVector pos;
   float time;
@@ -142,6 +160,7 @@ class SpownPoint{
   }
   
   void display(){
+    if(!inScreen)return;
     float t=time%25/25;
     noFill();
     strokeWeight(1);
@@ -153,9 +172,12 @@ class SpownPoint{
     time-=vectorMagnification;
     if(time<0){
       isDead=true;
+      e.init();
       e.setPos(pos);
-      EnemyHeap.add(e);
+      NextEntities.add(e);
+      return;
     }
+    inScreen=-scroll.x<pos.x-e.size*0.35&&pos.x+e.size*0.35<-scroll.x+width&&-scroll.y<pos.y-e.size*0.35&&pos.y+e.size*0.35<-scroll.y+height;
   }
 }
 
