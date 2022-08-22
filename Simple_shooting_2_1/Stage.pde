@@ -20,7 +20,7 @@ class Stage{
     time=0;
     frag=0;
     freq=0;
-    name="Stage1";
+    name=StageName;
   }
   
   void addProcess(String name,TimeSchedule... t){
@@ -33,6 +33,10 @@ class Stage{
   void addSchedule(String name,TimeSchedule... t){
     if(this.t.containsKey(name))this.t.get(name).addAll(Arrays.asList(t));
     Collections.sort(this.t.get(name),t[0].c);
+  }
+  
+  void addSpown(PVector pos,Enemy e){
+    spown.add(new SpownPoint(pos,e));
   }
   
   void addSpown(EnemySpown s,float offset,Enemy e){

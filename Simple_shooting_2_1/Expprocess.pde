@@ -2,6 +2,11 @@ class Exp extends Entity{
   boolean inScreen=true;
   float exp;
   
+  Exp(){
+    size=3;
+    setExp(1);
+  }
+  
   Exp(Entity e){
     pos=e.pos.copy();
     size=3;
@@ -35,10 +40,14 @@ class Exp extends Entity{
   }
   
   void update(){
-    if(inScreen&&qDist(player.pos,pos,player.size*2)){
+    if(inScreen&&qDist(player.pos,pos,player.magnetDist)&&player.canMagnet){
       player.exp+=this.exp;
       isDead=true;
     }
+  }
+  
+  void setPos(PVector p){
+    pos=p;
   }
   
   @Override

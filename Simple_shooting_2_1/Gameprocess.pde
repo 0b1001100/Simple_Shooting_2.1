@@ -1,6 +1,10 @@
 class GameProcess{
+  HashSet<String>EventSet;
+  ComponentSet HUDSet;
   ComponentSet UpgradeSet;
+  WallEntity[] wall=null;
   Color menuColor=new Color(230,230,230);
+  PVector FieldSize=null;
   PFont font_20;
   PFont font_15;
   PShader menuShader;
@@ -30,28 +34,121 @@ class GameProcess{
   }
   
    public void init(){
-    Entities=new ArrayList<Entity>();
-    nearEnemy.clear();
-    UpgradeSet=new ComponentSet();
-    player=new Myself();
-    stage=new Stage();
-    StageFlag.clear();
-    pause=false;
-    sumLevel=0;
-    addtionalProjectile=0;
-    addtionalScale=1;
-    addtionalPower=1;
-    addtionalSpeed=1;
-    addtionalDuration=1;
-    reductionCoolTime=1;
-    backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
-    playerTable.getAll().forEach(i->{
-      i.reset();
-      playerTable.addTable(i,i.weight);
+     FieldSize=null;
+     EventSet=new HashSet<String>();
+     HUDSet=new ComponentSet();
+     UpgradeSet=new ComponentSet();
+     stageLayer=new ComponentSetLayer();
+     stageLayer.addLayer("root",UpgradeSet);
+     stageLayer.addSubChild("root","HUD",HUDSet);
+     Entities=new ArrayList<Entity>();
+     nearEnemy.clear();
+     player=new Myself();
+     stage=new Stage();
+     StageFlag.clear();
+     pause=false;
+     sumLevel=0;
+     addtionalProjectile=0;
+     addtionalScale=1;
+     addtionalPower=1;
+     addtionalSpeed=1;
+     addtionalDuration=1;
+     reductionCoolTime=1;
+     backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
+     playerTable.getAll().forEach(i->{
+       i.reset();
+       playerTable.addTable(i,i.weight);
+     });
+     player.subWeapons.clear();
+     switch(StageName){
+       case "Tutorial":initTutorial();break;
+       case "Stage1":player.subWeapons.add(masterTable.get("Laser").getWeapon());
+                     player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
+                     break;
+     }
+  }
+  
+  private void initTutorial(){
+    player.canMagnet=false;
+    HUDText tu_upgrade=new HUDText(Language.getString("tu_upgrade"));
+    tu_upgrade.setBounds(width*0.5+200,height*0.5-200,0,0);
+    tu_upgrade.addWindowResizeEvent(()->{
+      tu_upgrade.setBounds(width*0.5+200,height*0.5-200,0,0);
     });
-    player.subWeapons.clear();
-    player.subWeapons.add(masterTable.get("Laser").getWeapon());
-    player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
+    tu_upgrade.setProcess(()->{
+      if(!upgrade){
+        tu_upgrade.Dispose();
+        tu_upgrade.setFlag(false);
+      }
+    });
+    tu_upgrade.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+3,s->{if(!stageList.contains("Stage1"))stageList.addContent("Stage1");StageFlag.add("Clear_Tutorial");scene=3;}));
+    });
+    HUDText tu_exp=new HUDText(Language.getString("tu_exp"));
+    tu_exp.setProcess(()->{
+      if(player.levelup){
+        tu_exp.Dispose();
+        tu_exp.setFlag(false);
+      }
+    });
+    tu_exp.addDisposeListener(()->{
+      tu_upgrade.startDisplay();
+    });
+    HUDText tu_attack=new HUDText(Language.getString("tu_attack"));
+    tu_attack.setProcess(()->{
+      if(tu_attack.target.isDead){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_attack.endDisplay()));
+        tu_attack.setFlag(false);
+      }
+    });
+    tu_attack.addDisposeListener(()->{
+      tu_exp.startDisplay();
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+1,s->player.canMagnet=true));
+    });
+    HUDText tu_shot_2=new HUDText(Language.getString("tu_shot_2"));
+    tu_shot_2.setTarget(player);
+    tu_shot_2.setProcess(()->{
+      if(mousePressed&&mouseButton==LEFT){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot_2.endDisplay()));
+        tu_shot_2.setFlag(false);
+      }
+    });
+    tu_shot_2.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->{
+        DummyEnemy e=new DummyEnemy();
+        tu_attack.setTarget(e);
+        if(dist(new PVector(0,0),player.pos)<100){
+          stage.addSpown(player.pos.copy().add(0,200),e);
+        }else{
+          stage.addSpown(new PVector(0,0),e);
+        }
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+3,s2->{tu_attack.startDisplay();}));
+      }));
+    });
+    HUDText tu_shot=new HUDText(Language.getString("tu_shot"));
+    tu_shot.setTarget(player);
+    tu_shot.setProcess(()->{
+      if(mousePressed&&mouseButton==LEFT){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot.endDisplay()));
+        tu_shot.setFlag(false);
+      }
+    });
+    tu_shot.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot_2.startDisplay()));
+    });
+    HUDText tu_move=new HUDText(Language.getString("tu_move"));
+    tu_move.setTarget(player);
+    tu_move.setProcess(()->{
+      if(player.Speed>=3){
+        stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_move.endDisplay()));
+        tu_move.setFlag(false);
+      }
+    });
+    tu_move.addDisposeListener(()->{
+      stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot.startDisplay()));
+    });
+    stage.addProcess("Tutorial",new TimeSchedule(2,s->tu_move.startDisplay()));
+    HUDSet.addAll(tu_move,tu_shot,tu_shot_2,tu_attack,tu_exp,tu_upgrade);
   }
   
    public void process(){
@@ -73,6 +170,8 @@ class GameProcess{
     Debug();
     updateShape();
     keyProcess();
+    EventProcess();
+    EventSet.clear();
     done=true;
   }
 
@@ -114,6 +213,10 @@ class GameProcess{
           player.HP.reset();
           pause=false;
           deadTimer=0;
+          if(StageName.equals("Tutorial")){
+            player.pos=new PVector(0,0);
+            player.rotate=0;
+          }
         }
         player.update();
       }
@@ -163,19 +266,18 @@ class GameProcess{
       });
       Entities.addAll(NextEntities);
       NextEntities.clear();
-      HeapEntityX.forEach(m->{
-        m.forEach((k,v)->{
-          EntityX.put(k,v);
+      HeapEntityDataX.forEach(m->{
+        m.forEach(d->{
+          EntityDataX.add(d);
         });
         m.clear();
       });
-      SortedX=EntityX.keySet().toArray(new Float[EntityX.size()]);
-      Arrays.parallelSort(SortedX);
-      HeapEntityDataX.forEach(m->{
-        m.forEach((k,v)->{
-          EntityDataX.put(k,v);
-        });
-        m.clear();
+      SortedDataX=EntityDataX.toArray(new AABBData[0]);
+      Arrays.parallelSort(SortedDataX,new Comparator<AABBData>(){
+        @Override
+        public int compare(AABBData d1, AABBData d2) {
+          return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
+        }
       });
     }
   }
@@ -235,6 +337,14 @@ class GameProcess{
   public void displayHUD(){
     push();
     resetMatrix();
+    if(upgrade){
+      fill(240);
+      noStroke();
+      rectMode(CENTER);
+      rect(width/2,height/2,400,600);
+    }
+    stageLayer.display();
+    stageLayer.update();
     rectMode(CORNER);
     noFill();
     stroke(200);
@@ -260,8 +370,20 @@ class GameProcess{
     }
   }
   
+  void EventProcess(){
+    if(EventSet.contains("end_upgrade")){
+      UpgradeSet.removeAll();
+      if(player.levelupNumber<1){
+        pause=false;
+      }else{
+        player.levelup=true;
+      }
+    }
+  }
+  
   void upgrade(){
     if(player.levelup){
+      EventSet.add("start_upgrade");
       upgrade=true;
       int num=min(playerTable.probSize(),3);
       Item[]list=new Item[num];
@@ -321,23 +443,24 @@ class GameProcess{
             w.reInit();
           });
           --player.levelupNumber;
-          if(player.levelupNumber<1){
-            pause=false;
-          }else{
-            player.levelup=true;
-          }
           upgrade=false;
+          EventSet.add("end_upgrade");
         });
       }
       UpgradeSet.addAll(buttons);
       player.levelup=false;
-    }else if(upgrade){
-      fill(240);
-      noStroke();
-      rectMode(CENTER);
-      rect(width/2,height/2,400,600);
-      UpgradeSet.display();
-      UpgradeSet.update();
+    }
+  }
+  
+  void setWall(){
+    if(FieldSize==null)return;
+    if(wall==null){
+      wall=new WallEntity[4];
+      wall[0]=new WallEntity(FieldSize.copy().mult(-0.5),new PVector(FieldSize.x,0));
+      wall[1]=new WallEntity(new PVector(FieldSize.x*-0.5,FieldSize.y*0.5),new PVector(FieldSize.x,0));
+      wall[2]=new WallEntity(new PVector(FieldSize.x*0.5,FieldSize.y*-0.5),new PVector(0,FieldSize.y));
+      wall[3]=new WallEntity(FieldSize.copy().mult(-0.5),new PVector(0,FieldSize.y));
+      Entities.addAll(Arrays.asList(wall));
     }
   }
   
@@ -464,5 +587,54 @@ class GameProcess{
       return data-num;
     }
     return data;
+  }
+}
+
+class WallEntity extends Entity{
+  PVector dist;
+  PVector norm;
+  boolean move=false;
+  float time=0;
+  float weight=2;
+  
+  {
+    size=0;
+  }
+  
+  WallEntity(PVector pos,PVector dist){
+    this.pos=pos;
+    this.dist=dist;
+    this.norm=new PVector(-dist.y,dist.x).normalize();
+  }
+  
+  @Override
+  void display(PGraphics g){
+    if(Debug)displayAABB(g);
+    g.strokeWeight(2);
+    g.stroke(255);
+    g.line(pos.x,pos.y,pos.x+dist.x,pos.y+dist.y);
+  }
+  
+  @Override
+  void update(){
+    Center=new PVector(pos.x+dist.x*0.5,pos.y+dist.y*0.5);
+    AxisSize=new PVector(dist.x==0?1:dist.x,dist.y==0?1:dist.y);
+    putAABB();
+    super.update();
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(((e instanceof Enemy)&&!(e instanceof Explosion))){
+      PVector copy=e.pos.copy();
+      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
+      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
+    }else if(e instanceof Myself){
+      PVector copy=e.pos.copy();
+      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
+      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
+    }else if(e instanceof Bullet){
+      e.Collision(this);
+    }
   }
 }

@@ -2,7 +2,7 @@
   "Turret":[
     {
       "name":["cooltime"],
-      "cooltime":-15
+      "cooltime":15
     },
     {
       "name":["power","weight"],
@@ -21,7 +21,7 @@
     {
       "name":["projectile","weight"],
       "projectile":1,
-      "weight":-10
+      "weight":30
     },
     {
       "name":["power"],
@@ -36,7 +36,7 @@
   "G_Shot":[
     {
       "name":["cooltime"],
-      "cooltime":-15
+      "cooltime":15
     },
     {
       "name":["scale","weight"],
@@ -51,7 +51,7 @@
     {
       "name":["power","cooltime"],
       "power":4,
-      "cooltime":-10
+      "cooltime":10
     },
     {
       "name":["power","projectile"],
@@ -73,7 +73,7 @@
   "Grenade":[
     {
       "name":["cooltime"],
-      "cooltime":-10
+      "cooltime":10
     },
     {
       "name":["power","scale"],
@@ -89,7 +89,7 @@
     {
       "name":["power","cooltime"],
       "power":1,
-      "cooltime":-10
+      "cooltime":10
     },
     {
       "name":["power","projectile"],
@@ -111,7 +111,7 @@
   "Mirror":[
     {
       "name":["cooltime","power"],
-      "cooltime":-10,
+      "cooltime":10,
       "power":1
     },
     {
@@ -128,7 +128,7 @@
     {
       "name":["duration","power"],
       "duration":30,
-      "power":1
+      "power":2
     },
     {
       "name":["projectile","velocity"],
@@ -139,7 +139,7 @@
       "name":["projectile","scale","power"],
       "projectile":1,
       "scale":5,
-      "power":1
+      "power":2
     },
     {
       "name":["projectile","weight","power"],
@@ -156,7 +156,7 @@
     },
     {
       "name":["cooltime","scale"],
-      "cooltime":-10,
+      "cooltime":10,
       "scale":20
     },
     {
@@ -167,7 +167,7 @@
     },
     {
       "name":["cooltime","scale"],
-      "cooltime":-5,
+      "cooltime":5,
       "scale":20
     },
     {
@@ -178,7 +178,7 @@
     },
     {
       "name":["cooltime","scale"],
-      "cooltime":-5,
+      "cooltime":5,
       "scale":20
     },
     {
@@ -202,12 +202,12 @@
     {
       "name":["projectile","cooltime"],
       "projectile":1,
-      "cooltime":-10
+      "cooltime":10
     },
     {
       "name":["duration","cooltime","weight"],
       "duration":20,
-      "cooltime":-5,
+      "cooltime":5,
       "weight":25
     },
     {
@@ -223,7 +223,7 @@
     {
       "name":["projectile","cooltime","weight"],
       "projectile":1,
-      "cooltime":-5,
+      "cooltime":5,
       "weight":0
     }
   ],
@@ -234,12 +234,13 @@
     },
     {
       "name":["power","cooltime"],
-      "power":2,
+      "power":3,
       "cooltime":15
     },
     {
-      "name":["projectile"],
-      "projectile":1
+      "name":["projectile","scale"],
+      "projectile":1,
+      "scale":1
     },
     {
       "name":["cooltime","weight"],
@@ -249,15 +250,17 @@
     {
       "name":["cooltime","power"],
       "cooltime":20,
-      "power":3
+      "power":4
     },
     {
-      "name":["cooltime"],
-      "cooltime":20
+      "name":["cooltime","power","scale"],
+      "cooltime":20,
+      "power":2,
+      "scale":1
     },
     {
       "name":["cooltime","projectile","weight"],
-      "cooltime":20,
+      "cooltime":10,
       "projectile":1,
       "weight":0
     }
@@ -268,9 +271,9 @@
       "power":2
     },
     {
-      "name":["verocity","cooltime"],
-      "verocity":1,
-      "cooltime":15
+      "name":["velocity","cooltime"],
+      "velocity":1,
+      "cooltime":20
     },
     {
       "name":["projectile","duration","weight"],
@@ -279,18 +282,19 @@
       "weight":15
     },
     {
-      "name":["cooltime","power"],
+      "name":["cooltime","power","velocity"],
+      "velocity":1,
       "cooltime":20,
       "power":1
     },
     {
       "name":["duration","power"],
-      "duration":20,
-      "power":1
+      "duration":30,
+      "power":2
     },
     {
       "name":["cooltime","power"],
-      "cooltime":10,
+      "cooltime":25,
       "power":2
     },
     {

@@ -4,8 +4,20 @@
   "config":"Configration",
   "ex":"Explanation",
   "color_inverse":"Inverse color",
-  "ex_color_inverse":"メニュー画面のダークモードの切り替え",
+  "ex_color_inverse":"Switch darkmode on menu.",
   "language":"Language",
   "ex_language":"Select language",
-  "menu":"Menu"
+  "operation_ex":"Operation",
+  "mouse_click":"Mouse click",
+  "move":"Move",
+  "shot":"Shot",
+  "back":"Back",
+  "menu":"Menu",
+  "tu_move":"WASDで移動",
+  "tu_shot":"クリックで射撃",
+  "tu_shot_2":"長押しで連射",
+  "tu_attack":"射撃で倒す",
+  "tu_exp":"近づいて経験値を取得",
+  "tu_upgrade":"アップグレードを選択",
+  "tu_dead":"敵に当たると残機が減少"
 }

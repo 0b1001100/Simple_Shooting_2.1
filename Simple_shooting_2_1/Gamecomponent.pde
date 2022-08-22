@@ -89,6 +89,134 @@ class GameComponent{
   }
   
   void back(){}
+  
+  @Override
+  String toString(){
+    return "[pos:"+pos+",dist:"+dist+"]";
+  }
+}
+
+class Canvas extends GameComponent{
+  protected CanvasContent content=(g)->{};
+  protected PGraphics pg;
+  
+  {
+    canFocus=false;
+    setBounds(0,0,0,0);
+  }
+  
+  Canvas(PGraphics pg){
+    this.pg=pg;
+  }
+  
+  void setContent(CanvasContent c){
+    content=c;
+  }
+  
+  @Override
+  void display(){
+    content.display(pg);
+  }
+}
+
+class HUDText extends GameComponent{
+  disposeEvent de=()->{};
+  Process p=()->{};
+  Entity target;
+  boolean flag=true;
+  float offset=20;
+  float mainWidth=0;
+  String text="";
+  String type="";
+  float easeTime=0;
+  
+  {
+    canFocus=false;
+    font=createFont("SansSerif.plain",15);
+  }
+  
+  HUDText(String text){
+    this.text=text;
+    textFont(font);
+    mainWidth=textWidth(text);
+  }
+  
+  void setTarget(Entity e){
+    target=e;
+    pos=new PVector(0,0);
+  }
+  
+  void display(){
+    if(easeTime==0)return;
+    float w=((Sigmoid(easeTime/7)-0.5)/0.5f)*(offset+mainWidth);
+    pushMatrix();
+    resetMatrix();
+    translate(0,-ceil(offset+17));
+    strokeWeight(1);
+    noFill();
+    stroke(255);
+    beginShape(w>offset?POLYGON:LINES);
+    vertex(target==null?pos.x:target.pos.x+scroll.x,(target==null?pos.y:target.pos.y+scroll.y)+offset+17);
+    vertex((target==null?pos.x:target.pos.x+scroll.x)+min(w,offset),(target==null?pos.y:target.pos.y+scroll.y)+max(0,offset-w)+17);
+    if(w>offset)vertex((target==null?pos.x:target.pos.x+scroll.x)+min(w,offset+mainWidth),(target==null?pos.y:target.pos.y+scroll.y)+17);
+    endShape();
+    if(easeTime<45){
+      popMatrix();
+      return;
+    }
+    fill(255);
+    textFont(font);
+    textAlign(LEFT);
+    textSize(15);
+    text(text,(target==null?pos.x:target.pos.x+scroll.x)+offset,(target==null?pos.y:target.pos.y+scroll.y)+15);
+    popMatrix();
+  }
+  
+  void update(){
+    if(type.equals("start")){
+      easeTime+=vectorMagnification;
+      if(easeTime>=45){
+        easeTime=45;
+        type="";
+      }
+    }else if(type.equals("end")){
+      easeTime-=vectorMagnification;
+      if(easeTime<=0){
+        de.event();
+        easeTime=0;
+        type="";
+      }
+    }else if(easeTime>=45){
+      if(flag)p.execute();
+    }
+    super.update();
+  }
+  
+  void Dispose(){
+    type="";
+    easeTime=0;
+    de.event();
+  }
+  
+  void startDisplay(){
+    type="start";
+  }
+  
+  void endDisplay(){
+    type="end";
+  }
+  
+  void setFlag(boolean f){
+    flag=f;
+  }
+  
+  void addDisposeListener(disposeEvent de){
+    this.de=de;
+  }
+  
+  void setProcess(Process p){
+    this.p=p;
+  }
 }
 
 class LineTextField extends GameComponent{
@@ -402,7 +530,7 @@ class TextBox extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",d.y*0.8);
+      font=createFont("SansSerif.plain",fontSize);
     };
   }
   
@@ -580,6 +708,14 @@ class ItemList extends GameComponent{
     changeEvent();
   }
   
+  int getSize(){
+    return Contents.size();
+  }
+  
+  boolean contains(String s){
+    return Contents.contains(s);
+  }
+  
   void addExplanation(String s,String e){
     Explanation.put(s,e);
   }
@@ -643,6 +779,7 @@ class ItemList extends GameComponent{
   void subDraw(){
     pushStyle();
     blendMode(BLEND);
+    rectMode(CORNER);
     fill(#707070);
     noStroke();
     rect(sPos.x,sPos.y,sDist.x,25);
@@ -652,7 +789,7 @@ class ItemList extends GameComponent{
     textAlign(CENTER);
     textFont(font);
     fill(0);
-    text("説明",sPos.x+5+textWidth("説明")/2,sPos.y+17.5);
+    text(Language.getString("ex"),sPos.x+5+textWidth(Language.getString("ex"))/2,sPos.y+17.5);
     textAlign(LEFT);
     text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
          Explanation.get(selectedItem):"Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45);
@@ -1132,12 +1269,14 @@ class MenuTextBox extends TextBox{
   
   void display(){
     blendMode(BLEND);
+    rectMode(CORNER);
     noStroke();
     fill(toColor(background));
     rect(pos.x,pos.y,dist.x,dist.y);
     fill(#707070);
     rect(pos.x,pos.y,dist.x,25);
     fill(toColor(foreground));
+    textFont(font);
     textSize(fontSize);
     textAlign(CENTER);
     fill(0);
@@ -1218,7 +1357,6 @@ class ComponentSet{
   static final int Left=3;
   
   ComponentSet(){
-    
   }
   
   void add(GameComponent val){
@@ -1270,12 +1408,14 @@ class ComponentSet{
   }
   
   void display(){
+    if(components.size()==0)return;
     for(GameComponent c:components){
       c.display();
     }
   }
   
   void update(){
+    if(components.size()==0)return;
     for(GameComponent c:components){
       c.update();
       if(c.FocusEvent){
@@ -1526,11 +1666,12 @@ class ComponentSetLayer{
   }
   
   void display(){
-    if(nowLayer==null){
+    if(nowLayer==null||Layers.get(nowLayer).getComponents().size()==0){
       return;
     }else{
       int count=0;
       for(ComponentSet c:Layers.get(nowLayer).getComponents()){
+        if(c==null)continue;
         switch(showType){
           case 0:c.display();break;
           case 1:if(count==selectNumber)c.display();break;
@@ -1550,6 +1691,7 @@ class ComponentSetLayer{
     }else{
       int count=0;
       for(ComponentSet c:Layers.get(nowLayer).getComponents()){
+        if(c==null)continue;
         switch(showType){
           case 0:c.update();break;
           case 1:if(count==selectNumber)c.update();break;
@@ -1793,4 +1935,16 @@ interface EnterEvent{
 
 interface WindowResizeEvent{
   void Event();
+}
+
+interface CanvasContent{
+  void display(PGraphics pg);
+}
+
+interface Process{
+  void execute();
+}
+
+interface disposeEvent{
+  void event();
 }

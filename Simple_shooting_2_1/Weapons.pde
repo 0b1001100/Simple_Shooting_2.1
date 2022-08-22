@@ -135,7 +135,7 @@ class Weapon implements Equipment,Cloneable{
       if(parent instanceof Myself){
         NextEntities.add(new Bullet((Myself)parent,i));
       }else{
-        HeapEntity.get(parent.threadNum).add(new Bullet(parent,this));
+        NextEntities.add(new Bullet(parent,this));
       }
     }
   }
@@ -189,7 +189,7 @@ class SubWeapon extends Weapon{
     power=(obj.getFloat(params[3])+upgradeStatus.get(params[3]))*addtionalPower;
     speed=(obj.getFloat(params[4])+upgradeStatus.get(params[4]))*addtionalSpeed;
     duration=(obj.getFloat(params[5])+upgradeStatus.get(params[5]))*addtionalDuration;
-    coolTime=(obj.getFloat(params[6])+upgradeStatus.get(params[6]))*reductionCoolTime;
+    coolTime=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*reductionCoolTime;
     through=obj.getInt(params[7])+upgradeStatus.get(params[7]).intValue();
   }
   
@@ -199,7 +199,7 @@ class SubWeapon extends Weapon{
     power=(obj.getFloat(params[3])+upgradeStatus.get(params[3]))*addtionalPower;
     speed=(obj.getFloat(params[4])+upgradeStatus.get(params[4]))*addtionalSpeed;
     duration=(obj.getFloat(params[5])+upgradeStatus.get(params[5]))*addtionalDuration;
-    coolTime=(obj.getFloat(params[6])+upgradeStatus.get(params[6]))*reductionCoolTime;
+    coolTime=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*reductionCoolTime;
     through=obj.getInt(params[7])+upgradeStatus.get(params[7]).intValue();
   }
   

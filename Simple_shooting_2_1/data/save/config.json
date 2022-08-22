@@ -1,7 +1,6 @@
 {
-  "Language":"ja_jp",
-  "GPGPU":false,
-  "Weapons":[
+  "Language": "ja_jp",
+  "Weapons": [
     "G_Shot",
     "Grenade",
     "Turret",
@@ -16,5 +15,9 @@
     "speed",
     "duration",
     "cooltime"
-  ]
+  ],
+  "Stage": [
+    "Tutorial"
+  ],
+  "GPGPU": false
 }

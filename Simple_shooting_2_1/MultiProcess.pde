@@ -52,15 +52,15 @@ class EntityCollision implements Callable<String>{
   EntityCollision(int s,int l,byte num){
     this.s=s;
     this.l=l;
-    hue=s==0?0:255*(s/(float)EntityX.size());
+    hue=s==0?0:255*(s/(float)EntityDataX.size());
     number=num;
   }
   
   String call(){
     for(int i=s;i<l;i++){
-      Entity E=EntityX.get(SortedX[i]);
+      Entity E=SortedDataX[i].getEntity();
       if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
-      switch(EntityDataX.get(SortedX[i])){
+      switch(SortedDataX[i].getType()){
         case "s":Collision(E,i);break;
         case "e":break;
       }
@@ -70,10 +70,10 @@ class EntityCollision implements Callable<String>{
   
   void Collision(Entity E,int i){
     ++i;
-    for(int j=i,s=EntityX.size();j<s;j++){
-      Entity e=EntityX.get(SortedX[j]);
+    for(int j=i,s=EntityDataX.size();j<s;j++){
+      Entity e=SortedDataX[j].getEntity();
       if(E==e)break;
-      if(EntityDataX.get(SortedX[j]).equals("e")){
+      if(SortedDataX[j].getType().equals("e")){
         continue;
       }
       if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){
@@ -86,7 +86,7 @@ class EntityCollision implements Callable<String>{
     this.s=s;
     this.l=l;
     number=num;
-    hue=s==0?0:255*(s/(float)EntityX.size());
+    hue=s==0?0:255*(s/(float)EntityDataX.size());
   }
 }
 
@@ -146,5 +146,29 @@ class CollisionData{
   @Override
   String toString(){
     return number+":"+e;
+  }
+}
+
+class AABBData{
+  private float pos;
+  private String type="";
+  private Entity e;
+  
+  AABBData(float pos,String type,Entity e){
+    this.pos=pos;
+    this.type=type;
+    this.e=e;
+  }
+  
+  final float getPos(){
+    return pos;
+  }
+  
+  final String getType(){
+    return type;
+  }
+  
+  final Entity getEntity(){
+    return e;
   }
 }

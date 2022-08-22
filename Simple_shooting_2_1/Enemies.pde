@@ -1,8 +1,6 @@
-HashMap<Float,Entity>EntityX=new HashMap<Float,Entity>();
-HashMap<Float,String>EntityDataX=new HashMap<Float,String>();
-ArrayList<TreeMap<Float,Entity>>HeapEntityX=new ArrayList<TreeMap<Float,Entity>>();
-ArrayList<HashMap<Float,String>>HeapEntityDataX=new ArrayList<HashMap<Float,String>>();
-Float[]SortedX;
+ArrayList<AABBData>EntityDataX=new ArrayList<AABBData>();
+ArrayList<ArrayList<AABBData>>HeapEntityDataX=new ArrayList<ArrayList<AABBData>>();
+AABBData[]SortedDataX;
 
 class Enemy extends Entity implements Cloneable{
   HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
@@ -171,9 +169,7 @@ class Enemy extends Entity implements Cloneable{
   @Override
   void Collision(Entity e){
     if(e instanceof Explosion){
-      if(qDist(pos,e.pos,(e.size+size)*0.5)){
-        Hit(((Explosion)e).power);
-      }
+      e.Collision(this);
     }else if(e instanceof Enemy){
       if(qDist(pos,e.pos,(size+e.size)*0.5)){
         PVector c=pos.copy().sub(e.pos).normalize();
@@ -209,6 +205,41 @@ class Enemy extends Entity implements Cloneable{
   
   void Process(){
     
+  }
+}
+
+class DummyEnemy extends Enemy implements BlastResistant{
+  Exp exp;
+  
+  {
+    exp=new Exp();
+    dead=(e)->{
+      ((HUDText)main.HUDSet.components.get(3)).endDisplay();
+      ((HUDText)main.HUDSet.components.get(4)).setTarget(exp);
+    };
+  }
+  
+  @Override
+  void init(){
+    setHP(20);
+    setSize(28);
+    maxSpeed=0;
+    rotateSpeed=0;
+  }
+  
+  @Override
+  void Down(){
+    isDead=true;
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+    NextEntities.add(exp);
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    Enemy e=super.setPos(p);
+    exp.setPos(this.pos);
+    exp.setExp(10);
+    return e;
   }
 }
 
@@ -389,9 +420,13 @@ class M_Boss_Y extends Enemy implements BossEnemy{
     setSize(52);
     setMass(35);
     setColor(new Color(255,255,10));
+    HUDText boss=new HUDText("BOSS");
+    main.HUDSet.add(boss);
+    boss.startDisplay();
     dead=(e)->{
       StageFlag.add("Survive_10_min");
-      stage.addSchedule("Stage1",new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));println("c");
+      stage.addSchedule("Stage1",new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));
+      boss.Dispose();
     };
   }
   
@@ -408,5 +443,7 @@ class M_Boss_Y extends Enemy implements BossEnemy{
 }
 
 interface BossEnemy{
-  
+}
+
+interface BlastResistant{
 }

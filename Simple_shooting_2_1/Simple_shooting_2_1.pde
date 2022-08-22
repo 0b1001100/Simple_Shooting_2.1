@@ -39,6 +39,7 @@ ArrayList<EntityDraw>DrawProcess=new ArrayList<EntityDraw>();
 byte drawNumber=4;
 
 float vectorMagnification=1;
+float pMagnification=1;
 
 PShader FXAAShader;
 PShader colorInv;
@@ -50,8 +51,10 @@ java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList
 GameProcess main;
 Stage stage;
 
+ComponentSetLayer stageLayer=new ComponentSetLayer();
 ComponentSetLayer starts=new ComponentSetLayer();
 ComponentSet resultSet;
+ItemList stageList=new ItemList();
 
 ItemTable MastarTable;
 
@@ -61,7 +64,8 @@ JSONObject LanguageData;
 JSONObject Language;
 JSONObject conf;
 
-PFont font_50;
+PImage mouseImage;
+PFont font_30;
 
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
@@ -138,6 +142,8 @@ void setup(){
       pscreen.sub(w.getWidth(), w.getHeight()).div(2);
       scroll.sub(pscreen);
       pscreen=new PVector(w.getWidth(), w.getHeight());
+      width=w.getWidth();
+      height=w.getHeight();
       windowResized=true;
     }
   }
@@ -158,8 +164,9 @@ void setup(){
   compute_program=gl4.glCreateProgram();
   gl4.glAttachShader(compute_program, compute_shader);
   gl4.glLinkProgram(compute_program);
+  mouseImage=loadImage(ImagePath+"mouse.png");
   textFont(createFont("SansSerif.plain",15));
-  font_50=createFont("SansSerif.plain",50);
+  font_30=createFont("SansSerif.plain",30);
   FXAAShader=loadShader(ShaderPath+"FXAA.glsl");
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
   Lighting=loadShader(ShaderPath+"Lighting.glsl");
@@ -187,9 +194,9 @@ void draw(){
   }
   eventProcess();
   if(scene==2){
-    byte ThreadNumber=(byte)min(floor(EntityX.size()/(float)minDataNumber),(int)collisionNumber);
-    if(pEntityNum!=EntityX.size()){
-      float block=EntityX.size()/(float)ThreadNumber;
+    byte ThreadNumber=(byte)min(floor(EntityDataX.size()/(float)minDataNumber),(int)collisionNumber);
+    if(pEntityNum!=EntityDataX.size()){
+      float block=EntityDataX.size()/(float)ThreadNumber;
       for(byte b=0;b<ThreadNumber;b++){
         CollisionProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
       }
@@ -209,6 +216,9 @@ void draw(){
       }
       catch(NullPointerException g) {
       }
+    }
+    if(player!=null){
+      player.camera.update();
     }
   }
   Shader();
@@ -247,6 +257,7 @@ void LoadData(){
     }catch(ClassNotFoundException|NoSuchMethodException g){g.printStackTrace();}
   }
   Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
+  stageList.addContent(conf.getJSONArray("Stage").getStringArray());
 }
 
 void LoadLanguage(){
@@ -283,14 +294,10 @@ void initMenu(){
   Select.addListener(()->{
     starts.toChild("stage");
   });
-  ItemList stage=new ItemList();
-  stage.setBounds(250,100,300,500);
-  stage.showSub=false;
-  stage.addContent("Stage1");
-  stage.addSelectListener((s)->{
-    switch(s){
-      case "Stage1":scene=1;break;
-    }
+  stageList.setBounds(250,100,300,500);
+  stageList.showSub=false;
+  stageList.addSelectListener((s)->{
+    scene=1;
     StageName=s;
   });
   MenuButton Config=new MenuButton(Language.getString("config"));
@@ -348,12 +355,48 @@ void initMenu(){
       });
     //--
   //---
+  MenuButton operationEx=new MenuButton(Language.getString("operation_ex"));
+  operationEx.setBounds(100,220,120,25);
+  operationEx.addListener(()->{
+    starts.toChild("operation");
+  });
+  //--
+    MenuButton back_op=new MenuButton(Language.getString("back"));
+    back_op.setBounds(width*0.5-60,height*0.9,120,25);
+    back_op.addListener(()->{
+      starts.toParent();
+    });
+    back_op.addWindowResizeEvent(()->{
+      back_op.setBounds(width*0.5-60,height*0.9,120,25);
+    });
+    Canvas op_canvas=new Canvas(g);
+    op_canvas.setContent((pg)->{
+      pg.beginDraw();
+      pg.blendMode(BLEND);
+      pg.rectMode(CENTER);
+      pg.fill(20);
+      pg.noStroke();
+      for(int i=0;i<4;i++)pg.rect(87.5+45*i,70,35,35,3);
+      pg.textSize(30);
+      pg.textFont(font_30);
+      pg.textAlign(CENTER);
+      pg.fill(255);
+      for(int i=0;i<4;i++)pg.text(i==0?"W":i==1?"A":i==2?"S":i==3?"D":"",87.5+45*i,82.5);
+      pg.fill(0);
+      pg.textAlign(LEFT);
+      text(": "+Language.getString("move"),245,82.5);
+      image(mouseImage,70,85);
+      text(": "+Language.getString("shot"),150,130);
+      pg.endDraw();
+    });
+  //--
   starts.setSubChildDisplayType(1);
   starts.addLayer("root",toSet(New));
-  starts.addChild("root","main",toSet(Select,Config));
-  starts.addSubChild("main","stage",toSet(stage));
+  starts.addChild("root","main",toSet(Select,Config,operationEx));
+  starts.addSubChild("main","stage",toSet(stageList));
   starts.addSubChild("main","confMenu",toSet(Colorinv,Lang),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
+  starts.addChild("main","operation",toSet(back_op,op_canvas));
   if(launched){
     starts.toChild("main");
   }else{
@@ -381,6 +424,10 @@ void Result(){
     });
     resultButton.requestFocus();
     resultSet=toSet(resultButton);
+    if(!StageFlag.contains("Game_Over")){
+      conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
+      saveJSONObject(conf,".\\data\\save\\config.json");
+    }
   }
   background(230);
   if(resultAnimation){
@@ -404,7 +451,7 @@ void Result(){
   textAlign(CENTER);
   fill(0);
   textSize(50);
-  textFont(font_50);
+  textFont(font_30);
   text(StageFlag.contains("Game_Over")?"Game over":"Stage clear",width*0.5,height*0.2);
   resultSet.display();
   resultSet.update();
@@ -423,8 +470,7 @@ void initThread(){
   exec=Executors.newFixedThreadPool(collisionNumber);
   for(int i=0;i<updateNumber;i++){
     HeapEntity.add(new ArrayList<Entity>());
-    HeapEntityX.add(new TreeMap<Float,Entity>());
-    HeapEntityDataX.add(new HashMap<Float,String>());
+    HeapEntityDataX.add(new ArrayList<AABBData>());
     CollisionProcess.add(new EntityCollision(0,0,(byte)0));
     UpdateProcess.add(new EntityProcess(0,0,(byte)0));
   }
@@ -436,6 +482,7 @@ void initThread(){
 void Field() {
   if (changeScene){
     main=new GameProcess();
+    main.FieldSize=null;
     stage.name=StageName;
     JSONArray data=loadJSONArray(StageConfPath+StageName+".json");
     for(int i=0;i<data.size();i++){
@@ -456,6 +503,9 @@ void Field() {
             (Enemy)Class.forName("Simple_shooting_2_1$"+param.getString("name")).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
           }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
         }));
+      }else if(config.getString("type").equals("setting")){
+        main.FieldSize=new PVector(config.getJSONArray("size").getIntArray()[0],config.getJSONArray("size").getIntArray()[1]);
+        main.setWall();
       }
     }
     stage.addProcess(StageName,new TimeSchedule(2000,s->{s.endSchedule=true;}));
@@ -476,7 +526,7 @@ void eventProcess() {
   } else {
     changeScene=false;
   }
-  if((PressedKeyCode.size()>1||(PressedKeyCode.size()==1&&!PressedKeyCode.contains("16")))&&(nowPressedKeyCode==147||!nowPressedKey.equals(str((char)-1)))){
+  if((PressedKeyCode.size()>1||(PressedKeyCode.size()==1&&!PressedKeyCode.contains("16")))&&(nowPressedKeyCode==147||nowPressedKeyCode==37||nowPressedKeyCode==39||!nowPressedKey.equals(str((char)-1)))){
     keyPressTime+=vectorMagnification/60;
   }else{
     keyPressTime=0;
@@ -494,14 +544,14 @@ void updateFPS() {
 }
 
 void updatePreValue() {
+  pMagnification=vectorMagnification;
   windowResized=false;
   keyRelease=false;
   keyPress=false;
   pmousePress=mousePressed;
   pscene=scene;
   pMenu=nowMenu;
-  pEntityNum=EntityX.size();
-  EntityX.clear();
+  pEntityNum=EntityDataX.size();
   EntityDataX.clear();
 }
 
@@ -645,6 +695,10 @@ boolean onMouse(float x, float y, float dx, float dy) {
   return x<=mouseX&mouseX<=x+dx&y<=mouseY&mouseY<=y+dy;
 }
 
+boolean onBox(PVector p1,PVector p2,PVector v){
+  return p2.x<=p1.x&&p1.x<=p2.x+v.x&&p2.y<=p1.y&&p1.y<=p2.y+v.y;
+}
+
 PVector unProject(PVector v){
   return unProject(v.x,v.y);
 }
@@ -720,19 +774,38 @@ PVector createVector(PVector s, PVector e) {
 }
 
 boolean CircleCollision(PVector c,float size,PVector s,PVector v){
-    PVector bulletVel=v.copy().mult(vectorMagnification);
     PVector vecAP=createVector(s,c);
-    PVector normalAB=normalize(bulletVel);//vecAB->b.vel
+    PVector normalAB=normalize(v);//vecAB->b.vel
     float lenAX=dot(normalAB,vecAP);
     float dist;
     if(lenAX<0){
       dist=dist(s.x,s.y,c.x,c.y);
-    }else if(lenAX>dist(0,0,bulletVel.x,bulletVel.y)){
-      dist=dist(s.x+bulletVel.x,s.y+bulletVel.y,c.x,c.y);
+    }else if(lenAX>dist(0,0,v.x,v.y)){
+      dist=dist(s.x+v.x,s.y+v.y,c.x,c.y);
     }else{
       dist=abs(cross(normalAB,vecAP));
     }
     return dist<size*0.5;
+}
+
+PVector CircleMovePosition(PVector c,float size,PVector s,PVector v){
+    PVector vecAP=createVector(s,c);
+    PVector normalAB=normalize(v);
+    float lenAX=dot(normalAB,vecAP);
+    float dist;
+    if(lenAX<0){
+      if(dist(s.x,s.y,c.x,c.y)>=size*0.5)return c;
+      float rad=-atan2(c,s)-PI;
+      return s.copy().add(new PVector(0,1).rotate(rad).mult(size*0.5));
+    }else if(lenAX>dist(0,0,v.x,v.y)){
+      if(dist(s.x+v.x,s.y+v.y,c.x,c.y)>=size*0.5)return c;
+      float rad=-atan2(c,new PVector(s.x+v.x,s.y+v.y))-PI;
+      return new PVector(s.x+v.x,s.y+v.y).add(new PVector(0,1).rotate(rad).mult(size*0.5));
+    }else{
+      dist=cross(normalAB,vecAP);
+      if(abs(dist)>=size*0.5)return c;
+      return c.copy().add(new PVector(-v.y,v.x).normalize().mult((size*0.5-abs(dist))*sign(dist)));
+    }
 }
 
 boolean SegmentCollision(PVector s1, PVector v1, PVector s2, PVector v2) {
@@ -942,10 +1015,8 @@ class Entity implements Egent, Cloneable {
     float x=AxisSize.x*0.5;
     float min=Center.x-x;
     float max=Center.x+x;
-    HeapEntityX.get(threadNum).put(min,this);
-    HeapEntityX.get(threadNum).put(max,this);
-    HeapEntityDataX.get(threadNum).put(min,"s");
-    HeapEntityDataX.get(threadNum).put(max,"e");
+    HeapEntityDataX.get(threadNum).add(new AABBData(min,"s",this));
+    HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
   }
   
   void Collision(Entity e){
@@ -992,7 +1063,7 @@ class Camera {
       }
     } else {
       vel=target.vel;
-      pos.sub(vel);
+      pos=new PVector(width/2, height/2).sub(target.pos);
       scroll=pos;
       translate(scroll.x, scroll.y);
     }

@@ -55,7 +55,7 @@ class Explosion extends Enemy{
   
   @Override
   void Collision(Entity e){
-    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!HitEnemy.contains(e)){
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
       HitEnemy.add(e);
       if(inf){
         if(e instanceof BossEnemy){
@@ -92,7 +92,7 @@ class BulletExplosion extends Explosion{
   
   @Override
   void Collision(Entity e){
-    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!HitEnemy.contains(e)){
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
       HitEnemy.add(e);
       ((Enemy)e).Hit(parent);
     }

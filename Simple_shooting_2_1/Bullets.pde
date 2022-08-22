@@ -18,13 +18,14 @@ class Bullet extends Entity{
     speed=m.selectedWeapon.speed;
     bulletColor=cloneColor(m.selectedWeapon.bulletColor);
     parentColor=cloneColor(m.selectedWeapon.bulletColor);
-    pos=new PVector(m.pos.x+cos(rotate)*m.size,m.pos.y+sin(rotate)*m.size);
+    pos=new PVector(m.pos.x+cos(rotate)*m.size*0.5,m.pos.y+sin(rotate)*m.size*0.5);
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
     duration=m.selectedWeapon.duration;
     try{
       parent=m.selectedWeapon.clone();
     }catch(Exception e){}
     isMine=true;
+    setAABB();
   }
   
   Bullet(Myself m,int num){
@@ -35,13 +36,14 @@ class Bullet extends Entity{
     speed=m.selectedWeapon.speed;
     bulletColor=cloneColor(m.selectedWeapon.bulletColor);
     parentColor=cloneColor(m.selectedWeapon.bulletColor);
-    pos=new PVector(m.pos.x+cos(rotate)*m.size,m.pos.y+sin(rotate)*m.size);
+    pos=new PVector(m.pos.x+cos(rotate)*m.size*0.5,m.pos.y+sin(rotate)*m.size*0.5);
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
     duration=m.selectedWeapon.duration;
     try{
       parent=m.selectedWeapon.clone();
     }catch(Exception e){}
     isMine=true;
+    setAABB();
   }
   
   Bullet(Entity e,Weapon w){
@@ -64,6 +66,7 @@ class Bullet extends Entity{
     duration=w.duration;
     isMine=e.getClass().getSimpleName().equals("Myself");
     if(!isMine)bulletColor=new Color(255,0,0);
+    setAABB();
   }
   
   void display(PGraphics g){
@@ -101,6 +104,11 @@ class Bullet extends Entity{
         ((Enemy)e).addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
         isDead=true;
       }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      isDead=true;
+      NextEntities.add(new Particle(this,5));
     }
   }
   
@@ -119,7 +127,7 @@ class Bullet extends Entity{
   }
   
   void reflectFromNormal(PVector n){
-    vel=vel.copy().add(n.mult(dot(vel.copy().mult(-1),n)*2));
+    vel=vel.copy().add(n.copy().mult(dot(vel.copy().mult(-1),n)*2));
   }
   
   void reflectFromNormal(float r){
@@ -243,6 +251,13 @@ class GravityBullet extends SubBullet{
           vel=new PVector(0,0);
         }
       }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
+      NextEntities.add(new Particle(this,5));
     }
   }
 }
@@ -288,6 +303,15 @@ class GrenadeBullet extends SubBullet{
           hit=true;
         }
       }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      isDead=true;
+      if(!hit){
+        HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3,true,parent));
+        hit=true;
+      }
+      NextEntities.add(new Particle(this,5));
     }
   }
 }
@@ -576,6 +600,13 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
           ((Enemy)e).addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
         }
       }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      nextHitEnemy.add(e);
+      reflectFromNormal(((WallEntity)e).norm);
+      vertex.put(pos.copy(),0);
+      NextEntities.add(new Particle(this,5));
     }
   }
   
@@ -667,6 +698,12 @@ class ReflectorBullet extends SubBullet{
           ((Enemy)e).addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
         }
       }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      nextHitEnemy.add(e);
+      reflectFromNormal(((WallEntity)e).norm);
+      NextEntities.add(new Particle(this,5));
     }
   }
 }

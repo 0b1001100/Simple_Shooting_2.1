@@ -15,6 +15,7 @@ class Myself extends Entity{
   boolean shield=false;
   boolean hit=false;
   boolean move=false;
+  boolean canMagnet=true;
   double damage=0;
   double absHP;
   double absAttak;
@@ -27,6 +28,7 @@ class Myself extends Entity{
   float bulletSpeed=15;
   float coolingTime=0;
   float invincibleTime=0;
+  float magnetDist=40;
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
@@ -88,12 +90,13 @@ class Myself extends Entity{
     }
     if(!camera.moveEvent){
       if(!Command){
+        shot();
         Rotate();
         move();
-        shot();
       }
       if(HP.get().intValue()<=0){
         isDead=true;
+        main.EventSet.add("player_dead");
         return;
       }
       keyEvent();
@@ -104,7 +107,6 @@ class Myself extends Entity{
       }
       effects=nextEffects;
     }
-    camera.update();
     subWeapons.forEach(w->{w.update();});
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
@@ -259,7 +261,7 @@ class Myself extends Entity{
       if(!((Explosion)e).myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
         Hit(((Explosion)e).power);
       }
-    }else if(e instanceof Enemy){
+    }else if((e instanceof Enemy)||e instanceof WallEntity){
       e.Collision(this);
     }else if(e instanceof Bullet){
       if(!((Bullet)e).isMine){
