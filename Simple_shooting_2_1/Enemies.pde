@@ -411,6 +411,7 @@ class Slow_G extends Enemy{
 
 class M_Boss_Y extends Enemy implements BossEnemy{
   float moveCoolTime=180;
+  HUDText boss;
   
   @Override
   protected void init(){
@@ -420,9 +421,7 @@ class M_Boss_Y extends Enemy implements BossEnemy{
     setSize(52);
     setMass(35);
     setColor(new Color(255,255,10));
-    HUDText boss=new HUDText("BOSS");
-    main.HUDSet.add(boss);
-    boss.startDisplay();
+    boss=new HUDText("BOSS");
     dead=(e)->{
       StageFlag.add("Survive_10_min");
       stage.addSchedule("Stage1",new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));
@@ -439,6 +438,15 @@ class M_Boss_Y extends Enemy implements BossEnemy{
       moveCoolTime=180;
     }
     moveCoolTime-=vectorMagnification;
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    super.setPos(p);
+    boss.setTarget(this);
+    main.HUDSet.add(boss);
+    boss.startDisplay();
+    return this;
   }
 }
 

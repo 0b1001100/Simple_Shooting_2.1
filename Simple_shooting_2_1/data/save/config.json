@@ -16,8 +16,7 @@
     "duration",
     "cooltime"
   ],
-  "Stage": [
-    "Tutorial"
-  ],
+  "FPS": true,
+  "Stage": ["Tutorial"],
   "GPGPU": false
 }

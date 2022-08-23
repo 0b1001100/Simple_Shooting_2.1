@@ -5,6 +5,8 @@
   "ex":"説明",
   "color_inverse":"色反転",
   "ex_color_inverse":"メニュー画面のダークモードの切り替え",
+  "disp_FPS":"FPS表示",
+  "ex_disp_FPS":"FPS表示の切り替え",
   "language":"言語",
   "ex_language":"言語の選択",
   "operation_ex":"操作説明",
