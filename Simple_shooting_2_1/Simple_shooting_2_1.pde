@@ -103,6 +103,7 @@ int pEntityNum=0;
 int pscene=0;
 int scene=0;
 
+boolean displayFPS=true;
 boolean colorInverse=false;
 boolean FXAA=false;
 
@@ -222,20 +223,15 @@ void draw(){
     }
   }
   Shader();
-  printFPS();
+  if(displayFPS)printFPS();
   updatePreValue();
   updateFPS();
 }
-/*
+
 void dispose(){
-  CL.clReleaseMemObject(input_pixel);
-  CL.clReleaseMemObject(output_pixel);
-  CL.clReleaseProgram(program);
-  CL.clReleaseKernel(kernel);
-  CL.clReleaseCommandQueue(queue);
-  CL.clReleaseContext(context);
+  saveJSONObject(conf,".\\data\\save\\config.json");
 }
-*/
+
 void LoadData(){
   conf=loadJSONObject(".\\data\\save\\config.json");
   useGPGPU=conf.getBoolean("GPGPU");
@@ -258,6 +254,7 @@ void LoadData(){
   }
   Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
   stageList.addContent(conf.getJSONArray("Stage").getStringArray());
+  displayFPS=conf.getBoolean("FPS");
 }
 
 void LoadLanguage(){
@@ -323,8 +320,21 @@ void initMenu(){
       
       void lostFocus(){}
     });
+    MenuCheckBox dispFPS=new MenuCheckBox(Language.getString("disp_FPS"),displayFPS);
+    dispFPS.setBounds(250,220,120,25);
+    dispFPS.addListener(()->{
+      displayFPS=dispFPS.value;
+      conf.setBoolean("FPS",displayFPS);
+    });
+    dispFPS.addFocusListener(new FocusEvent(){
+      void getFocus(){
+        confBox.setText(Language.getString("ex_disp_FPS"));
+      }
+      
+      void lostFocus(){}
+    });
     MenuButton Lang=new MenuButton(Language.getString("language"));
-    Lang.setBounds(250,220,120,25);
+    Lang.setBounds(250,260,120,25);
     Lang.addListener(()->{
       starts.toChild("Language");
     });
@@ -348,7 +358,6 @@ void initMenu(){
           return;
         }
         conf.setString("Language",LanguageData.getString(s));
-        saveJSONObject(conf,".\\data\\save\\config.json");
         LoadLanguage();
         initMenu();
         starts.toParent();
@@ -394,7 +403,7 @@ void initMenu(){
   starts.addLayer("root",toSet(New));
   starts.addChild("root","main",toSet(Select,Config,operationEx));
   starts.addSubChild("main","stage",toSet(stageList));
-  starts.addSubChild("main","confMenu",toSet(Colorinv,Lang),toSet(confBox));
+  starts.addSubChild("main","confMenu",toSet(Colorinv,dispFPS,Lang),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
   starts.addChild("main","operation",toSet(back_op,op_canvas));
   if(launched){
@@ -424,10 +433,8 @@ void Result(){
     });
     resultButton.requestFocus();
     resultSet=toSet(resultButton);
-    if(!StageFlag.contains("Game_Over")){
-      conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
-      saveJSONObject(conf,".\\data\\save\\config.json");
-    }
+    saveConfig save=new saveConfig();
+    exec.submit(save);
   }
   background(230);
   if(resultAnimation){
