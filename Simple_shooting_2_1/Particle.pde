@@ -29,6 +29,15 @@ class Particle extends Entity{
     }
   }
   
+  Particle(PVector pos,Color c,int num){
+    for(int i=0;i<num;i++){
+      float scala=random(0,0.5);
+      float rad=random(0,360);
+      PVector vec=new PVector(cos(radians(rad))*scala,sin(radians(rad))*scala);
+      particles.add(new particleFragment(pos,vec,c,random(min,max)));
+    }
+  }
+  
   Particle(Entity e,String s){
     particles.add(new StringFragment(e.pos,new PVector(0,-1),
                       e instanceof Myself?new Color(255,0,0):new Color(255,255,255),15,s));

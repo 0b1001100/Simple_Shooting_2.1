@@ -17,7 +17,7 @@ cl_kernel kernel;
 cl_event profile_event = new cl_event();
 cl_mem input_pixel;
 cl_mem output_pixel;
-final String KERNEL_PATH = ".\\data\\OpenCL\\Merge.cl";
+final String KERNEL_PATH = Windows?".\\data\\OpenCL\\Merge.cl":"../data/OpenCL/Merge.cl";
 final String FUNC = "merge";
 
 void initGPGPU(){

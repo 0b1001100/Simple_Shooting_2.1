@@ -123,7 +123,7 @@ class saveConfig implements Runnable{
   void run(){
     if(!StageFlag.contains("Game_Over")){
       conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
-      saveJSONObject(conf,".\\data\\save\\config.json");
+      saveJSONObject(conf,SavePath+"config.json");
     }
   }
 }

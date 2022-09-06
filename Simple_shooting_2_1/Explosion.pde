@@ -67,6 +67,8 @@ class Explosion extends Enemy{
       }else{
         ((Enemy)e).Hit(power);
       }
+    }else if(e instanceof ThroughBullet){
+      e.isDead=true;
     }
   }
   

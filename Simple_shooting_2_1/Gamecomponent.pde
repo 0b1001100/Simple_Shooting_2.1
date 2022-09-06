@@ -412,7 +412,6 @@ class CheckBox extends GameComponent{
   void keyProcess(){
     if(focus&&keyPress&&nowPressedKeyCode==ENTER){
       value=!value;
-      executeEvent();
     }
   }
   
@@ -769,6 +768,7 @@ class ItemList extends GameComponent{
     if(dist.y<Height*Contents.size()){
       float len=Height*Contents.size();
       float mag=pg.height/len;
+      pg.noStroke();
       pg.fill(255);
       pg.rect(pg.width-10,0,10,pg.height);
       pg.fill(drag?200:128);
@@ -810,8 +810,8 @@ class ItemList extends GameComponent{
   void mouseProcess(){
     float len=Height*Contents.size();
     float mag=pg.height/len;
-    if(dist.y<len&onMouse(pos.x+pg.width-10,pos.y+pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag)&mousePress){
-      drag=true;
+    if(dist.y<len&&onMouse(pos.x+pg.width-10,pos.y+pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag)&&mousePress){
+        drag=true;
     }
     if(!mousePressed){
       drag=false;
@@ -819,8 +819,11 @@ class ItemList extends GameComponent{
     if(pDrag&drag){
       scroll+=(mouseY-pmouseY)*(len-dist.y)/(dist.y*(1-mag));
       scroll=constrain(scroll,0,len-dist.y);
+    }else if(dist.y<len&&mouseWheel&&onMouse(pos.x,pos.y,dist.x,dist.y)){
+      scroll+=mouseWheelCount*16;
+      scroll=constrain(scroll,0,len-dist.y);
     }
-    if(onMouse(pos.x,pos.y,dist.x-(dist.y<len?10:0),max(len-scroll,0))&mousePress){
+    if(mousePress&&onMouse(pos.x,pos.y,dist.x-(dist.y<len?10:0),max(len-scroll,0))){
       if(selectedNumber==floor((mouseY-pos.y+scroll)/Height)){
         Select();
       }else{
@@ -1257,6 +1260,28 @@ class MenuButton extends TextButton{
   }
 }
 
+class MenuButton_B extends MenuButton{
+  
+  MenuButton_B(){
+    setBackground(new Color(35,35,35));
+    setForeground(new Color(255,255,255));
+    setSelectBackground(new Color(55,55,55));
+    setSelectForeground(new Color(215,215,215));
+    sideLineColor=new Color(255,105,0);
+    setBorderColor(new Color(0,0,0,0));
+  }
+  
+  MenuButton_B(String s){
+    super(s);
+    setBackground(new Color(35,35,35));
+    setForeground(new Color(255,255,255));
+    setSelectBackground(new Color(55,55,55));
+    setSelectForeground(new Color(215,215,215));
+    sideLineColor=new Color(255,105,0);
+    setBorderColor(new Color(0,0,0,0));
+  }
+}
+
 class MenuTextBox extends TextBox{
   
   MenuTextBox(){
@@ -1342,6 +1367,7 @@ class MenuCheckBox extends CheckBox{
 }
 
 class ComponentSet{
+  Layout layout;
   ArrayList<GameComponent>components=new ArrayList<GameComponent>();
   boolean keyMove=true;
   boolean Focus=true;
@@ -1359,7 +1385,13 @@ class ComponentSet{
   ComponentSet(){
   }
   
+  ComponentSet setLayout(Layout l){
+    layout=l;
+    return this;
+  }
+  
   void add(GameComponent val){
+    if(layout!=null)layout.alignment(val);
     components.add(val);
     if(components.size()==1){
       if(Focus){
@@ -1371,16 +1403,19 @@ class ComponentSet{
   }
   
   void addAll(GameComponent... val){
+    if(layout!=null)layout.alignment(val);
     for(GameComponent c:val){
       add(c);
     }
   }
   
   void remove(GameComponent val){
+    if(layout!=null)layout.remove(val);
     components.remove(val);
   }
   
   void removeAll(){
+    if(layout!=null)layout.reset();
     components.clear();
   }
   
@@ -1431,6 +1466,7 @@ class ComponentSet{
       if(pSelectedIndex!=-1)components.get(pSelectedIndex).Fe.lostFocus();
       if(selectedIndex!=-1)components.get(selectedIndex).Fe.getFocus();
     }
+    if(windowResized&&layout!=null)layout.resized();
     pSelectedIndex=selectedIndex;
   }
   
@@ -1511,47 +1547,95 @@ class ComponentSet{
 }
 
 class Layout{
+  WindowResizeEvent e=()->{};
+  ArrayList<GameComponent>list;
   PVector pos;
   PVector dist;
   PVector nextPos;
-  int size=0;
+  float Space;
+  
+  {
+    list=new ArrayList<GameComponent>();
+  }
   
   Layout(){
     pos=new PVector(0,0);
     dist=new PVector(0,0);
     nextPos=new PVector(0,0);
+    Space=0;
   }
   
-  Layout(float x,float y,float dx,float dy){
+  Layout(float x,float y,float dx,float dy,float space){
     pos=new PVector(x,y);
     dist=new PVector(dx,dy);
     nextPos=new PVector(x,y);
+    Space=space;
   }
   
-  void setPos(PVector p){
-    pos=p;
+  void setBounds(float x,float y,float dx,float dy,float space){
+    pos=new PVector(x,y);
+    dist=new PVector(dx,dy);
+    nextPos=new PVector(x,y);
+    Space=space;
+  }
+  
+  void reset(){
+    list.clear();
     nextPos=pos.copy();
   }
   
-  void setXdist(float x){
-    dist.x=x;
+  void remove(GameComponent c){
+    list.remove(c);
+    resized();
   }
   
-  void setYdist(float y){
-    dist.y=y;
+  void setWindowResizedListener(WindowResizeEvent e){
+    this.e=e;
   }
   
   void alignment(GameComponent c){
-    c.setBounds(nextPos.x,nextPos.y,c.dist.x,c.dist.y);
-    ++size;
-    nextPos=pos.copy().add(dist.mult(size));
   }
   
   void alignment(GameComponent[] c){
+  }
+  
+  void resized(){
+  }
+}
+
+class Y_AxisLayout extends Layout{
+  
+  Y_AxisLayout(){
+    super();
+  }
+  
+  Y_AxisLayout(float x,float y,float dx,float dy,float space){
+    super(x,y,dx,dy,space);
+  }
+  
+  @Override
+  void alignment(GameComponent c){
+    c.setBounds(nextPos.x,nextPos.y,dist.x,dist.y);
+    nextPos.add(0,dist.y+Space);
+    list.add(c);
+  }
+  
+  @Override
+  void alignment(GameComponent[] c){
     for(int i=0;i<c.length;i++){
-      c[i].setBounds(nextPos.x,nextPos.y,c[i].dist.x,c[i].dist.y);
-      ++size;
-      nextPos=pos.copy().add(dist.mult(size));
+      c[i].setBounds(nextPos.x,nextPos.y,dist.x,dist.y);
+      nextPos.add(0,dist.y+Space);
+      list.add(c[i]);
+    }
+  }
+  
+  @Override
+  void resized(){
+    e.Event();
+    nextPos=pos.copy();
+    for(int i=0;i<list.size();i++){
+      list.get(i).setBounds(nextPos.x,nextPos.y,dist.x,dist.y);
+      nextPos=nextPos.add(0,dist.y+Space);
     }
   }
 }
@@ -1895,6 +1979,13 @@ class ComponentSetLayer{
 
 ComponentSet toSet(GameComponent... c){
   ComponentSet r=new ComponentSet();
+  r.addAll(c);
+  return r;
+}
+
+ComponentSet toSet(Layout l,GameComponent... c){
+  ComponentSet r=new ComponentSet();
+  r.setLayout(l);
   r.addAll(c);
   return r;
 }

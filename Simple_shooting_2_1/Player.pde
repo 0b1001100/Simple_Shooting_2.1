@@ -96,7 +96,7 @@ class Myself extends Entity{
       }
       if(HP.get().intValue()<=0){
         isDead=true;
-        main.EventSet.add("player_dead");
+        main.EventSet.put("player_dead","");
         return;
       }
       keyEvent();
@@ -265,10 +265,7 @@ class Myself extends Entity{
       e.Collision(this);
     }else if(e instanceof Bullet){
       if(!((Bullet)e).isMine){
-        if(CircleCollision(pos,size,e.pos,e.vel)){
-          e.isDead=true;
-          Hit(((Bullet)e).power);
-        }
+        e.Collision(this);
       }
     }
   }
@@ -284,24 +281,63 @@ class Myself extends Entity{
 
 class Satellite extends Entity{
   SatelliteWeapon satellite;
+  PVector target;
+  float rad=0;
+  float cooltime=0;
+  float maxCooltime=15;
+  float attackTime=0;
+  boolean attack=false;
   
   Satellite(SatelliteWeapon w){
     satellite=w;
+    rad=random(0,TWO_PI);
+    pos=player.pos.copy().add(new PVector(140,0).rotate(rad));
+    init();
   }
   
   void init(){
-    
+    setColor(new Color(0,255,150));
+    setSize(15);
   }
   
-  void display(){
-    
+  @Override
+  void display(PGraphics g){
+    g.noFill();
+    g.stroke(toColor(c));
+    g.strokeWeight(1);
+    g.triangle(pos.x+cos(rotate)*size,pos.y+sin(rotate)*size,pos.x+cos(rotate+TWO_PI/3)*size,pos.y+sin(rotate+TWO_PI/3)*size,pos.x+cos(rotate-TWO_PI/3)*size,pos.y+sin(rotate-TWO_PI/3)*size);
   }
   
+  @Override
   void update(){
-    
+    cooltime+=vectorMagnification;
+    if(attack){
+      attackTime+=vectorMagnification;
+      if(cooltime>maxCooltime){
+        shot();
+        cooltime=0;
+        if(attackTime>=satellite.duration){
+          attack=false;
+          attackTime=0;
+        }
+      }
+    }else{
+      if(cooltime>satellite.coolTime){
+        attack=true;
+        cooltime=0;
+      }
+    }
+    rotate+=radians(vectorMagnification)*2;
+    rotate%=TWO_PI;
+    rad=atan2(player.pos,pos);
+    vel=new PVector(2,0).rotate(-rad);
+    vel.add(new PVector(0.01*(dist(pos,player.pos)-140),0).rotate(-rad-HALF_PI));
+    vel.normalize().mult(max(1.7,dist(pos,player.pos)/70));
+    pos.add(vel);
   }
   
   void shot(){
-    
+    target=player.pos.copy().add(player.pos.copy().sub(pos));
+    NextEntities.add(new SatelliteBullet(satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
   }
 }

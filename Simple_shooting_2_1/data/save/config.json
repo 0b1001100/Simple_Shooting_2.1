@@ -9,6 +9,9 @@
     "Laser",
     "Lightning",
     "Reflector",
+    "Absorption",
+    "Fire",
+    "Satellite",
     "projectile",
     "scale",
     "power",
@@ -16,7 +19,12 @@
     "duration",
     "cooltime"
   ],
+  "vsync": true,
   "FPS": true,
-  "Stage": ["Tutorial"],
+  "Stage": [
+    "Tutorial",
+    "Stage1",
+    "Stage2"
+  ],
   "GPGPU": false
 }
