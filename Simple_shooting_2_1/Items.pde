@@ -1,5 +1,6 @@
 ItemTable masterTable=new ItemTable();
 ItemTable playerTable=new ItemTable();
+HashMap<String,JSONArray>nextDataMap=new HashMap<String,JSONArray>();
 JSONObject UpgradeArray;
 int sumLevel=0;
 
@@ -7,7 +8,9 @@ class Item{
   protected SubWeapon w;
   protected JSONObject initData;
   protected JSONArray upgradeData;
+  protected JSONArray nextData;
   protected PImage image;
+  protected String nextName="";
   protected String name="";
   protected String type;
   protected float data;
@@ -21,16 +24,42 @@ class Item{
     switch(type){
       case "weapon":try{
                       w=(SubWeapon)WeaponConstructor.get(name).newInstance(CopyApplet,o);
-                    }catch(InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}break;
-      case "item":data=o.getFloat("value");w=null;break;
+                    }catch(InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
+                    nextName=o.getJSONObject("nextWeapon").getString("name");
+                    if(!nextName.equals("undefined")){
+                      nextData=o.getJSONObject("nextWeapon").getJSONArray("need");
+                      nextDataMap.put(nextName,nextData);
+                    }break;
+      case "item":try{
+                    w=(SubWeapon)WeaponConstructor.get(name).newInstance(CopyApplet,o);
+                  }catch(InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
+                  nextName="undefined";break;
+      case "next_weapon":try{
+                           w=(SubWeapon)WeaponConstructor.get(name).newInstance(CopyApplet,o);
+                         }catch(InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
+                         nextName=o.getJSONObject("nextWeapon").getString("name");
+                         if(!nextName.equals("undefined")){
+                           nextData=o.getJSONObject("nextWeapon").getJSONArray("need");
+                           nextDataMap.put(nextName,nextData);
+                         }break;
     }
     upgradeData=UpgradeArray.getJSONArray(name);
     this.type=type;
   }
   
-  void update() throws NullPointerException{
-    if(level>1){
-      if(type.equals("weapon")){
+   public void update() throws NullPointerException{
+    if(type.equals("next_weapon")&&!player.subWeapons.contains(this)){
+      if(main.EventSet.containsKey("getNextWeapon")){
+        main.EventSet.replace("getNextWeapon",main.EventSet.get("getNextWeapon")+"_"+name);
+      }else{
+        main.EventSet.put("getNextWeapon",name);
+      }
+      if(upgradeData==null){
+        weight=0;
+      }
+    }
+    if(upgradeData!=null&&level>1&&level-1<=upgradeData.size()){
+      if(!type.equals("next_weapon")){//println(name,upgradeData);
         w.upgrade(upgradeData,level);
         JSONObject add=upgradeData.getJSONObject(level-2);
         HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
@@ -38,8 +67,12 @@ class Item{
           weight=upgradeData.getJSONObject(level-2).getInt("weight");
           playerTable.addTable(this,weight);
         }
-      }else if(type.equals("item")){
-        if(Arrays.asList(upgradeData.getJSONObject(level-2).getJSONArray("name").getStringArray()).contains("weight")){
+      }else if(type.equals("next_weapon")){
+        ++level;
+        w.upgrade(upgradeData,level);
+        JSONObject add=upgradeData.getJSONObject(level-2);
+        HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
+        if(param.contains("weight")){
           weight=upgradeData.getJSONObject(level-2).getInt("weight");
           playerTable.addTable(this,weight);
         }
@@ -47,37 +80,57 @@ class Item{
     }
   }
   
-  void reset(){
+   public void checkNext(){
+    if(nextName.equals("undefined")||playerTable.contains(nextName)||player.subWeapons.contains(masterTable.get(nextName).getWeapon()))return;
+    if(upgradeData!=null&&level-1==upgradeData.size()){
+      for(int i=0;i<nextData.size();i++){
+        JSONObject o=nextData.getJSONObject(i);
+        Item it=playerTable.get(o.getString("name"));
+        switch(it.type){
+          case "weapon":if(!player.subWeapons.contains(it.w)||!(it.level-1==it.upgradeData.size()))return;break;
+          case "item":if(!player.subWeapons.contains(it.w))return;break;
+          case "next_weapon":if(!player.subWeapons.contains(it.w))return;break;
+        }
+      }
+      if(main.EventSet.containsKey("addNextWeapon")){
+        main.EventSet.replace("addNemtWeapon",main.EventSet.get("addNextWeapon")+"_"+nextName);
+      }else{
+        main.EventSet.put("addNextWeapon",nextName);
+      }
+    }
+  }
+  
+   public void reset(){
     level=1;
     weight=initData.getInt("weight");
     if(type.equals("weapon"))w.init(initData);
   }
   
-  JSONArray getUpgradeArray(){
+   public JSONArray getUpgradeArray(){
     return upgradeData;
   }
   
-  SubWeapon getWeapon(){
+   public SubWeapon getWeapon(){
     return w;
   }
   
-  String getName(){
+   public String getName(){
     return name;
   }
   
-  String getType(){
+   public String getType(){
     return type;
   }
   
-  int getWeight(){
+   public int getWeight(){
     return weight;
   }
   
-  float getData(){
+   public float getData(){
     return data;
   }
   
-  float getData(int i){
+   public float getData(int i){
     return upgradeData.getJSONObject(i-2).getFloat("value");
   }
 }
@@ -99,13 +152,13 @@ class ItemTable implements Cloneable{
     prob=new HashMap<String,Float>();
   }
   
-  void addItem(Item i){
+   public void addItem(Item i){
     if(!table.containsKey(i.getName())){
       table.put(i.getName(),i);
     }
   }
   
-  void addItem(ItemTable t){
+   public void addItem(ItemTable t){
     for(Item i:t.table.values()){
       if(!table.containsKey(i.getName())){
         table.put(i.getName(),i);
@@ -113,7 +166,7 @@ class ItemTable implements Cloneable{
     }
   }
   
-  void addTable(Item i,float prob){
+   public void addTable(Item i,float prob){
     if(!table.containsKey(i.getName())){
       table.put(i.getName(),i);
       this.prob.put(i.getName(),prob);
@@ -129,7 +182,7 @@ class ItemTable implements Cloneable{
     }
   }
   
-  void removeTable(String name){
+   public void removeTable(String name){
     if(table.containsKey(name)){
       table.remove(name);
       this.prob.remove(name);
@@ -145,11 +198,11 @@ class ItemTable implements Cloneable{
     }
   }
   
-  Item get(String s){
+   public Item get(String s){
     return table.get(s);
   }
   
-  Item getRandom(){
+   public Item getRandom(){
     float rand=random(0,100);
     float sum=0;
     for(String s:prob.keySet()){
@@ -159,36 +212,69 @@ class ItemTable implements Cloneable{
     return null;
   }
   
-  Item getRandomWeapon(){
-    while(true){
-      Item i=getRandom();
-      if(i.type.equals("weapon"))return i;
+  protected Item getRandom(HashMap<String,Float>prob){
+    float rand=random(0,100);
+    float sum=0;
+    for(String s:prob.keySet()){
+      if(sum<=rand&rand<sum+prob.get(s))return table.get(s);
+      sum+=prob.get(s);
     }
+    return null;
   }
   
-  Item getRandomItem(){
-    while(true){
-      Item i=getRandom();
-      if(i.type.equals("item"))return i;
+   public Item getRandomWeapon(){
+    HashMap<String,Float>p=new HashMap<String,Float>();
+    for(String s:table.keySet()){
+      if(table.get(s).type.equals("item"))continue;
+      p.put(s,prob.get(s));
     }
+    float sum=0;
+    for(float f:p.values()){
+      sum+=f;
+    }
+    for(String s:p.keySet()){
+      p.replace(s,sum==0?0:(p.get(s)/sum*100));
+    }
+    return getRandom(p);
   }
   
-  java.util.Collection<Item> getAll(){
+   public Item getRandomItem(){
+    HashMap<String,Float>p=new HashMap<String,Float>();
+    for(String s:table.keySet()){
+      if(!table.get(s).type.equals("item"))continue;
+      p.put(s,prob.get(s));
+    }
+    float sum=0;
+    for(float f:p.values()){
+      sum+=f;
+    }
+    for(String s:p.keySet()){
+      p.replace(s,sum==0?0:(p.get(s)/sum*100));
+    }
+    return getRandom(p);
+  }
+  
+   public java.util.Collection<Item> getAll(){
     return table.values();
   }
   
-  ItemTable clone(){
+   public ItemTable clone(){
     ItemTable New=new ItemTable();
     New.table.putAll(table);
     New.prob.putAll(prob);
     return New;
   }
   
-  int tableSize(){
+   public void clear(){
+    table.clear();
+    prob.clear();
+  }
+  
+   public int tableSize(){
     return table.size();
   }
   
-  int probSize(){
+   public int probSize(){
     ArrayList<String> l=new ArrayList<String>();
     prob.forEach((k,v)->{
       if(v>0)l.add(k);
@@ -196,7 +282,7 @@ class ItemTable implements Cloneable{
     return l.size();
   }
   
-  boolean contains(String s){
+   public boolean contains(String s){
     return table.containsKey(s);
   }
 }

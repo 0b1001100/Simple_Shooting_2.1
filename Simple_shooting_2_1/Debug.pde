@@ -25,6 +25,9 @@ void Debug(){
     if(commandInput==null){
       commandInput=new CommandField();
       commandInput.setBounds(0,height-30,width,30);
+      commandInput.addWindowResizeEvent(()->{
+        commandInput.setBounds(0,height-30,width,30);
+      });
     }
     commandInput.display();
     commandInput.update();

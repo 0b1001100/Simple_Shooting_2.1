@@ -6,7 +6,7 @@ class ThrowingErrorListener extends BaseErrorListener{
   public static final ThrowingErrorListener INSTANCE = new ThrowingErrorListener();
   private LinkedHashMap<String,Float> WarningMap=new LinkedHashMap<String,Float>();
   
-  public ThrowingErrorListener setWarningMap(LinkedHashMap h){
+  public ThrowingErrorListener setWarningMap(LinkedHashMap<String,Float> h){
     WarningMap=h;
     return this;
   }

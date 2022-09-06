@@ -5,8 +5,11 @@
     "param":{
       "disp":false,
       "freq":0.015,
-      "name":[
-        "Turret"
+      "data":[
+        {
+          "name":"Turret",
+          "freq":1
+        }
       ]
     }
   },
@@ -26,8 +29,11 @@
     "param":{
       "disp":false,
       "freq":0.022,
-      "name":[
-        "Turret"
+      "data":[
+        {
+          "name":"Turret",
+          "freq":1
+        }
       ]
     }
   },
@@ -37,9 +43,15 @@
     "param":{
       "disp":false,
       "freq":0.022,
-      "name":[
-        "Turret",
-        "Plus"
+      "data":[
+        {
+          "name":"Turret",
+          "freq":0.6
+        },
+        {
+          "name":"Plus",
+          "freq":0.4
+        }
       ]
     }
   },
@@ -59,8 +71,11 @@
     "param":{
       "disp":false,
       "freq":0.025,
-      "name":[
-        "Plus"
+      "data":[
+        {
+          "name":"Plus",
+          "freq":1
+        }
       ]
     }
   },
@@ -80,9 +95,15 @@
     "param":{
       "disp":false,
       "freq":0.03,
-      "name":[
-        "Plus",
-        "White"
+      "data":[
+        {
+          "name":"Plus",
+          "freq":0.6
+        },
+        {
+          "name":"White",
+          "freq":0.4
+        }
       ]
     }
   },
@@ -102,9 +123,15 @@
     "param":{
       "disp":false,
       "freq":0.03,
-      "name":[
-        "White",
-        "Large_R"
+      "data":[
+        {
+          "name":"White",
+          "freq":0.6
+        },
+        {
+          "name":"Large_R",
+          "freq":0.4
+        }
       ]
     }
   },
@@ -134,9 +161,15 @@
     "param":{
       "disp":false,
       "freq":0.03,
-      "name":[
-        "Plus",
-        "Large_R"
+      "data":[
+        {
+          "name":"Plus",
+          "freq":0.35
+        },
+        {
+          "name":"Large_R",
+          "freq":0.65
+        }
       ]
     }
   },
@@ -156,9 +189,15 @@
     "param":{
       "disp":false,
       "freq":0.025,
-      "name":[
-        "White",
-        "Large_C"
+      "data":[
+        {
+          "name":"White",
+          "freq":0.6
+        },
+        {
+          "name":"Large_C",
+          "freq":0.4
+        }
       ]
     }
   },
@@ -178,9 +217,15 @@
     "param":{
       "disp":false,
       "freq":0.035,
-      "name":[
-        "Large_R",
-        "ExplosionEnemy"
+      "data":[
+        {
+          "name":"Large_R",
+          "freq":0.4
+        },
+        {
+          "name":"ExplosionEnemy",
+          "freq":0.6
+        }
       ]
     }
   },
@@ -200,9 +245,15 @@
     "param":{
       "disp":false,
       "freq":0.04,
-      "name":[
-        "Micro_M",
-        "ExplosionEnemy"
+      "data":[
+        {
+          "name":"Micro_M",
+          "freq":0.6
+        },
+        {
+          "name":"ExplosionEnemy",
+          "freq":0.4
+        }
       ]
     }
   },
@@ -222,9 +273,15 @@
     "param":{
       "disp":false,
       "freq":0.04,
-      "name":[
-        "Micro_M",
-        "Slow_G"
+      "data":[
+        {
+          "name":"Micro_M",
+          "freq":0.6
+        },
+        {
+          "name":"Slow_G",
+          "freq":0.4
+        }
       ]
     }
   },
@@ -243,9 +300,12 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.03,
-      "name":[
-        "Micro_M"
+      "freq":0.045,
+      "data":[
+        {
+          "name":"Micro_M",
+          "freq":1
+        }
       ]
     }
   }
