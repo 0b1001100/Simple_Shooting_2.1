@@ -41,6 +41,7 @@ class GameProcess{
      stageLayer=new ComponentSetLayer();
      stageLayer.addLayer("root",UpgradeSet);
      stageLayer.addSubChild("root","HUD",HUDSet);
+     initStatus();
      Entities=new ArrayList<Entity>();
      nearEnemy.clear();
      player=new Myself();
