@@ -170,8 +170,8 @@ void setup(){
       pscreen.sub(w.getWidth(), w.getHeight()).div(2);
       scroll.sub(pscreen);
       pscreen=new PVector(w.getWidth(), w.getHeight());
-      width=w.getWidth();
-      height=w.getHeight();
+      g.width=width=w.getWidth();
+      g.height=height=w.getHeight();
       windowResized=true;
     }
   });
@@ -671,9 +671,10 @@ void applyStaus(){
  public void applyShader(PShader s){
   pushMatrix();
   resetMatrix();
+  noStroke();
   shader(s);
-  g.loadPixels();
   image(g,0,0);
+  blendMode(BLEND);
   resetShader();
   popMatrix();
 }
