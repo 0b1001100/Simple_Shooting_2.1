@@ -330,12 +330,27 @@ class GameProcess{
       Entities.forEach(e->{e.display(g);});
     }
     if(!player.isDead)player.display(g);
-    for(GravityBullet G:LensData){
+    if(LensData.size()>0){
+      loadPixels();
+      float[] centers=new float[20];
+      float[] rads=new float[10];
+      for(int i=0;i<10;i++){
+        if(i<LensData.size()){
+          centers[2*i]=LensData.get(i).screen.x;
+          centers[2*i+1]=LensData.get(i).screen.y;
+          rads[i]=LensData.get(i).scale*0.1f;
+        }else{
+          centers[2*i]=0;
+          centers[2*i+1]=0;
+          rads[i]=1;
+        }
+      }
+      GravityLens.set("center",centers,2);
+      GravityLens.set("g",rads);
+      GravityLens.set("len",LensData.size());
       GravityLens.set("texture",g);
-      GravityLens.set("center",G.screen.x,G.screen.y);
-      GravityLens.set("resolution",width,height);
-      GravityLens.set("g",G.scale*0.1f);
-      filter(GravityLens);
+      GravityLens.set("resolution",width,height);long l=System.nanoTime();
+      applyShader(GravityLens);println(System.nanoTime()-l);
     }
     LensData.clear();
     displayHUD();
