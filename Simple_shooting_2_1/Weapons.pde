@@ -229,10 +229,48 @@ class EnemyWeapon extends Weapon{
     setBulletNumber(1);
   }
   
-  @Override public 
-  void shot(){
+  @Override
+  public void shot(){
     for(int i=0;i<this.bulletNumber;i++){
       NextEntities.add(new ThroughBullet(parentEnemy,this));
+    }
+  }
+}
+
+class EnemyPoisonWeapon extends EnemyWeapon{
+  
+  EnemyPoisonWeapon(Enemy e){
+    super(e);
+    setPower(0.1);
+    setDuration(180);
+    setDiffuse(radians(1));
+    setCoolTime(250);
+    setBulletNumber(1);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+      NextEntities.add(new EnemyPoisonBullet(parentEnemy,this));
+    }
+  }
+}
+
+class AntiSkillWeapon extends EnemyWeapon{
+  
+  AntiSkillWeapon(Enemy e){
+    super(e);
+    setPower(0.1);
+    setDuration(160);
+    setDiffuse(radians(5));
+    setCoolTime(350);
+    setBulletNumber(1);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+      NextEntities.add(new AntiSkillBullet(parentEnemy,this));
     }
   }
 }

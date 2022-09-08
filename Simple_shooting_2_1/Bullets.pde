@@ -820,6 +820,82 @@ class ThroughBullet extends Bullet{
   }
 }
 
+class EnemyPoisonBullet extends ThroughBullet{
+  
+  EnemyPoisonBullet(Enemy e,Weapon w){
+    super(e,w);
+    setColor(new Color(5,200,70));
+  }
+  
+  @Override public 
+  void Collision(Entity e){
+    if(e instanceof Enemy){
+      if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
+        nextHitEnemy.add(e);
+        if(HitEnemy.contains(e))return;
+        if(e instanceof Explosion)isDead=true;
+        ((Enemy)e).Hit(parent);
+        ((Enemy)e).addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
+        if(e instanceof Turret_S)((Turret_S)e).target=parent.parent;
+      }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      isDead=true;
+      NextEntities.add(new Particle(this,5));
+    }else if(e instanceof MirrorBullet){
+      e.Collision(this);
+    }else if(e instanceof Myself){
+      if(!isMine&&CircleCollision(e.pos,e.size,pos,vel)){
+        main.CommandQue.put("Poison",new Command(0,90,0,(s)->{
+          if(s.equals("exec"))player.speedMag=0.5;
+          if(s.equals("shutdown"))player.speedMag=1;
+        }));
+        ((Myself)e).Hit(parent.power);
+        isDead=true;
+      }
+    }
+  }
+}
+
+class AntiSkillBullet extends ThroughBullet{
+  
+  AntiSkillBullet(Enemy e,Weapon w){
+    super(e,w);
+    setColor(new Color(235,200,200));
+  }
+  
+  @Override public 
+  void Collision(Entity e){
+    if(e instanceof Enemy){
+      if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
+        nextHitEnemy.add(e);
+        if(HitEnemy.contains(e))return;
+        if(e instanceof Explosion)isDead=true;
+        ((Enemy)e).Hit(parent);
+        ((Enemy)e).addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
+        if(e instanceof Turret_S)((Turret_S)e).target=parent.parent;
+      }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      isDead=true;
+      NextEntities.add(new Particle(this,5));
+    }else if(e instanceof MirrorBullet){
+      e.Collision(this);
+    }else if(e instanceof Myself){
+      if(!isMine&&CircleCollision(e.pos,e.size,pos,vel)){
+        main.CommandQue.put("Poison",new Command(0,90,0,(s)->{
+          if(s.equals("exec"))player.useSub=false;
+          if(s.equals("shutdown"))player.useSub=true;
+        }));
+        ((Myself)e).Hit(parent.power);
+        isDead=true;
+      }
+    }
+  }
+}
+
 class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   ArrayList<Enemy>Source;
   

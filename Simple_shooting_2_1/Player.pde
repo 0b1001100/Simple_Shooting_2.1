@@ -10,6 +10,7 @@ class Myself extends Entity{
   Status HP;
   Status Attak;
   Status Defence;
+  boolean useSub=true;
   boolean autoShot=true;
   boolean levelup=false;
   boolean shield=false;
@@ -29,6 +30,7 @@ class Myself extends Entity{
   float coolingTime=0;
   float invincibleTime=0;
   float magnetDist=40;
+  float speedMag=1;
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
@@ -94,7 +96,7 @@ class Myself extends Entity{
         Rotate();
         move();
       }
-      if(HP.get().intValue()<=0){
+      if(HP.get().floatValue()<=0){
         isDead=true;
         main.EventSet.put("player_dead","");
         return;
@@ -107,7 +109,7 @@ class Myself extends Entity{
       }
       effects=nextEffects;
     }
-    subWeapons.forEach(w->{w.update();});
+    if(useSub)subWeapons.forEach(w->{w.update();});
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
     invincibleTime=max(0,invincibleTime-0.016*vectorMagnification);
@@ -210,7 +212,7 @@ class Myself extends Entity{
   private void addVel(float accel,boolean force){
     if(!force){
       Speed+=accel*vectorMagnification;
-      Speed=min(maxSpeed,Speed);
+      Speed=min(maxSpeed*speedMag,Speed);
     }else{
       Speed+=accel*vectorMagnification;
     }
@@ -252,7 +254,7 @@ class Myself extends Entity{
   
   void resetSpeed(){
     Speed=dist(0,0,vel.x,vel.y)*sign(Speed);
-    Speed=min(abs(Speed),maxSpeed)/vectorMagnification*sign(Speed);
+    Speed=min(abs(Speed),maxSpeed*speedMag)/vectorMagnification*sign(Speed);
   }
   
   @Override

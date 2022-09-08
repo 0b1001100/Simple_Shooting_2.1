@@ -1463,8 +1463,8 @@ class ComponentSet{
     }
     keyEvent();
     if(pSelectedIndex!=selectedIndex){
-      if(pSelectedIndex!=-1)components.get(pSelectedIndex).Fe.lostFocus();
-      if(selectedIndex!=-1)components.get(selectedIndex).Fe.getFocus();
+      if(pSelectedIndex!=-1&&!(pSelectedIndex>=components.size()))components.get(pSelectedIndex).Fe.lostFocus();
+      if(selectedIndex!=-1&&!(selectedIndex>=components.size()))components.get(selectedIndex).Fe.getFocus();
     }
     if(windowResized&&layout!=null)layout.resized();
     pSelectedIndex=selectedIndex;

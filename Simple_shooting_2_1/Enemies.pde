@@ -140,7 +140,7 @@ class Enemy extends Entity implements Cloneable{
     if(!isDead&&HP<=0){
       Down();
       return;
-    }else{
+    }else if(damage>0){
       NextEntities.add(new Particle(this,(int)(size*0.5),1));
     }
   }
@@ -152,7 +152,7 @@ class Enemy extends Entity implements Cloneable{
     if(!isDead&&HP<=0){
       Down();
       return;
-    }else{
+    }else if(damage>0){
       NextEntities.add(new Particle(this,(int)(size*0.5),1));
     }
   }
@@ -461,6 +461,7 @@ class M_Boss_Y extends Enemy implements BossEnemy{
 }
 
 class Turret_S extends Enemy{
+  Bullet b;
   Entity target;
   float cooltime=0;
   
@@ -811,6 +812,261 @@ class Formation extends M_Boss_Y implements BossEnemy{
       pos=p;
       return this;
     }
+  }
+}
+
+class Poison extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(6);
+    maxSpeed=0.8;
+    rotateSpeed=3;
+    setExpMag(0.85);
+    setSize(28);
+    setColor(new Color(120,200,30));
+    addMultiplyer(AntiSkillWeapon.class,30);
+    addMultiplyer(EnemyPoisonWeapon.class,30);
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new EnemyPoisonWeapon(this));
+    return this;
+  }
+}
+
+class AntiPlasmaField extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(8);
+    setExpMag(0.85);
+    setSize(28);
+    maxSpeed=1;
+    rotateSpeed=3;
+    setColor(new Color(255,250,70));
+    addMultiplyer(PlasmaFieldWeapon.class,0);
+  }
+  
+  void Process(){
+  }
+}
+
+class Boost extends Enemy{
+  float time=0;
+  float edge;
+  boolean boost=false;
+  
+  @Override
+  protected void init(){
+    edge=random(210,270);
+    setHP(10);
+    setExpMag(0.8);
+    setSize(22);
+    maxSpeed=0.5;
+    rotateSpeed=2;
+    setColor(new Color(255,220,220));
+  }
+  
+  void Process(){
+    time+=vectorMagnification;
+    if(!boost&&time>edge){
+      boost=true;
+      time=0;
+    }
+    if(boost){
+      if(time<60){
+        maxSpeed=4;
+      }else{
+        boost=false;
+        maxSpeed=0.5;
+        time=0;
+      }
+    }
+  }
+}
+
+class Teleport extends Enemy{
+  float time=0;
+  float edge;
+  
+  @Override
+  protected void init(){
+    edge=random(210,270);
+    setHP(13);
+    setExpMag(1);
+    setSize(24);
+    maxSpeed=0.7;
+    rotateSpeed=2;
+    setColor(new Color(235,110,255));
+    addMultiplyer(G_ShotWeapon.class,1.2);
+  }
+  
+  @Override
+  void display(PGraphics g){
+    if(!inScreen)return;
+    if(Debug){
+      displayAABB(g);
+    }
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(-rotate);
+    g.rectMode(CENTER);
+    g.strokeWeight(1);
+    g.noFill();
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(c.getRed(),c.getGreen(),c.getBlue(),time>edge-60?255*(1-((edge-time)%20)/20):255);
+    }
+    g.rect(0,0,size*0.7071,size*0.7071);
+    g.popMatrix();
+  }
+  
+  void Process(){
+    time+=vectorMagnification;
+    if(time>edge){
+      pos=player.pos.copy().add(new PVector(max(player.size*7.5,sqrt(playerDistsq)+random(-30,30)),0).rotate(random(0,TWO_PI)));
+      setColor(new Color(235,110,255));
+      time=0;
+    }
+  }
+}
+
+class Amplification extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(15);
+    setExpMag(0.6);
+    setSize(38-2*(float)HP);
+    maxSpeed=0.7;
+    rotateSpeed=3;
+    setColor(new Color(235,85,85));
+    addMultiplyer(LaserWeapon.class,1.2);
+  }
+  
+  @Override
+  void Process(){
+    setSize(38-2*(float)HP);
+  }
+}
+
+class AntiBullet extends Enemy{
+  
+  @Override
+  protected void init(){
+    setExpMag(1);
+    setHP(18);
+    setSize(28);
+    maxSpeed=0.7;
+    rotateSpeed=3;
+    setColor(new Color(85,150,235));
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(e instanceof Explosion){
+      e.Collision(this);
+    }else if(e instanceof Enemy){
+      if(qDist(pos,e.pos,(size+e.size)*0.5)){
+        PVector c=pos.copy().sub(e.pos).normalize();
+        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+        pos.sub(d);
+        if(vel.magSq()>maxSpeed*maxSpeed){
+          PVector v=vel.copy().normalize().mult(maxSpeed);
+          addtionalVel=vel.copy().sub(v);
+          vel=v;
+        }
+      }
+    }else if(e instanceof Bullet){
+      if((e instanceof PlasmaFieldBullet)||(e instanceof FireBullet)||
+         (e instanceof GrenadeBullet)||(e instanceof GravityBullet)){
+        e.Collision(this);
+      }else{
+        e.isDead=true;
+      }
+    }else if(e instanceof Myself){
+      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
+        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
+        float d=(player.size+size)*0.5-dist(player.pos,pos);
+        vel=new PVector(-cos(r)*d,-sin(r)*d);
+        addtionalVel=new PVector(0,0);
+        pos.add(vel);
+        player.Hit(1);
+      }
+    }
+  }
+}
+
+class AntiExplosion extends Enemy{
+  
+  @Override
+  protected void init(){
+    setExpMag(0.65);
+    setHP(20);
+    setSize(28);
+    maxSpeed=0.7;
+    rotateSpeed=3;
+    setColor(new Color(80,100,250));
+    addMultiplyer(FireWeapon.class,0.7);
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(!(e instanceof Explosion)&&(e instanceof Enemy)){
+      if(qDist(pos,e.pos,(size+e.size)*0.5)){
+        PVector c=pos.copy().sub(e.pos).normalize();
+        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+        pos.sub(d);
+        if(vel.magSq()>maxSpeed*maxSpeed){
+          PVector v=vel.copy().normalize().mult(maxSpeed);
+          addtionalVel=vel.copy().sub(v);
+          vel=v;
+        }
+      }
+    }else if(e instanceof Bullet){
+      e.Collision(this);
+    }else if(e instanceof Myself){
+      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
+        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
+        float d=(player.size+size)*0.5-dist(player.pos,pos);
+        vel=new PVector(-cos(r)*d,-sin(r)*d);
+        addtionalVel=new PVector(0,0);
+        pos.add(vel);
+        player.Hit(1);
+      }
+    }
+  }
+}
+
+class AntiSkill extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(23);
+    maxSpeed=0.6;
+    rotateSpeed=3;
+    setExpMag(1);
+    setSize(28);
+    setColor(new Color(210,235,200));
+    addMultiplyer(AntiSkillWeapon.class,30);
+    addMultiplyer(EnemyPoisonWeapon.class,30);
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new AntiSkillWeapon(this));
+    return this;
   }
 }
 

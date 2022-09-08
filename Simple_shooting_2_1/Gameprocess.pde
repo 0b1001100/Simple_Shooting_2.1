@@ -1,5 +1,6 @@
 class GameProcess{
   HashMap<String,String>EventSet;
+  HashMap<String,Command>CommandQue=new HashMap<String,Command>();
   ComponentSet HUDSet;
   ComponentSet UpgradeSet;
   WallEntity[] wall=null;
@@ -71,7 +72,11 @@ class GameProcess{
                      player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
                      break;
        case "Stage2":player.subWeapons.add(masterTable.get("Mirror").getWeapon());
-                     player.subWeapons.add(masterTable.get("Reflector").getWeapon());break;
+                     player.subWeapons.add(masterTable.get("Reflector").getWeapon());
+                     break;
+       case "Stage3":player.subWeapons.add(masterTable.get("Turret").getWeapon());
+                     player.subWeapons.add(masterTable.get("Satellite").getWeapon());
+                     break;
      }
   }
   
@@ -289,6 +294,12 @@ class GameProcess{
         }
       });
     }
+    HashMap<String,Command>nextQue=new HashMap<String,Command>();
+    CommandQue.forEach((k,v)->{
+      v.update();
+      if(!v.isDead())nextQue.put(k,v);
+    });
+    CommandQue=nextQue;
   }
   
   public void drawShape(){
@@ -330,12 +341,27 @@ class GameProcess{
       Entities.forEach(e->{e.display(g);});
     }
     if(!player.isDead)player.display(g);
-    for(GravityBullet G:LensData){
+    if(LensData.size()>0){
+      loadPixels();
+      float[] centers=new float[20];
+      float[] rads=new float[10];
+      for(int i=0;i<10;i++){
+        if(i<LensData.size()){
+          centers[2*i]=LensData.get(i).screen.x;
+          centers[2*i+1]=LensData.get(i).screen.y;
+          rads[i]=LensData.get(i).scale*0.1f;
+        }else{
+          centers[2*i]=0;
+          centers[2*i+1]=0;
+          rads[i]=1;
+        }
+      }
+      GravityLens.set("center",centers,2);
+      GravityLens.set("g",rads);
+      GravityLens.set("len",LensData.size());
       GravityLens.set("texture",g);
-      GravityLens.set("center",G.screen.x,G.screen.y);
-      GravityLens.set("resolution",width,height);
-      GravityLens.set("g",G.scale*0.1f);
-      filter(GravityLens);
+      GravityLens.set("resolution",width,height);long l=System.nanoTime();
+      applyShader(GravityLens);println(System.nanoTime()-l);
     }
     LensData.clear();
     displayHUD();
@@ -612,6 +638,63 @@ class GameProcess{
   }
 }
 
+class Command{
+  private Executable e=(s)->{};
+  private String state="wait";
+  private float cooltime=0;
+  private float duration=0;
+  private float offset=0;
+  private float time=0;
+  private int count=0;
+  private int num=1;
+  private boolean exec=false;
+  private boolean isDead=false;
+  
+  Command(float c,float d,float o,Executable e){
+    this.e=e;
+    cooltime=c;
+    duration=d;
+    offset=o;
+  }
+  
+  Command(float c,float d,float o,int i,Executable e){
+    this.e=e;
+    cooltime=c;
+    duration=d;
+    offset=o;
+    num=i;
+  }
+  
+  void update(){
+    if(isDead)return;
+    time+=vectorMagnification;
+    if(!exec&&offset<time){
+      state="exec";
+      exec=true;
+      time=0;
+      time+=vectorMagnification;
+    }
+    if(exec){
+      if(cooltime<time){
+        if(cooltime+duration<time){
+          ++count;
+          if(count>=num){
+            isDead=true;
+            state="shutdown";
+          }else{
+            time=0;
+          }
+        }
+        e.exec(state);
+      }
+    }
+  }
+  
+  boolean isDead(){
+    return isDead;
+  }
+}
+
 class WallEntity extends Entity{
   PVector dist;
   PVector norm;
@@ -677,4 +760,8 @@ class DynamicWall extends WallEntity{
     strength=s;
     return this;
   }
+}
+
+interface Executable{
+  void exec(String s);
 }

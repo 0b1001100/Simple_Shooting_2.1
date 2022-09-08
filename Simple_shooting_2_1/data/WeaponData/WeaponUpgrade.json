@@ -316,35 +316,24 @@
   ],
   "Absorption":[
     {
-      "name":["scale"],
-      "scale":20
-    },
-    {
-      "name":["power"],
+      "name":["scale","power"],
+      "scale":30,
       "power":5
     },
     {
-      "name":["scale","weight"],
-      "scale":20,
+      "name":["scale","power","weight"],
+      "scale":40,
+      "power":5,
       "weight":15
     },
     {
-      "name":["power","scale"],
-      "power":5,
-      "scale":20
-    },
-    {
-      "name":["scale"],
-      "scale":30
-    },
-    {
-      "name":["power","scale"],
-      "power":5,
-      "scale":30
+      "name":["scale","power"],
+      "scale":45,
+      "power":5
     },
     {
       "name":["scale","power","weight"],
-      "scale":20,
+      "scale":45,
       "power":5,
       "weight":0
     }

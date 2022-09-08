@@ -24,7 +24,8 @@
   "Stage": [
     "Tutorial",
     "Stage1",
-    "Stage2"
+    "Stage2",
+    "Stage3"
   ],
   "GPGPU": false
 }
