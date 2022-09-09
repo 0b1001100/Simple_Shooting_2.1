@@ -111,12 +111,14 @@ class Bullet extends Entity{
       NextEntities.add(new Particle(this,5));
     }else if(e instanceof MirrorBullet){
       e.Collision(this);
-    }else if(!(e instanceof SubBullet)&&e instanceof Bullet){
-      if(((Bullet)e).isMine!=isMine){
+    }else if(!(e instanceof SubBullet)&&(e instanceof Bullet)){
+      if(((Bullet)e).isMine!=isMine&&!(e instanceof AntiBulletFieldBullet)){
         e.isDead=true;
         isDead=true;
         NextEntities.add(new Particle(this,4));
         NextEntities.add(new Particle(((Bullet)e),4));
+      }else if(e instanceof AntiBulletFieldBullet){
+        e.Collision(this);
       }
     }else if(e instanceof Myself){
       if(!isMine&&CircleCollision(e.pos,e.size,pos,vel)){
@@ -891,6 +893,84 @@ class AntiSkillBullet extends ThroughBullet{
         }));
         ((Myself)e).Hit(parent.power);
         isDead=true;
+      }
+    }
+  }
+}
+
+class BoundBullet extends ThroughBullet{
+  
+  BoundBullet(Enemy e,Weapon w){
+    super(e,w);
+    setColor(new Color(255,220,100));
+  }
+  
+  @Override public 
+  void Collision(Entity e){
+    if(e instanceof Enemy){
+      if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
+        nextHitEnemy.add(e);
+        if(HitEnemy.contains(e))return;
+        if(e instanceof Explosion)isDead=true;
+        ((Enemy)e).Hit(parent);
+        ((Enemy)e).addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
+        if(e instanceof Turret_S)((Turret_S)e).target=parent.parent;
+      }
+    }else if(e instanceof WallEntity){
+      if(SegmentCrossPoint(pos,vel,e.pos,((WallEntity)e).dist)==null
+       &&SegmentCrossPoint(pos,vel.copy().mult(-1),e.pos,((WallEntity)e).dist)==null)return;
+      isDead=true;
+      NextEntities.add(new Particle(this,5));
+    }else if(e instanceof MirrorBullet){
+      e.Collision(this);
+    }else if(e instanceof Myself){
+      if(!isMine&&CircleCollision(e.pos,e.size,pos,vel)){
+        e.Speed=e.maxSpeed*-3;
+        ((Myself)e).Hit(parent.power);
+        isDead=true;
+      }
+    }
+  }
+}
+
+class AntiBulletFieldBullet extends Bullet{
+  float scale=50;
+  AntiBulletField parentEnemy;
+  
+  AntiBulletFieldBullet(AntiBulletField p){
+    super();
+    parentEnemy=p;
+    bulletColor=new Color(60,115,255);
+    vel=new PVector(0,0);
+    scale=80;
+    isMine=false;
+  }
+  
+  @Override
+  void display(PGraphics g){
+    g.fill(60,115,255,10);
+    g.stroke(60,115,255,50);
+    g.ellipse(pos.x,pos.y,scale,scale);
+  }
+  
+  @Override
+  public void update(){
+    if(!EntitySet.contains(parentEnemy)){
+      isDead=true;
+      return;
+    }
+    Center=pos;
+    AxisSize=new PVector(scale,scale);
+    putAABB();
+  }
+  
+  @Override public 
+  void Collision(Entity e){
+    if(e instanceof Bullet){
+      if(!((e instanceof PlasmaFieldBullet)||(e instanceof FireBullet)||
+         (e instanceof GrenadeBullet)||(e instanceof GravityBullet)||
+         (e instanceof AbsorptionBullet))){
+        if(((Bullet)e).isMine)e.isDead=true;
       }
     }
   }

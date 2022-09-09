@@ -77,6 +77,9 @@ class GameProcess{
        case "Stage3":player.subWeapons.add(masterTable.get("Turret").getWeapon());
                      player.subWeapons.add(masterTable.get("Satellite").getWeapon());
                      break;
+       case "Stage4":player.subWeapons.add(masterTable.get("G_Shot").getWeapon());
+                     player.subWeapons.add(masterTable.get("Grenade").getWeapon());
+                     break;
      }
   }
   
@@ -360,8 +363,8 @@ class GameProcess{
       GravityLens.set("g",rads);
       GravityLens.set("len",LensData.size());
       GravityLens.set("texture",g);
-      GravityLens.set("resolution",width,height);long l=System.nanoTime();
-      applyShader(GravityLens);println(System.nanoTime()-l);
+      GravityLens.set("resolution",width,height);
+      applyShader(GravityLens);
     }
     LensData.clear();
     displayHUD();

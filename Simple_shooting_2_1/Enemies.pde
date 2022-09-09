@@ -767,7 +767,7 @@ class Formation extends M_Boss_Y implements BossEnemy{
     boss=new HUDText("BOSS");
     dead=(e)->{
       StageFlag.add("Survive_10_min");
-      stage.addSchedule("Stage2",new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));
+      stage.addSchedule("Stage2",new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage3"))stageList.addContent("Stage3");scene=3;}));
       boss.Dispose();
     };
     addMultiplyer(G_ShotWeapon.class,1.2);
@@ -990,7 +990,7 @@ class AntiBullet extends Enemy{
          (e instanceof GrenadeBullet)||(e instanceof GravityBullet)){
         e.Collision(this);
       }else{
-        e.isDead=true;
+        if(((Bullet)e).isMine)e.isDead=true;
       }
     }else if(e instanceof Myself){
       if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
@@ -1067,6 +1067,152 @@ class AntiSkill extends Turret_S{
     super.setPos(p);
     setWeapon(new AntiSkillWeapon(this));
     return this;
+  }
+}
+
+class EnemyShield extends M_Boss_Y implements BossEnemy{
+  ArrayList<EnemyShield_Child>child=new ArrayList<EnemyShield_Child>();
+  boolean attack=false;
+  boolean shot=false;
+  float age=0;
+  float rad=0;
+  int attacknum=0;
+  
+  @Override
+  void init(){
+    setHP(1850);
+    maxSpeed=1.85;
+    rotateSpeed=1.2;
+    setSize(62);
+    setMass(37);
+    setColor(new Color(10,180,255));
+    boss=new HUDText("BOSS");
+    dead=(e)->{
+      StageFlag.add("Survive_10_min");
+      stage.addSchedule("Stage3",new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage4"))stageList.addContent("Stage4");scene=3;}));
+      boss.Dispose();
+    };
+    addMultiplyer(SatelliteWeapon.class,1.2);
+  }
+  
+  @Override
+  void Process(){
+    super.Process();
+    age+=vectorMagnification;
+    rad+=radians(vectorMagnification*5);
+    if(age>300&&child.size()<12&&!shot){
+      age=0;
+      EnemyShield_Child bullet=(EnemyShield_Child)new EnemyShield_Child(child.size()).setPos(pos.copy().add(new PVector(80,0).rotate(rad+TWO_PI*(child.size()+1)/12)));
+      NextEntities.add(bullet);
+      this.child.add(bullet);
+    }else if(age>300&&(child.size()==12||shot)){
+      shot=true;
+      ArrayList<EnemyShield_Child>list=new ArrayList<EnemyShield_Child>();
+      for(EnemyShield_Child c:child){
+        if(abs(c.rotate-atan2(player.pos,c.pos))<radians(50)||abs(c.rotate+TWO_PI-atan2(player.pos,c.pos))<radians(50)||abs(c.rotate-TWO_PI-atan2(player.pos,c.pos))<radians(50)){
+          list.add(c);
+        }
+      }
+      if(list.size()>0){
+        EnemyShield_Child b=list.get(round(random(0,list.size()-1)));
+        b.shot();
+        if(child.size()==0)shot=false;
+        age=0;
+      }
+    }
+    ArrayList<EnemyShield_Child>nextChild=new ArrayList<EnemyShield_Child>();
+    for(EnemyShield_Child f:child){
+      nextChild.add(f);
+    }
+    child=nextChild;
+  }
+  
+  private PVector getPos(){
+    return pos;
+  }
+  
+  class EnemyShield_Child extends Enemy{
+    int num;
+    boolean go=false;
+    
+    EnemyShield_Child(int n){
+      super();
+      num=n;
+    }
+  
+    @Override
+    void init(){
+      setHP(15);
+      maxSpeed=5;
+      rotateSpeed=0.8;
+      setSize(25);
+      setMass(20);
+      setColor(new Color(10,180,255));
+      addMultiplyer(SatelliteWeapon.class,1.2);
+    }
+    
+    @Override
+    void Process(){
+      if(!go){
+        HP=min(15f,(float)HP+3);
+        rotate=atan2(pos,getPos());
+        pos=getPos().copy().add(new PVector(80,0).rotate(rad+TWO_PI*(num+1)/12));
+        vel=new PVector(0,10).rotate(rad);
+      }else{
+        if(!inScreen)maxSpeed=2.5;
+      }
+    }
+    
+    void shot(){
+      vel=player.pos.copy().sub(pos).normalize().mult(5);
+      child.remove(this);
+      go=true;
+    }
+  }
+}
+
+class Bound extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(8);
+    setSize(28);
+    setExpMag(1);
+    setColor(new Color(255,100,170));
+    maxSpeed=0.7;
+    rotateSpeed=3;
+    addMultiplyer(TurretWeapon.class,1.2);
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new BoundWeapon(this));
+    return this;
+  }
+}
+
+class AntiBulletField extends Enemy{
+  AntiBulletFieldBullet child=null;
+  
+  @Override
+  protected void init(){
+    setHP(11);
+    setSize(28);
+    setExpMag(1);
+    setColor(new Color(105,60,255));
+    maxSpeed=0.7;
+    rotateSpeed=3;
+    addMultiplyer(TurretWeapon.class,1.2);
+  }
+  
+  @Override
+  void Process(){
+    if(child==null){
+      child=new AntiBulletFieldBullet(this);
+      NextEntities.add(child);
+    }
+    child.pos=pos;
   }
 }
 

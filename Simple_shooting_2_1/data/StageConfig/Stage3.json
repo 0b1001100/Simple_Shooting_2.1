@@ -448,5 +448,33 @@
         }
       ]
     }
+  },
+  {
+    "time":600,
+    "type":"add",
+    "param":{
+      "number":1,
+      "dist":2,
+      "offset":0,
+      "name":"EnemyShield"
+    }
+  },
+  {
+    "time":600,
+    "type":"auto",
+    "param":{
+      "disp":false,
+      "freq":0.03,
+      "data":[
+        {
+          "name":"Micro_M",
+          "freq":0.6
+        },
+        {
+          "name":"Micro_Y",
+          "freq":0.4
+        }
+      ]
+    }
   }
 ]

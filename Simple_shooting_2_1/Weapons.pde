@@ -275,6 +275,25 @@ class AntiSkillWeapon extends EnemyWeapon{
   }
 }
 
+class BoundWeapon extends EnemyWeapon{
+  
+  BoundWeapon(Enemy e){
+    super(e);
+    setPower(0.1);
+    setDuration(180);
+    setDiffuse(radians(5));
+    setCoolTime(240);
+    setBulletNumber(1);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+      NextEntities.add(new BoundBullet(parentEnemy,this));
+    }
+  }
+}
+
 class EnergyBullet extends Weapon{
   
   EnergyBullet(Entity e){
