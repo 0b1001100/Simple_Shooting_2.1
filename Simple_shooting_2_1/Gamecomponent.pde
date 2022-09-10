@@ -1282,6 +1282,75 @@ class MenuButton_B extends MenuButton{
   }
 }
 
+class UpgradeButton extends MenuButton{
+  String expText="";
+  String type="";
+  
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.2);
+    };
+  }
+  
+  UpgradeButton(){
+    init();
+  }
+  
+  UpgradeButton(String s){
+    super(s);
+    init();
+  }
+  
+  void init(){
+    setBackground(new Color(35,35,35,40));
+    setForeground(new Color(255,255,255));
+    setSelectBackground(new Color(35,35,35,40));
+    setSelectForeground(new Color(255,255,255));
+    sideLineColor=new Color(0,0,0,0);
+    setBorderColor(new Color(0,150,255));
+  }
+  
+  void display(){
+    pushStyle();
+    if(font==null)font=createFont("SansSerif.plain",dist.y*0.2);
+    textFont(font);
+    blendMode(BLEND);
+    strokeWeight(1);
+    fill(!focus?toColor(background):toColor(selectbackground));
+    stroke(!focus?color(25,25,25,80):toColor(border));
+    beginShape();
+    vertex(pos.x,pos.y);
+    vertex(pos.x,pos.y+dist.y*0.9);
+    vertex(pos.x+dist.x*0.1,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y);
+    endShape(CLOSE);
+    fill(!focus?toColor(foreground):toColor(selectforeground));
+    noStroke();
+    textAlign(RIGHT,TOP);
+    textSize(dist.y*0.2);
+    text(type,pos.x+dist.x*0.95,pos.y+2);
+    textAlign(LEFT,TOP);
+    text(text,pos.x+dist.x*0.1,pos.y+2);
+    textLeading(dist.y*0.2);
+    text(expText,pos.x+dist.x*0.1,pos.y+dist.y*0.3+2,dist.x*0.9,dist.y*0.65);
+    stroke(255);
+    line(pos.x+dist.x*0.05,pos.y+dist.y*0.25+2,pos.x+dist.x*0.95,pos.y+dist.y*0.25+2);
+    popStyle();
+  }
+  
+  @Override
+  void setExplanation(String s){
+    expText=s;
+  }
+  
+  void setType(String s){
+    String res=s.toUpperCase().substring(0,1);
+    res+=s.substring(1,s.length());
+    type=res;
+  }
+}
+
 class MenuTextBox extends TextBox{
   
   MenuTextBox(){
@@ -1526,18 +1595,22 @@ class ComponentSet{
   }
   
   void addSelect(){
+    if(components.size()==1)return;
     for(GameComponent c:components){
       c.removeFocus();
     }
     selectedIndex=selectedIndex>=components.size()-1?0:selectedIndex+1;
+    if(!components.get(selectedIndex).canFocus)addSelect();
     components.get(selectedIndex).requestFocus();
   }
   
   void subSelect(){
+    if(components.size()==1)return;
     for(GameComponent c:components){
       c.removeFocus();
     }
     selectedIndex=selectedIndex<=0?components.size()-1:selectedIndex-1;
+    if(!components.get(selectedIndex).canFocus)subSelect();
     components.get(selectedIndex).requestFocus();
   }
   

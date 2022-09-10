@@ -375,12 +375,6 @@ class GameProcess{
   public void displayHUD(){
     push();
     resetMatrix();
-    if(upgrade){
-      fill(240);
-      noStroke();
-      rectMode(CENTER);
-      rect(width/2,height/2,400,600);
-    }
     stageLayer.display();
     stageLayer.update();
     rectMode(CORNER);
@@ -457,13 +451,26 @@ class GameProcess{
         copy.removeTable(list[i].getName());
       }
       UpgradeSet.removeAll();
-      MenuButton[]buttons=new MenuButton[num];
+      UpgradeButton[]buttons=new UpgradeButton[num];
       for(int i=0;i<num;i++){
-        buttons[i]=(MenuButton)(list[i].type.equals("next_weapon")?new MenuButton_B(list[i].getName()+"  Level"+(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1))
-                   :new MenuButton(list[i].getName()+"  Level"+(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1))).setBounds(width/2-150,height/2-60+45*i,300,30);
+        buttons[i]=(UpgradeButton)new UpgradeButton(list[i].getName()+"  Level"+(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1)).setBounds(width*0.45,100+(height-100)*0.25*i,width*0.5,(height-100)*0.225);
+        if(player.subWeapons.contains(list[i].w)){
+          if(list[i].type.equals("item")){
+            buttons[i].setExplanation(getLanguageText("ex_"+list[i].getName()));
+          }else{
+            String res="";
+            for(String t:list[i].upgradeData.getJSONObject(list[i].level-1).getJSONArray("name").getStringArray()){
+              if(!t.equals("weight"))res+=getLanguageText("ex_param_"+t)+list[i].upgradeData.getJSONObject(list[i].level-1).getInt(t)+"\n";
+            }
+            buttons[i].setExplanation(res);
+          }
+        }else{
+          buttons[i].setExplanation(getLanguageText("ex_"+list[i].getName()));
+        }
+        buttons[i].setType(list[i].type);
         int[] lambdaI={i};
         buttons[i].addWindowResizeEvent(()->{
-          buttons[lambdaI[0]].setBounds(width/2-150,height/2-60+45*lambdaI[0],300,30);
+          buttons[lambdaI[0]].setBounds(width*0.45,100+(height-100)*0.25*lambdaI[0],width*0.5,(height-100)*0.225);
         });
         Item item=list[i];
         buttons[i].addListener(()->{
@@ -490,7 +497,18 @@ class GameProcess{
           EventSet.put("end_upgrade","");
         });
       }
+      Canvas c=new Canvas(g);
+      c.setContent((g->{
+        rectMode(CORNER);
+        noStroke();
+        fill(0,50);
+        rect(0,0,width,height);
+      }));
+      UpgradeSet.add(c);
       UpgradeSet.addAll(buttons);
+      if(UpgradeSet.selectedIndex<=0)UpgradeSet.addSelect();
+      UpgradeSet.addSelect();
+      UpgradeSet.subSelect();
       player.levelup=false;
     }
   }

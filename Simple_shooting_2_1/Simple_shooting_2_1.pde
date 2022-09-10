@@ -304,6 +304,10 @@ void applyStaus(){
   Language=loadJSONObject(LanguagePath+conf.getString("Language")+".json");
 }
 
+String getLanguageText(String s){
+  return Language.getString(s);
+}
+
  public void Menu() {
   if (changeScene){
     initMenu();
@@ -1066,7 +1070,7 @@ void applyStaus(){
   keyPressTime=0;
   keyPress=true;
   ModifierKey=keyCode;
-  PressedKey.add(str(key));
+  PressedKey.add(str(key).toLowerCase());
   PressedKeyCode.add(str(keyCode));
   nowPressedKey=str(key);
   nowPressedKeyCode=keyCode;
@@ -1078,7 +1082,7 @@ void applyStaus(){
   keyRelease=false;
   ModifierKey=-1;
   PressedKeyCode.remove(str(keyCode));
-  PressedKey.remove(str(key));
+  PressedKey.remove(str(key).toLowerCase());
 }
 
  public void mouseWheel(processing.event.MouseEvent e){

@@ -84,7 +84,7 @@
     "cooltime":230,
     "through":0,
     "nextWeapon":{
-      "name":"Inf_Reflector",
+      "name":"InfinityShield",
       "need":[
         {
           "name":"Mirror",
@@ -98,7 +98,7 @@
     }
   },
   {
-    "name":"Inf_Reflector",
+    "name":"InfinityShield",
     "type":"next_weapon",
     "weight":10,
     "projectile":8,

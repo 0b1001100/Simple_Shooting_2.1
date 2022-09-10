@@ -413,13 +413,13 @@ class MirrorWeapon extends SubWeapon{
   }
 }
 
-class Inf_ReflectorWeapon extends MirrorWeapon{
+class InfinityShieldWeapon extends MirrorWeapon{
   
-  Inf_ReflectorWeapon(){
+  InfinityShieldWeapon(){
     super();
   }
   
-  Inf_ReflectorWeapon(JSONObject o){
+  InfinityShieldWeapon(JSONObject o){
     super(o);
   }
   
@@ -427,7 +427,7 @@ class Inf_ReflectorWeapon extends MirrorWeapon{
   void shot(){
     float offset=random(0,TWO_PI);
     for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new Inf_ReflectorBullet(this,i,bulletNumber,offset));
+        NextEntities.add(new InfinityShieldBullet(this,i,bulletNumber,offset));
     }
   }
 }

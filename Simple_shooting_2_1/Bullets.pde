@@ -434,9 +434,9 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   }
 }
 
-class Inf_ReflectorBullet extends MirrorBullet{
+class InfinityShieldBullet extends MirrorBullet{
   
-  Inf_ReflectorBullet(SubWeapon w,int num,int sum,float offset){
+  InfinityShieldBullet(SubWeapon w,int num,int sum,float offset){
     super(w,num,sum,offset);
     bulletColor=new Color(230,0,100);
   }
