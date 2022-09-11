@@ -46,7 +46,7 @@ void Debug(){
   if(Debug){
     String Text="";
     fill(255);
-    textFont(main.font_15);
+    textFont(font_15);
     textSize(15);
     textAlign(LEFT);
     pushMatrix();

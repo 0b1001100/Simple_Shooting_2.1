@@ -48,7 +48,7 @@ class Item{
   }
   
    public void update() throws NullPointerException{
-    if(type.equals("next_weapon")&&!player.subWeapons.contains(this)){
+    if(type.equals("next_weapon")&&!player.subWeapons.contains(this.w)){
       if(main.EventSet.containsKey("getNextWeapon")){
         main.EventSet.replace("getNextWeapon",main.EventSet.get("getNextWeapon")+"_"+name);
       }else{

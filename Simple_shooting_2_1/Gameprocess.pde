@@ -6,10 +6,6 @@ class GameProcess{
   WallEntity[] wall=null;
   Color menuColor=new Color(230,230,230);
   PVector FieldSize=null;
-  PFont font_20;
-  PFont font_15;
-  PShader menuShader;
-  PShader backgroundShader;
   float UItime=0;
   boolean gameOver=false;
   boolean animation=false;
@@ -30,8 +26,6 @@ class GameProcess{
   
    public void setup(){
     init();
-    font_20=createFont("SansSerif.plain",20);
-    font_15=createFont("SansSerif.plain",15);
   }
   
    public void init(){
@@ -56,7 +50,6 @@ class GameProcess{
      addtionalSpeed=1;
      addtionalDuration=1;
      reductionCoolTime=1;
-     backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
      playerTable.clear();
      Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{
        playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());

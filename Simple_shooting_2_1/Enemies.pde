@@ -1122,7 +1122,7 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
     }
     ArrayList<EnemyShield_Child>nextChild=new ArrayList<EnemyShield_Child>();
     for(EnemyShield_Child f:child){
-      nextChild.add(f);
+      if(EntitySet.contains(f))nextChild.add(f);
     }
     child=nextChild;
   }

@@ -40,12 +40,20 @@ byte drawNumber=4;
 float vectorMagnification=1;
 float pMagnification=1;
 
+PGraphics preg;
+
 PShader FXAAShader;
 PShader colorInv;
 PShader Lighting;
 PShader GravityLens;
 PShader menuShader;
+PShader backgroundShader;
+PShader titleShader;
+PShader testShader;
 java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
+
+float[] titleLight;
+float[] titleLightSpeed;
 
 GameProcess main;
 Stage stage;
@@ -64,7 +72,10 @@ JSONObject Language;
 JSONObject conf;
 
 PImage mouseImage;
+PFont font_70;
 PFont font_30;
+PFont font_20;
+PFont font_15;
 
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
@@ -109,6 +120,8 @@ int scene=0;
 boolean displayFPS=true;
 boolean colorInverse=false;
 boolean FXAA=false;
+
+static final String VERSION="beta 2";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
@@ -182,13 +195,29 @@ void setup(){
     }
   });
   mouseImage=loadImage(ImagePath+"mouse.png");
-  textFont(createFont("SansSerif.plain",15));
+  font_15=createFont("SansSerif.plain",15);
+  font_20=createFont("SansSerif.plain",20);
   font_30=createFont("SansSerif.plain",30);
+  font_70=createFont("SansSerif.plain",70);
+  textFont(font_15);
   FXAAShader=loadShader(ShaderPath+"FXAA.glsl");
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
   Lighting=loadShader(ShaderPath+"Lighting.glsl");
   GravityLens=loadShader(ShaderPath+"GravityLens.glsl");
   menuShader=loadShader(ShaderPath+"Menu.glsl");
+  backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
+  titleShader=loadShader(ShaderPath+"Title.glsl");
+  testShader=loadShader(ShaderPath+"test.glsl");
+  preg=createGraphics(width,height,P2D);
+  titleLight=new float[40];
+  for(int i=0;i<20;i++){
+    titleLight[i*2]=width*0.05*i+random(-5,5);
+    titleLight[i*2+1]=random(0,height);
+  }
+  titleLightSpeed=new float[20];
+  for(int i=0;i<20;i++){
+    titleLightSpeed[i]=random(2.5,3.5);
+  }
   blendMode(ADD);
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
@@ -328,11 +357,63 @@ String getLanguageText(String s){
  public void initMenu(){
   starts=new ComponentSetLayer();
   NormalButton New=new NormalButton(Language.getString("start_game"));
-  New.setBounds(100,100,120,30);
+  New.setBounds(width*0.5-60,height-80,120,30);
   New.addListener(()-> {
     starts.toChild("main");
-  }
-  );
+  });
+  New.addWindowResizeEvent(()->{
+    New.setBounds(width*0.5-60,height-80,120,30);
+  });
+  Canvas TitleCanvas=new Canvas(g);
+  TitleCanvas.setContent((g)->{
+    for(int i=0;i<20;i++){
+      titleLight[i*2+1]-=titleLightSpeed[i];
+      if(titleLight[i*2+1]<0)titleLight[i*2+1]=height;
+    }
+    if(frameCount==1){
+      preg.beginDraw();
+      preg.background(0);
+      preg.endDraw();
+      preg.loadPixels();
+      g.loadPixels();
+      titleShader.set("tex",g);
+      titleShader.set("position",titleLight,2);
+      titleShader.set("resolution",width,height);
+      preg.filter(titleShader);
+      g.filter(titleShader);
+    }else{
+      preg.loadPixels();
+      g.loadPixels();
+      titleShader.set("tex",preg);
+      titleShader.set("position",titleLight,2);
+      titleShader.set("resolution",width,height);
+      preg.filter(titleShader);
+      g.filter(titleShader);
+    }
+    testShader.set("time",System.nanoTime()/10000000000f);
+    testShader.set("mouse",0,0);
+    testShader.set("resolution",width,height);
+    filter(testShader);
+    g.fill(255);
+    g.textFont(font_70);
+    g.textAlign(CENTER);
+    g.textSize(70);
+    g.text("Simple_shooting_2.1",width*0.5,130);
+    g.fill(200);
+    g.textFont(font_15);
+    g.textAlign(LEFT);
+    g.textSize(15);
+    g.text("["+VERSION+"]  Developed by 0x4C",10,height-10);
+  });
+  TitleCanvas.addWindowResizeEvent(()->{
+    for(int i=0;i<20;i++){
+      titleLight[i*2]=width*0.05*i+random(-5,5);
+      titleLight[i*2+1]=random(0,height);
+    }
+    preg=createGraphics(width,height,P2D);
+  });
+  ComponentSet titleSet=toSet(TitleCanvas,New);
+  titleSet.addSelect();
   Y_AxisLayout mainLayout=new Y_AxisLayout(100,0,120,25,15);
   MenuButton Select=new MenuButton(Language.getString("stage_select"));
   Select.addListener(()->{
@@ -473,7 +554,7 @@ String getLanguageText(String s){
     });
   //--
   starts.setSubChildDisplayType(1);
-  starts.addLayer("root",toSet(New));
+  starts.addLayer("root",titleSet);
   starts.addChild("root","main",toSet(mainLayout,Select,Config,operationEx));
   starts.addSubChild("main","stage",toSet(stageList));
   starts.addSubChild("main","confMenu",toSet(confLayout,Colorinv,dispFPS,vsy,Lang,exit),toSet(confBox));
@@ -681,6 +762,17 @@ String getLanguageText(String s){
   blendMode(BLEND);
   resetShader();
   popMatrix();
+}
+
+ public void applyShader(PShader s,PGraphics g){
+  g.pushMatrix();
+  g.resetMatrix();
+  g.noStroke();
+  g.shader(s);
+  g.image(g,0,0);
+  g.blendMode(BLEND);
+  g.resetShader();
+  g.popMatrix();
 }
 
  public PMatrix3D getMatrixLocalToWindow(PGraphics g) {
