@@ -13,9 +13,9 @@ uniform vec2 resolution;
 #define tile   0.850
 #define speed2  0.10
  
-#define brightness 0.003
-#define darkmatter 0.400
-#define distfading 0.560
+#define brightness 0.0003
+#define darkmatter 0.600
+#define distfading 0.60
 #define saturation 0.800
 
 
@@ -165,6 +165,6 @@ void main() {
 	
 	backCol2.b = 0.5*mix(backCol2.g, backCol2.b, 0.8);
 	backCol2.g = 0.0;
-	backCol2.bg = mix(backCol2.gb, backCol2.bg, 0.5*(cos(time*0.01) + 1.0));	
+	backCol2.bg = mix(backCol2.bg*vec2(1,0.5), backCol2.bg, 0.5*(cos(time*0.01) + 1.0));	
 	gl_FragColor = forCol2 + vec4(backCol2, 1.0);
 }

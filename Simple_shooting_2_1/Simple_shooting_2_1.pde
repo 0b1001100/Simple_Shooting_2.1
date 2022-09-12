@@ -52,9 +52,6 @@ PShader titleShader;
 PShader testShader;
 java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
 
-float[] titleLight;
-float[] titleLightSpeed;
-
 GameProcess main;
 Stage stage;
 
@@ -209,15 +206,6 @@ void setup(){
   titleShader=loadShader(ShaderPath+"Title.glsl");
   testShader=loadShader(ShaderPath+"test.glsl");
   preg=createGraphics(width,height,P2D);
-  titleLight=new float[40];
-  for(int i=0;i<20;i++){
-    titleLight[i*2]=width*0.05*i+random(-5,5);
-    titleLight[i*2+1]=random(0,height);
-  }
-  titleLightSpeed=new float[20];
-  for(int i=0;i<20;i++){
-    titleLightSpeed[i]=random(2.5,3.5);
-  }
   blendMode(ADD);
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
@@ -366,30 +354,6 @@ String getLanguageText(String s){
   });
   Canvas TitleCanvas=new Canvas(g);
   TitleCanvas.setContent((g)->{
-    for(int i=0;i<20;i++){
-      titleLight[i*2+1]-=titleLightSpeed[i];
-      if(titleLight[i*2+1]<0)titleLight[i*2+1]=height;
-    }
-    if(frameCount==1){
-      preg.beginDraw();
-      preg.background(0);
-      preg.endDraw();
-      preg.loadPixels();
-      g.loadPixels();
-      titleShader.set("tex",g);
-      titleShader.set("position",titleLight,2);
-      titleShader.set("resolution",width,height);
-      preg.filter(titleShader);
-      g.filter(titleShader);
-    }else{
-      preg.loadPixels();
-      g.loadPixels();
-      titleShader.set("tex",preg);
-      titleShader.set("position",titleLight,2);
-      titleShader.set("resolution",width,height);
-      preg.filter(titleShader);
-      g.filter(titleShader);
-    }
     testShader.set("time",System.nanoTime()/10000000000f);
     testShader.set("mouse",0,0);
     testShader.set("resolution",width,height);
@@ -406,10 +370,6 @@ String getLanguageText(String s){
     g.text("["+VERSION+"]  Developed by 0x4C",10,height-10);
   });
   TitleCanvas.addWindowResizeEvent(()->{
-    for(int i=0;i<20;i++){
-      titleLight[i*2]=width*0.05*i+random(-5,5);
-      titleLight[i*2+1]=random(0,height);
-    }
     preg=createGraphics(width,height,P2D);
   });
   ComponentSet titleSet=toSet(TitleCanvas,New);

@@ -956,7 +956,7 @@ class Amplification extends Enemy{
   }
 }
 
-class AntiBullet extends Enemy{
+class AntiBullet extends Enemy implements ExcludeBullet{
   
   @Override
   protected void init(){
@@ -967,45 +967,9 @@ class AntiBullet extends Enemy{
     rotateSpeed=3;
     setColor(new Color(85,150,235));
   }
-  
-  @Override
-  void Collision(Entity e){
-    if(e instanceof Explosion){
-      e.Collision(this);
-    }else if(e instanceof Enemy){
-      if(qDist(pos,e.pos,(size+e.size)*0.5)){
-        PVector c=pos.copy().sub(e.pos).normalize();
-        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-        pos.sub(d);
-        if(vel.magSq()>maxSpeed*maxSpeed){
-          PVector v=vel.copy().normalize().mult(maxSpeed);
-          addtionalVel=vel.copy().sub(v);
-          vel=v;
-        }
-      }
-    }else if(e instanceof Bullet){
-      if((e instanceof PlasmaFieldBullet)||(e instanceof FireBullet)||
-         (e instanceof GrenadeBullet)||(e instanceof GravityBullet)){
-        e.Collision(this);
-      }else{
-        if(((Bullet)e).isMine)e.isDead=true;
-      }
-    }else if(e instanceof Myself){
-      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
-        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
-        float d=(player.size+size)*0.5-dist(player.pos,pos);
-        vel=new PVector(-cos(r)*d,-sin(r)*d);
-        addtionalVel=new PVector(0,0);
-        pos.add(vel);
-        player.Hit(1);
-      }
-    }
-  }
 }
 
-class AntiExplosion extends Enemy{
+class AntiExplosion extends Enemy implements BlastResistant{
   
   @Override
   protected void init(){
@@ -1016,35 +980,6 @@ class AntiExplosion extends Enemy{
     rotateSpeed=3;
     setColor(new Color(80,100,250));
     addMultiplyer(FireWeapon.class,0.7);
-  }
-  
-  @Override
-  void Collision(Entity e){
-    if(!(e instanceof Explosion)&&(e instanceof Enemy)){
-      if(qDist(pos,e.pos,(size+e.size)*0.5)){
-        PVector c=pos.copy().sub(e.pos).normalize();
-        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-        pos.sub(d);
-        if(vel.magSq()>maxSpeed*maxSpeed){
-          PVector v=vel.copy().normalize().mult(maxSpeed);
-          addtionalVel=vel.copy().sub(v);
-          vel=v;
-        }
-      }
-    }else if(e instanceof Bullet){
-      e.Collision(this);
-    }else if(e instanceof Myself){
-      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
-        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
-        float d=(player.size+size)*0.5-dist(player.pos,pos);
-        vel=new PVector(-cos(r)*d,-sin(r)*d);
-        addtionalVel=new PVector(0,0);
-        pos.add(vel);
-        player.Hit(1);
-      }
-    }
   }
 }
 
@@ -1213,6 +1148,61 @@ class AntiBulletField extends Enemy{
       NextEntities.add(child);
     }
     child.pos=pos;
+  }
+}
+
+class CollisionEnemy extends Enemy implements ExcludeBullet{
+  float time=0;
+  boolean hit=false;
+  
+  @Override
+  protected void init(){
+    setHP(14);
+    setSize(28);
+    setExpMag(1);
+    setColor(new Color(30,255,180));
+    maxSpeed=1.1;
+    rotateSpeed=3;
+  }
+  
+  @Override
+  void Process(){
+    if(hit){
+      time+=vectorMagnification;
+      if(time>180){
+        isDead=true;
+        NextEntities.add(new Explosion(this,size*2,0.5,5));
+      }
+    }
+  }
+  
+  @Override
+  void Collision(Entity e){
+    if(e instanceof Explosion){
+      e.Collision(this);
+    }else if(e instanceof Enemy){
+      if(qDist(pos,e.pos,(size+e.size)*0.5)){
+        PVector c=pos.copy().sub(e.pos).normalize();
+        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+        pos.sub(d);
+        if(vel.magSq()>maxSpeed*maxSpeed){
+          PVector v=vel.copy().normalize().mult(maxSpeed);
+          addtionalVel=vel.copy().sub(v);
+          vel=v;
+        }
+      }
+    }else if(e instanceof Myself){
+      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
+        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
+        float d=(player.size+size)*0.5-dist(player.pos,pos);
+        vel=new PVector(-cos(r)*d,-sin(r)*d);
+        addtionalVel=new PVector(0,0);
+        pos.add(vel);
+        hit=true;
+      }
+    }
   }
 }
 

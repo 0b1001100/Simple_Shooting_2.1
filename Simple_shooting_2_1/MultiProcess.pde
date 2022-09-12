@@ -76,7 +76,7 @@ class EntityCollision implements Callable<String>{
       if(SortedDataX[j].getType().equals("e")){
         continue;
       }
-      if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){
+      if(abs(e.Center.y-E.Center.y)<=(e.AxisSize.y+E.AxisSize.y)*0.5){
         E.Collision(e);
       }
     }

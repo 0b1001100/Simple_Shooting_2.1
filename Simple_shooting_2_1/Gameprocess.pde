@@ -166,8 +166,10 @@ class GameProcess{
     }
     done=false;
     background(0);
-    backgroundShader.set("offset",player.pos.x,-player.pos.y);
-    filter(backgroundShader);
+    testShader.set("time",0);
+    testShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+    testShader.set("resolution",width,height);
+    filter(testShader);
     drawShape();
     if(gameOver){
       StageFlag.add("Game_Over");

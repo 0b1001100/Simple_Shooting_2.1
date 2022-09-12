@@ -98,7 +98,7 @@ class Bullet extends Entity{
   
   @Override
   public void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if(CircleCollision(e.pos,e.size,pos,vel)){
         ((Enemy)e).Hit(parent);
         ((Enemy)e).addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
@@ -412,7 +412,7 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override public 
   void Collision(Entity e){
-    if((e instanceof Enemy)&&!(e instanceof Explosion)){
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof ExcludeBullet)){
       if(circleOrientedRectangleCollision(e.pos,e.size,LeftDown,new PVector(scale*0.25f,scale),axis)){
         nextHitEnemy.add(e);
         ((Enemy)e).addtionalVel=e.vel.copy().mult(-(20/e.Mass));
@@ -494,7 +494,7 @@ class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override public 
   void Collision(Entity e){
-    if((e instanceof Enemy)&&!(e instanceof Explosion)){
+    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof ExcludeBullet)){
       if(qDist(pos,e.pos,(scale+e.size)*0.5f)){
         outEntity.remove(e);
         if(!cooltimes.containsKey(e)){
@@ -622,7 +622,7 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override public 
   void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if(CircleCollision(e.pos,e.size,pos,vel)){
         nextHitEnemy.add(e);
         if(!HitEnemy.contains(e)){
@@ -708,7 +708,7 @@ class LightningBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override
   public void Collision(Entity e){
-    if(!(e instanceof Explosion)&&(e instanceof Enemy)){
+    if(!(e instanceof Explosion)&&(e instanceof Enemy)&&!(e instanceof ExcludeBullet)){
       if(CircleCollision(e.pos,(e.size+size+4)*0.5f,pos,vel)){
         nextHitEnemy.add(e);
         if(!HitEnemy.contains(e)){
@@ -742,7 +742,7 @@ class ReflectorBullet extends SubBullet{
   
   @Override public 
   void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if(CircleCollision(e.pos,e.size,pos,vel)){
         nextHitEnemy.add(e);
         if(!HitEnemy.contains(e)){
@@ -797,7 +797,7 @@ class ThroughBullet extends Bullet{
   
   @Override public 
   void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
         nextHitEnemy.add(e);
         if(HitEnemy.contains(e))return;
@@ -831,7 +831,7 @@ class EnemyPoisonBullet extends ThroughBullet{
   
   @Override public 
   void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
         nextHitEnemy.add(e);
         if(HitEnemy.contains(e))return;
@@ -869,7 +869,7 @@ class AntiSkillBullet extends ThroughBullet{
   
   @Override public 
   void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
         nextHitEnemy.add(e);
         if(HitEnemy.contains(e))return;
@@ -907,7 +907,7 @@ class BoundBullet extends ThroughBullet{
   
   @Override public 
   void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
         nextHitEnemy.add(e);
         if(HitEnemy.contains(e))return;
@@ -1177,7 +1177,7 @@ class SatelliteBullet extends SubBullet{
   
   @Override
   public void Collision(Entity e){
-    if(e instanceof Enemy){
+    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
       if(qDist(pos,e.pos,e.size*0.5+scale)){
         ((Enemy)e).Hit(parent);
         ((Enemy)e).addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
@@ -1214,4 +1214,7 @@ class HomingBullet extends SubBullet{
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
     setAABB();
   }
+}
+
+interface ExcludeBullet{
 }
