@@ -22,6 +22,7 @@ class GameComponent{
   protected Color selectforeground=new Color(0,0,0);
   protected Color border=new Color(0,0,0);
   protected Color nonSelectBorder=border;
+  protected int resizeNumber=0;
   
   GameComponent(){
     
@@ -65,7 +66,10 @@ class GameComponent{
   
   void update(){
     pFocus=focus;
-    if(windowResized)wre.Event();
+    if(windowResized||resizeNumber!=resizedNumber){
+      wre.Event();
+      resizeNumber=resizedNumber;
+    }
   }
   
   void executeEvent(){
@@ -329,7 +333,7 @@ class ButtonItem extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",d.y*0.8);
+      font=createFont("SansSerif.plain",d.y*0.5);
     };
   }
   
@@ -1263,6 +1267,15 @@ class MenuButton extends TextButton{
 class MenuButton_B extends MenuButton{
   
   MenuButton_B(){
+    init();
+  }
+  
+  MenuButton_B(String s){
+    super(s);
+    init();
+  }
+  
+  void init(){
     setBackground(new Color(35,35,35));
     setForeground(new Color(255,255,255));
     setSelectBackground(new Color(55,55,55));
@@ -1270,15 +1283,49 @@ class MenuButton_B extends MenuButton{
     sideLineColor=new Color(255,105,0);
     setBorderColor(new Color(0,0,0,0));
   }
+}
+
+class SkeletonButton extends MenuButton{
   
-  MenuButton_B(String s){
+  SkeletonButton(){
+    init();
+  }
+  
+  SkeletonButton(String s){
     super(s);
-    setBackground(new Color(35,35,35));
+    init();
+  }
+  
+  void init(){
+    setBackground(new Color(35,35,35,40));
     setForeground(new Color(255,255,255));
-    setSelectBackground(new Color(55,55,55));
-    setSelectForeground(new Color(215,215,215));
-    sideLineColor=new Color(255,105,0);
-    setBorderColor(new Color(0,0,0,0));
+    setSelectBackground(new Color(35,35,35,40));
+    setSelectForeground(new Color(255,255,255));
+    sideLineColor=new Color(0,0,0,0);
+    setBorderColor(new Color(0,150,255));
+  }
+  
+  void display(){
+    pushStyle();
+    if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
+    textFont(font);
+    blendMode(BLEND);
+    strokeWeight(1);
+    fill(!focus?toColor(background):toColor(selectbackground));
+    stroke(!focus?color(25,25,25,80):toColor(border));
+    beginShape();
+    vertex(pos.x,pos.y);
+    vertex(pos.x,pos.y+dist.y*0.9);
+    vertex(pos.x+dist.x*0.1,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y);
+    endShape(CLOSE);
+    fill(!focus?toColor(foreground):toColor(selectforeground));
+    noStroke();
+    textAlign(CENTER,CENTER);
+    textSize(dist.y*0.5);
+    text(text,pos.x+dist.x*0.5,pos.y+dist.y*0.4);
+    popStyle();
   }
 }
 
@@ -1444,6 +1491,7 @@ class ComponentSet{
   int pSelectedIndex=0;
   int selectedIndex=0;
   int memoryIndex=0;
+  int resizeNumber=0;
   int type=0;
   
   static final int Down=0;
@@ -1535,7 +1583,7 @@ class ComponentSet{
       if(pSelectedIndex!=-1&&!(pSelectedIndex>=components.size()))components.get(pSelectedIndex).Fe.lostFocus();
       if(selectedIndex!=-1&&!(selectedIndex>=components.size()))components.get(selectedIndex).Fe.getFocus();
     }
-    if(windowResized&&layout!=null)layout.resized();
+    resized();
     pSelectedIndex=selectedIndex;
   }
   
@@ -1616,6 +1664,13 @@ class ComponentSet{
   
   GameComponent getSelected(){
     return components.get(selectedIndex);
+  }
+  
+  void resized(){
+    if(windowResized||resizeNumber!=resizedNumber){
+      if(layout!=null)layout.resized();else components.forEach(c->c.wre.Event());
+      resizeNumber=resizedNumber;
+    }
   }
 }
 
@@ -1722,6 +1777,7 @@ class ComponentSetLayer{
   String nowLayer=null;
   String nowParent=null;
   int selectNumber=0;
+  int resizeNumber=0;
   int SubChildshowType=0;
   int showType=0;
   
@@ -1826,6 +1882,10 @@ class ComponentSetLayer{
     if(nowLayer==null||Layers.get(nowLayer).getComponents().size()==0){
       return;
     }else{
+      if(windowResized||resizeNumber!=resizedNumber){
+        Layers.forEach((k,v)->v.Components.forEach(cs->{cs.resized();}));
+        resizeNumber=resizedNumber;
+      }
       int count=0;
       for(ComponentSet c:Layers.get(nowLayer).getComponents()){
         if(c==null)continue;

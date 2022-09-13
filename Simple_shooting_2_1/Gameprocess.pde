@@ -3,6 +3,7 @@ class GameProcess{
   HashMap<String,Command>CommandQue=new HashMap<String,Command>();
   ComponentSet HUDSet;
   ComponentSet UpgradeSet;
+  ComponentSet PauseSet;
   WallEntity[] wall=null;
   Color menuColor=new Color(230,230,230);
   PVector FieldSize=null;
@@ -33,6 +34,8 @@ class GameProcess{
      EventSet=new HashMap<String,String>();
      HUDSet=new ComponentSet();
      UpgradeSet=new ComponentSet();
+     PauseSet=new ComponentSet();
+     initPause();
      stageLayer=new ComponentSetLayer();
      stageLayer.addLayer("root",UpgradeSet);
      stageLayer.addSubChild("root","HUD",HUDSet);
@@ -74,6 +77,28 @@ class GameProcess{
                      player.subWeapons.add(masterTable.get("Grenade").getWeapon());
                      break;
      }
+  }
+  
+  private void initPause(){
+    SkeletonButton back=new SkeletonButton(getLanguageText("me_back"));
+    back.setBounds(width*0.5-90,height*0.5-36,180,37);
+    back.addWindowResizeEvent(()->{
+      back.setBounds(width*0.5-90,height*0.5-36,180,37);
+    });
+    back.addListener(()->{
+      menu=false;
+      pause=false;
+    });
+    SkeletonButton menu=new SkeletonButton(getLanguageText("me_menu"));
+    menu.setBounds(width*0.5-90,height*0.5+36,180,37);
+    menu.addWindowResizeEvent(()->{
+      menu.setBounds(width*0.5-90,height*0.5+36,180,37);
+    });
+    menu.addListener(()->{
+      done=true;
+      scene=0;
+    });
+    PauseSet.addAll(back,menu);
   }
   
   private void initTutorial(){
@@ -371,7 +396,12 @@ class GameProcess{
     push();
     resetMatrix();
     stageLayer.display();
-    stageLayer.update();
+    if(menu){
+      PauseSet.display();
+      PauseSet.update();
+    }else{
+      stageLayer.update();
+    }
     rectMode(CORNER);
     noFill();
     stroke(200);
@@ -720,6 +750,7 @@ class WallEntity extends Entity{
   
   {
     size=0;
+    co_type=CollisionType.Inside;
   }
   
   WallEntity(PVector pos,PVector dist){
@@ -749,19 +780,45 @@ class WallEntity extends Entity{
   }
   
   @Override
-  void Collision(Entity e){
-    if(((e instanceof Enemy)&&!(e instanceof Explosion))){
-      PVector copy=e.pos.copy();
-      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
-      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
-    }else if(e instanceof Myself){
-      PVector copy=e.pos.copy();
-      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
-      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
-    }else if(e instanceof Bullet){
-      e.Collision(this);
+  public void Collision(Entity e){
+    if(e.co_type==CollisionType.Inside){
+      e.WallCollision(this);
+    }else{
+      if(e instanceof Explosion){
+        ExplosionCollision((Explosion)e);
+      }else if(e instanceof Enemy){
+        EnemyCollision((Enemy)e);
+      }else if(e instanceof Bullet){
+        BulletCollision((Bullet)e);
+      }else if(e instanceof Myself){
+        MyselfCollision((Myself)e);
+      }else if(e instanceof WallEntity){
+        WallCollision((WallEntity)e);
+      }
     }
     Process(e);
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){}
+  
+  @Override
+  void EnemyCollision(Enemy e){
+    PVector copy=e.pos.copy();
+    e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
+    e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    b.WallCollision(this);
+  }
+  
+  @Override
+  void MyselfCollision(Myself m){
+    PVector copy=m.pos.copy();
+    m.pos=CircleMovePosition(m.pos,m.size,pos,dist);
+    m.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
   }
 }
 

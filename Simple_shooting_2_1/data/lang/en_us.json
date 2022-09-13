@@ -19,6 +19,8 @@
   "shot":"Shot",
   "back":"Back",
   "menu":"Menu",
+  "me_back":"ゲームに戻る",
+  "me_menu":"メニューに戻る",
   "tu_move":"Move with WASD",
   "tu_shot":"Left click to shoot",
   "tu_shot_2":"Press and hold to fire continuously",

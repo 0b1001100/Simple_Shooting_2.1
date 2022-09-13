@@ -56,6 +56,7 @@ class Myself extends Entity{
       HeapEntity.get(0).add(new Explosion(this,250,1).Infinity(true));
       NextEntities.add(new Particle(this,(int)(size*3),1));
     });
+    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -258,18 +259,44 @@ class Myself extends Entity{
   }
   
   @Override
-  void Collision(Entity e){
-    if(e instanceof Explosion){
-      if(!((Explosion)e).myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
-        Hit(((Explosion)e).power);
-      }
-    }else if((e instanceof Enemy)||e instanceof WallEntity){
-      e.Collision(this);
-    }else if(e instanceof Bullet){
-      if(!((Bullet)e).isMine){
-        e.Collision(this);
+  public void Collision(Entity e){
+    if(e.co_type==CollisionType.Inside){
+      e.MyselfCollision(this);
+    }else{
+      if(e instanceof Explosion){
+        ExplosionCollision((Explosion)e);
+      }else if(e instanceof Enemy){
+        EnemyCollision((Enemy)e);
+      }else if(e instanceof Bullet){
+        BulletCollision((Bullet)e);
+      }else if(e instanceof Myself){
+        MyselfCollision((Myself)e);
+      }else if(e instanceof WallEntity){
+        WallCollision((WallEntity)e);
       }
     }
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){
+    if(!e.myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
+      Hit(e.power);
+    }
+  }
+  
+  @Override
+  void EnemyCollision(Enemy e){
+    e.MyselfCollision(this);
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(!b.isMine)b.MyselfCollision(this);
+  }
+  
+  @Override
+  void WallCollision(WallEntity w){
+    w.MyselfCollision(this);
   }
   
   protected void Hit(float d){

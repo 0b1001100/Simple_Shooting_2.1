@@ -454,7 +454,7 @@
     "type":"add",
     "param":{
       "number":1,
-      "dist":2,
+      "dist":1,
       "offset":0,
       "name":"EnemyShield"
     }

@@ -60,6 +60,8 @@ ComponentSetLayer starts=new ComponentSetLayer();
 ComponentSet resultSet;
 ItemList stageList=new ItemList();
 
+int resizedNumber=0;
+
 ItemTable MastarTable;
 
 GL4 gl4;
@@ -182,6 +184,7 @@ void setup(){
       pscreen=new PVector(w.getWidth(), w.getHeight());
       g.width=width=w.getWidth();
       g.height=height=w.getHeight();
+      ++resizedNumber;
       windowResized=true;
     }
   });
@@ -1143,6 +1146,7 @@ String getLanguageText(String s){
 }
 
 class Entity implements Egent, Cloneable {
+  CollisionType co_type=CollisionType.Independence;
   DeadEvent dead=(e)->{};
   float size=20;
   PVector pos;
@@ -1213,10 +1217,19 @@ class Entity implements Egent, Cloneable {
     HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
   }
   
-  public void Collision(Entity e){
-  }
+  public void Collision(Entity e){}
   
-   public void displayAABB(PGraphics g){
+  public void ExplosionCollision(Explosion e){}
+  
+  public void EnemyCollision(Enemy e){}
+  
+  public void BulletCollision(Bullet b){}
+  
+  public void MyselfCollision(Myself e){}  
+  
+  public void WallCollision(WallEntity w){}  
+  
+  public void displayAABB(PGraphics g){
     g.rectMode(CENTER);
     g.noFill();
     g.strokeWeight(1);
@@ -1311,6 +1324,12 @@ class Camera {
       resetMove();
     }
   }
+}
+
+enum CollisionType{
+  Inside,
+  Outside,
+  Independence
 }
 
 interface ExcludeGPGPU{

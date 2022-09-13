@@ -168,34 +168,65 @@ class Enemy extends Entity implements Cloneable{
   }
   
   @Override
-  void Collision(Entity e){
-    if(e instanceof Explosion){
-      e.Collision(this);
-    }else if(e instanceof Enemy){
-      if(qDist(pos,e.pos,(size+e.size)*0.5)){
-        PVector c=pos.copy().sub(e.pos).normalize();
-        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-        pos.sub(d);
-        if(vel.magSq()>maxSpeed*maxSpeed){
-          PVector v=vel.copy().normalize().mult(maxSpeed);
-          addtionalVel=vel.copy().sub(v);
-          vel=v;
-        }
-      }
-    }else if(e instanceof Bullet){
-      e.Collision(this);
-    }else if(e instanceof Myself){
-      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
-        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
-        float d=(player.size+size)*0.5-dist(player.pos,pos);
-        vel=new PVector(-cos(r)*d,-sin(r)*d);
-        addtionalVel=new PVector(0,0);
-        pos.add(vel);
-        player.Hit(1);
+  public void Collision(Entity e){
+    if(e.co_type==CollisionType.Inside){
+      e.EnemyCollision(this);
+    }else{
+      if(e instanceof Explosion){
+        ExplosionCollision((Explosion)e);
+      }else if(e instanceof Enemy){
+        EnemyCollision((Enemy)e);
+      }else if(e instanceof Bullet){
+        BulletCollision((Bullet)e);
+      }else if(e instanceof Myself){
+        MyselfCollision((Myself)e);
+      }else if(e instanceof WallEntity){
+        WallCollision((WallEntity)e);
       }
     }
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){
+    e.EnemyCollision(this);
+  }
+  
+  @Override
+  void EnemyCollision(Enemy e){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      PVector c=pos.copy().sub(e.pos).normalize();
+      PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+      vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+      e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+      pos.sub(d);
+      if(vel.magSq()>maxSpeed*maxSpeed){
+        PVector v=vel.copy().normalize().mult(maxSpeed);
+        addtionalVel=vel.copy().sub(v);
+        vel=v;
+      }
+    }
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    b.EnemyCollision(this);
+  }
+  
+  @Override
+  void MyselfCollision(Myself m){
+    if(!m.isDead&&qDist(m.pos,pos,(m.size+size)*0.5)){
+      float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+      float d=(m.size+size)*0.5-dist(m.pos,pos);
+      vel=new PVector(-cos(r)*d,-sin(r)*d);
+      addtionalVel=new PVector(0,0);
+      pos.add(vel);
+      m.Hit(1);
+    }
+  }
+  
+  @Override
+  void WallCollision(WallEntity w){
+    w.EnemyCollision(this);
   }
   
   Enemy clone()throws CloneNotSupportedException{
@@ -330,6 +361,7 @@ class ExplosionEnemy extends Enemy{
     dead=(e)->{
       NextEntities.add(new Explosion(e,size*2,0.5,5));
     };
+    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -344,35 +376,9 @@ class ExplosionEnemy extends Enemy{
   }
   
   @Override
-  void Collision(Entity e){
-    if(e instanceof Explosion){
-      if(qDist(pos,e.pos,(e.size+size)*0.5)){
-        isDead=true;
-      }
-    }else if(e instanceof Enemy){
-      if(qDist(pos,e.pos,(size+e.size)*0.5)){
-        PVector c=pos.copy().sub(e.pos).normalize();
-        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-        pos.sub(d);
-        if(vel.magSq()>maxSpeed*maxSpeed){
-          PVector v=vel.copy().normalize().mult(maxSpeed);
-          addtionalVel=vel.copy().sub(v);
-          vel=v;
-        }
-      }
-    }else if(e instanceof Bullet){
-      e.Collision(this);
-    }else if(e instanceof Myself){
-      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
-        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
-        float d=(player.size+size)*0.5-dist(player.pos,pos);
-        vel=new PVector(-cos(r)*d,-sin(r)*d);
-        addtionalVel=new PVector(0,0);
-        pos.add(vel);
-        player.Hit(1);
-      }
+  void ExplosionCollision(Explosion e){
+    if(qDist(pos,e.pos,(e.size+size)*0.5)){
+      isDead=true;
     }
   }
 }
@@ -433,7 +439,7 @@ class M_Boss_Y extends Enemy implements BossEnemy{
     boss=new HUDText("BOSS");
     dead=(e)->{
       StageFlag.add("Survive_10_min");
-      stage.addSchedule("Stage1",new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage2"))stageList.addContent("Stage2");scene=3;}));
+      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage2"))stageList.addContent("Stage2");scene=3;}));
       boss.Dispose();
     };
     addMultiplyer(PlasmaFieldWeapon.class,1.2);
@@ -501,37 +507,6 @@ class Turret_S extends Enemy{
     protate=rotate;
     rotate+=rad;
     rotate=rotate%TWO_PI;
-  }
-  
-  @Override
-  void Collision(Entity e){
-    if(e instanceof Explosion){
-      e.Collision(this);
-    }else if(e instanceof Enemy){
-      if(qDist(pos,e.pos,(size+e.size)*0.5)){
-        PVector c=pos.copy().sub(e.pos).normalize();
-        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-        pos.sub(d);
-        if(vel.magSq()>maxSpeed*maxSpeed){
-          PVector v=vel.copy().normalize().mult(maxSpeed);
-          addtionalVel=vel.copy().sub(v);
-          vel=v;
-        }
-      }
-    }else if(e instanceof Bullet){
-      e.Collision(this);
-    }else if(e instanceof Myself){
-      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
-        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
-        float d=(player.size+size)*0.5-dist(player.pos,pos);
-        vel=new PVector(-cos(r)*d,-sin(r)*d);
-        addtionalVel=new PVector(0,0);
-        pos.add(vel);
-        player.Hit(1);
-      }
-    }
   }
 }
 
@@ -767,7 +742,7 @@ class Formation extends M_Boss_Y implements BossEnemy{
     boss=new HUDText("BOSS");
     dead=(e)->{
       StageFlag.add("Survive_10_min");
-      stage.addSchedule("Stage2",new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage3"))stageList.addContent("Stage3");scene=3;}));
+      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage3"))stageList.addContent("Stage3");scene=3;}));
       boss.Dispose();
     };
     addMultiplyer(G_ShotWeapon.class,1.2);
@@ -956,7 +931,7 @@ class Amplification extends Enemy{
   }
 }
 
-class AntiBullet extends Enemy implements ExcludeBullet{
+class AntiBullet extends Enemy{
   
   @Override
   protected void init(){
@@ -966,6 +941,16 @@ class AntiBullet extends Enemy implements ExcludeBullet{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(85,150,235));
+    co_type=CollisionType.Inside;
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(CircleCollision(pos,size,b.pos,b.vel)){
+      b.isDead=true;
+      addtionalVel=vel.copy().mult(-(vel.mag()/Mass));
+      if(b instanceof GravityBullet||b instanceof GrenadeBullet||b instanceof FireBullet||b instanceof PlasmaFieldBullet)Hit(b.parent);
+    }
   }
 }
 
@@ -1024,7 +1009,7 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
     boss=new HUDText("BOSS");
     dead=(e)->{
       StageFlag.add("Survive_10_min");
-      stage.addSchedule("Stage3",new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage4"))stageList.addContent("Stage4");scene=3;}));
+      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage4"))stageList.addContent("Stage4");scene=3;}));
       boss.Dispose();
     };
     addMultiplyer(SatelliteWeapon.class,1.2);
@@ -1151,7 +1136,7 @@ class AntiBulletField extends Enemy{
   }
 }
 
-class CollisionEnemy extends Enemy implements ExcludeBullet{
+class CollisionEnemy extends Enemy{
   float time=0;
   boolean hit=false;
   
@@ -1163,12 +1148,15 @@ class CollisionEnemy extends Enemy implements ExcludeBullet{
     setColor(new Color(30,255,180));
     maxSpeed=1.1;
     rotateSpeed=3;
+    co_type=CollisionType.Inside;
   }
   
   @Override
   void Process(){
     if(hit){
+      maxSpeed=0;
       time+=vectorMagnification;
+      NextEntities.add(new Particle(this,1,1));
       if(time>180){
         isDead=true;
         NextEntities.add(new Explosion(this,size*2,0.5,5));
@@ -1177,31 +1165,213 @@ class CollisionEnemy extends Enemy implements ExcludeBullet{
   }
   
   @Override
-  void Collision(Entity e){
-    if(e instanceof Explosion){
-      e.Collision(this);
-    }else if(e instanceof Enemy){
-      if(qDist(pos,e.pos,(size+e.size)*0.5)){
-        PVector c=pos.copy().sub(e.pos).normalize();
-        PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-        vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-        e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-        pos.sub(d);
-        if(vel.magSq()>maxSpeed*maxSpeed){
-          PVector v=vel.copy().normalize().mult(maxSpeed);
-          addtionalVel=vel.copy().sub(v);
-          vel=v;
+  void MyselfCollision(Myself m){
+    if(!m.isDead&&qDist(m.pos,pos,(m.size+size)*0.5)){
+      float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+      float d=(m.size+size)*0.5-dist(m.pos,pos);
+      vel=new PVector(-cos(r)*d,-sin(r)*d);
+      addtionalVel=new PVector(0,0);
+      pos.add(vel);
+      hit=true;
+    }
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(CircleCollision(pos,size,b.pos,b.vel)){
+      b.isDead=true;
+    }
+  }
+}
+
+class Decoy extends Enemy{
+  boolean stop=true;
+  
+  @Override
+  protected void init(){
+    setHP(25);
+    setSize(23);
+    setExpMag(1);
+    setColor(new Color(205,200,255));
+    maxSpeed=0;
+    rotateSpeed=0;
+    co_type=CollisionType.Inside;
+  }
+  
+  @Override
+  void Process(){
+    if(!stop){
+      maxSpeed=1.5;
+      rotateSpeed=2;
+    }
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(CircleCollision(pos,size,b.pos,b.vel)){
+      if(stop)stop=false;
+      Hit(b.parent);
+      addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
+      b.isDead=true;
+    }
+  }
+}
+
+class Recover extends Enemy implements BossEnemy{
+  float moveCoolTime=0;
+  
+  @Override
+  protected void init(){
+    setHP(500);
+    maxSpeed=1.85;
+    rotateSpeed=2;
+    setSize(40);
+    setMass(35);
+    setColor(new Color(255,150,225));
+    co_type=CollisionType.Inside;
+  }
+  
+  @Override
+  void Process(){
+    if(!inScreen&&moveCoolTime<=0){
+      pos.x=player.pos.x+sign(player.pos.x-pos.x)*min(abs(player.pos.x-pos.x),width*0.5);
+      pos.y=player.pos.y+sign(player.pos.y-pos.y)*min(abs(player.pos.y-pos.y),height*0.5);
+      rotate=(rotate+PI)%TWO_PI;
+      moveCoolTime=180;
+    }
+    moveCoolTime-=vectorMagnification;
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    super.BulletCollision(b);
+    if(isDead)NextEntities.add(new RecoverItem(this));
+  }
+  
+  private final class RecoverItem extends Exp{
+    
+    RecoverItem(){
+      size=5;
+      setExp(0);
+    }
+    
+    RecoverItem(Entity e){
+      pos=e.pos.copy();
+      size=5;
+      setExp(0);
+    }
+    
+    @Override
+    void display(PGraphics g){
+      g.stroke(60,255,230);
+      g.noFill();
+      g.strokeWeight(2);
+      g.ellipse(pos.x,pos.y,size,size);
+    }
+    
+    @Override
+    void update(){
+      if(inScreen&&qDist(player.pos,pos,player.magnetDist)&&player.canMagnet){
+        ++player.remain;
+        player.exp+=250;
+        isDead=true;
+      }
+    }
+  }
+}
+
+class AntiG_Shot extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(25);
+    setExpMag(1);
+    maxSpeed=1.85;
+    rotateSpeed=2;
+    setSize(25);
+    setMass(3);
+    setColor(new Color(0,255,0));
+    co_type=CollisionType.Inside;
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(b instanceof GravityBullet)return;
+    super.BulletCollision(b);
+  }
+}
+
+class Barrier extends M_Boss_Y implements BossEnemy{
+  float age=0;
+  float edge;
+  boolean barrier=false;
+  
+  @Override
+  protected void init(){
+    setHP(2500);
+    maxSpeed=1.85;
+    rotateSpeed=2;
+    setSize(53);
+    setMass(53);
+    setColor(new Color(0,200,255));
+    edge=random(1500,1800);
+    boss=new HUDText("BOSS");
+    dead=(e)->{
+      StageFlag.add("Survive_10_min");
+      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage5"))stageList.addContent("Stage5");scene=3;}));
+      boss.Dispose();
+    };
+    co_type=CollisionType.Inside;
+  }
+  
+  @Override
+  void display(PGraphics g){
+    if(!inScreen)return;
+    if(Debug){
+      displayAABB(g);
+    }
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.strokeWeight(2);
+    g.stroke(0,255,255);
+    g.noFill();
+    if(barrier)g.ellipse(0,0,size,size);
+    g.rotate(-rotate);
+    g.rectMode(CENTER);
+    g.strokeWeight(1);
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(toColor(c));
+    }
+    g.rect(0,0,size*0.7071,size*0.7071);
+    g.popMatrix();
+  }
+  
+  @Override
+  void Process(){
+    super.Process();
+    age+=vectorMagnification;
+    if(age>edge){
+      age=0;
+      barrier=!barrier;
+    }
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(barrier){
+      if(CircleCollision(pos,size,b.pos,b.vel)){
+        if(b instanceof GravityBullet){
+          Hit(b.parent);
+          addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
         }
+        b.isDead=true;
       }
-    }else if(e instanceof Myself){
-      if(!player.isDead&&qDist(player.pos,pos,(player.size+size)*0.5)){
-        float r=-atan2(pos.x-player.pos.x,pos.y-player.pos.y)-PI*0.5;
-        float d=(player.size+size)*0.5-dist(player.pos,pos);
-        vel=new PVector(-cos(r)*d,-sin(r)*d);
-        addtionalVel=new PVector(0,0);
-        pos.add(vel);
-        hit=true;
-      }
+    }else{
+      super.BulletCollision(b);
     }
   }
 }
