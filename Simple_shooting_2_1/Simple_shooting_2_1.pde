@@ -42,6 +42,9 @@ float pMagnification=1;
 
 PGraphics preg;
 
+float[] titleLight;
+float[] titleLightSpeed;
+
 PShader FXAAShader;
 PShader colorInv;
 PShader Lighting;
@@ -49,7 +52,7 @@ PShader GravityLens;
 PShader menuShader;
 PShader backgroundShader;
 PShader titleShader;
-PShader testShader;
+PShader Title_HighShader;
 java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
 
 GameProcess main;
@@ -116,6 +119,7 @@ int pEntityNum=0;
 int pscene=0;
 int scene=0;
 
+boolean HighQuality=false;
 boolean displayFPS=true;
 boolean colorInverse=false;
 boolean FXAA=false;
@@ -207,8 +211,17 @@ void setup(){
   menuShader=loadShader(ShaderPath+"Menu.glsl");
   backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
   titleShader=loadShader(ShaderPath+"Title.glsl");
-  testShader=loadShader(ShaderPath+"test.glsl");
+  Title_HighShader=loadShader(ShaderPath+"Title_high.glsl");
   preg=createGraphics(width,height,P2D);
+  titleLight=new float[40];
+  for(int i=0;i<20;i++){
+    titleLight[i*2]=width*0.05*i+random(-5,5);
+    titleLight[i*2+1]=random(0,height);
+  }
+  titleLightSpeed=new float[20];
+  for(int i=0;i<20;i++){
+    titleLightSpeed[i]=random(2.5,3.5);
+  }
   blendMode(ADD);
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
@@ -284,6 +297,7 @@ void setup(){
   Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
   stageList.addContent(conf.getJSONArray("Stage").getStringArray());
   displayFPS=conf.getBoolean("FPS");
+  HighQuality=conf.getBoolean("HighQuality");
   vsync=conf.getBoolean("vsync");
   if(vsync){
     FrameRateConfig=RefleshRate;
@@ -357,10 +371,37 @@ String getLanguageText(String s){
   });
   Canvas TitleCanvas=new Canvas(g);
   TitleCanvas.setContent((g)->{
-    testShader.set("time",System.nanoTime()/10000000000f);
-    testShader.set("mouse",0,0);
-    testShader.set("resolution",width,height);
-    filter(testShader);
+    if(HighQuality){
+      Title_HighShader.set("time",System.nanoTime()/10000000000f);
+      Title_HighShader.set("mouse",0,0);
+      Title_HighShader.set("resolution",width,height);
+      filter(Title_HighShader);
+    }else{
+      for(int i=0;i<20;i++){
+        titleLight[i*2+1]-=titleLightSpeed[i];
+        if(titleLight[i*2+1]<0)titleLight[i*2+1]=height;
+      }
+      if(frameCount==1){
+        preg.beginDraw();
+        preg.background(0);
+        preg.endDraw();
+        preg.loadPixels();
+        g.loadPixels();
+        titleShader.set("tex",g);
+        titleShader.set("position",titleLight,2);
+        titleShader.set("resolution",width,height);
+        preg.filter(titleShader);
+        g.filter(titleShader);
+      }else{
+        preg.loadPixels();
+        g.loadPixels();
+        titleShader.set("tex",preg);
+        titleShader.set("position",titleLight,2);
+        titleShader.set("resolution",width,height);
+        preg.filter(titleShader);
+        g.filter(titleShader);
+      }
+    }
     g.fill(255);
     g.textFont(font_70);
     g.textAlign(CENTER);
@@ -377,7 +418,7 @@ String getLanguageText(String s){
   });
   ComponentSet titleSet=toSet(TitleCanvas,New);
   titleSet.addSelect();
-  Y_AxisLayout mainLayout=new Y_AxisLayout(100,0,120,25,15);
+  Y_AxisLayout mainLayout=new Y_AxisLayout(100,120,120,25,15);
   MenuButton Select=new MenuButton(Language.getString("stage_select"));
   Select.addListener(()->{
     starts.toChild("stage");
@@ -400,7 +441,7 @@ String getLanguageText(String s){
     confBox.setBounds(width-320,100,300,500);
   });
   //---
-    Y_AxisLayout confLayout=new Y_AxisLayout(250,0,120,25,15);
+    Y_AxisLayout confLayout=new Y_AxisLayout(250,160,120,25,15);
     MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),colorInverse);
     Colorinv.addListener(()->{
       colorInverse=Colorinv.value;
@@ -421,6 +462,20 @@ String getLanguageText(String s){
     dispFPS.addFocusListener(new FocusEvent(){
        public void getFocus(){
         confBox.setText(Language.getString("ex_disp_FPS"));
+      }
+      
+       public void lostFocus(){}
+    });
+    MenuCheckBox Quality=new MenuCheckBox(Language.getString("Quality"),HighQuality);
+    Quality.setCustomizeText(getLanguageText("ex_qu_high"),getLanguageText("ex_qu_low"));
+    Quality.addListener(()->{
+      HighQuality=Quality.value;
+      conf.setBoolean("HighQuality",HighQuality);
+      exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
+    });
+    Quality.addFocusListener(new FocusEvent(){
+       public void getFocus(){
+        confBox.setText(Language.getString("ex_Quality"));
       }
       
        public void lostFocus(){}
@@ -520,7 +575,7 @@ String getLanguageText(String s){
   starts.addLayer("root",titleSet);
   starts.addChild("root","main",toSet(mainLayout,Select,Config,operationEx));
   starts.addSubChild("main","stage",toSet(stageList));
-  starts.addSubChild("main","confMenu",toSet(confLayout,Colorinv,dispFPS,vsy,Lang,exit),toSet(confBox));
+  starts.addSubChild("main","confMenu",toSet(confLayout,Colorinv,dispFPS,Quality,vsy,Lang,exit),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
   starts.addChild("main","operation",toSet(back_op,op_canvas));
   if(launched){

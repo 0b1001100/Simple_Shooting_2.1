@@ -294,6 +294,28 @@ class BoundWeapon extends EnemyWeapon{
   }
 }
 
+class SnipeWeapon extends Weapon{
+  Enemy parentEnemy;
+  
+  SnipeWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(2);
+    setSpeed(17f);
+    setDuration(170);
+    setDiffuse(radians(1));
+    setCoolTime(300);
+    setBulletNumber(1);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+      NextEntities.add(new ThroughBullet(parentEnemy,this));
+    }
+  }
+}
+
 class EnergyBullet extends Weapon{
   
   EnergyBullet(Entity e){

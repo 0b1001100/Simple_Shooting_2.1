@@ -48,6 +48,7 @@ class Bullet extends Entity{
   
   Bullet(Entity e,Weapon w){
     isMine=e instanceof Myself;
+    if(!isMine)bulletColor=new Color(255,0,0);
     try{
       parent=w.clone();
     }catch(Exception E){}
@@ -64,8 +65,6 @@ class Bullet extends Entity{
     pos=new PVector(e.pos.x+cos(rotate)*e.size*0.5f,e.pos.y+sin(rotate)*e.size*0.5f);
     vel=new PVector(cos(rotate)*speed,sin(rotate)*speed);
     duration=w.duration;
-    isMine=e.getClass().getSimpleName().equals("Myself");
-    if(!isMine)bulletColor=new Color(255,0,0);
     setAABB();
   }
   
@@ -147,7 +146,7 @@ class Bullet extends Entity{
   void MyselfCollision(Myself m){
     if(!isMine&&CircleCollision(m.pos,m.size,pos,vel)){
       isDead=true;
-      m.Hit(power);
+      m.Hit(parent.power);
     }
   }
   

@@ -1433,6 +1433,8 @@ class MenuTextBox extends TextBox{
 
 class MenuCheckBox extends CheckBox{
   MenuTextBox box=new MenuTextBox();
+  private String cust_true=null;
+  private String cust_false=null;
   boolean displayBox=false;
   
   MenuCheckBox(String text,boolean value){
@@ -1467,7 +1469,7 @@ class MenuCheckBox extends CheckBox{
     textFont(font);
     textAlign(CENTER);
     textSize(dist.y*0.5);
-    text(text+":"+(value?"ON":"OFF"),center.x,center.y+dist.y*0.2);
+    text(text+":"+(value?cust_true==null?"ON":cust_true:cust_false==null?"OFF":cust_false),center.x,center.y+dist.y*0.2);
     if(displayBox)box.display();
     popStyle();
   }
@@ -1479,6 +1481,11 @@ class MenuCheckBox extends CheckBox{
   
   void displayBox(boolean b){
     displayBox=b;
+  }
+  
+  void setCustomizeText(String t,String f){
+    cust_true=t;
+    cust_false=f;
   }
 }
 
@@ -1743,7 +1750,7 @@ class Y_AxisLayout extends Layout{
   
   @Override
   void alignment(GameComponent c){
-    c.setBounds(nextPos.x,nextPos.y,dist.x,dist.y);
+    if(!list.contains(c))c.setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
     nextPos.add(0,dist.y+Space);
     list.add(c);
   }
@@ -1751,7 +1758,7 @@ class Y_AxisLayout extends Layout{
   @Override
   void alignment(GameComponent[] c){
     for(int i=0;i<c.length;i++){
-      c[i].setBounds(nextPos.x,nextPos.y,dist.x,dist.y);
+      if(!list.contains(c[i]))c[i].setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
       nextPos.add(0,dist.y+Space);
       list.add(c[i]);
     }
@@ -1762,7 +1769,7 @@ class Y_AxisLayout extends Layout{
     e.Event();
     nextPos=pos.copy();
     for(int i=0;i<list.size();i++){
-      list.get(i).setBounds(nextPos.x,nextPos.y,dist.x,dist.y);
+      list.get(i).setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
       nextPos=nextPos.add(0,dist.y+Space);
     }
   }

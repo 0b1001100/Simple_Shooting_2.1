@@ -436,12 +436,14 @@ class M_Boss_Y extends Enemy implements BossEnemy{
     setSize(52);
     setMass(35);
     setColor(new Color(255,255,10));
-    boss=new HUDText("BOSS");
-    dead=(e)->{
-      StageFlag.add("Survive_10_min");
-      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage2"))stageList.addContent("Stage2");scene=3;}));
-      boss.Dispose();
-    };
+    if(StageName.equals("Stage1")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage2"))stageList.addContent("Stage2");scene=3;}));
+        boss.Dispose();
+      };
+    }
     addMultiplyer(PlasmaFieldWeapon.class,1.2);
   }
   
@@ -459,9 +461,11 @@ class M_Boss_Y extends Enemy implements BossEnemy{
   @Override
   Enemy setPos(PVector p){
     super.setPos(p);
-    boss.setTarget(this);
-    main.HUDSet.add(boss);
-    boss.startDisplay();
+    if(StageName.equals("Stage1")){
+      boss.setTarget(this);
+      main.HUDSet.add(boss);
+      boss.startDisplay();
+    }
     return this;
   }
 }
@@ -739,12 +743,14 @@ class Formation extends M_Boss_Y implements BossEnemy{
     setSize(58);
     setMass(37);
     setColor(new Color(150,95,255));
-    boss=new HUDText("BOSS");
-    dead=(e)->{
-      StageFlag.add("Survive_10_min");
-      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage3"))stageList.addContent("Stage3");scene=3;}));
-      boss.Dispose();
-    };
+    if(StageName.equals("Stage2")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage3"))stageList.addContent("Stage3");scene=3;}));
+        boss.Dispose();
+      };
+    }
     addMultiplyer(G_ShotWeapon.class,1.2);
   }
   
@@ -763,6 +769,17 @@ class Formation extends M_Boss_Y implements BossEnemy{
       if(EntitySet.contains(child))nextChild.add(f);
     }
     child=nextChild;
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    pos=p;
+    if(StageName.equals("Stage2")){
+      boss.setTarget(this);
+      main.HUDSet.add(boss);
+      boss.startDisplay();
+    }
+    return this;
   }
 
   private class Formation_Copy extends M_Boss_Y implements BossEnemy{
@@ -1006,12 +1023,14 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
     setSize(62);
     setMass(37);
     setColor(new Color(10,180,255));
-    boss=new HUDText("BOSS");
-    dead=(e)->{
-      StageFlag.add("Survive_10_min");
-      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage4"))stageList.addContent("Stage4");scene=3;}));
-      boss.Dispose();
-    };
+    if(StageName.equals("Stage3")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage4"))stageList.addContent("Stage4");scene=3;}));
+        boss.Dispose();
+      };
+    }
     addMultiplyer(SatelliteWeapon.class,1.2);
   }
   
@@ -1045,6 +1064,17 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
       if(EntitySet.contains(f))nextChild.add(f);
     }
     child=nextChild;
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    pos=p;
+    if(StageName.equals("Stage3")){
+      boss.setTarget(this);
+      main.HUDSet.add(boss);
+      boss.startDisplay();
+    }
+    return this;
   }
   
   private PVector getPos(){
@@ -1315,12 +1345,14 @@ class Barrier extends M_Boss_Y implements BossEnemy{
     setMass(53);
     setColor(new Color(0,200,255));
     edge=random(1500,1800);
-    boss=new HUDText("BOSS");
-    dead=(e)->{
-      StageFlag.add("Survive_10_min");
-      stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage5"))stageList.addContent("Stage5");scene=3;}));
-      boss.Dispose();
-    };
+    if(StageName.equals("Stage4")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage5"))stageList.addContent("Stage5");scene=3;}));
+        boss.Dispose();
+      };
+    }
     co_type=CollisionType.Inside;
   }
   
@@ -1361,6 +1393,17 @@ class Barrier extends M_Boss_Y implements BossEnemy{
   }
   
   @Override
+  Enemy setPos(PVector p){
+    pos=p;
+    if(StageName.equals("Stage4")){
+      boss.setTarget(this);
+      main.HUDSet.add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+  
+  @Override
   void BulletCollision(Bullet b){
     if(barrier){
       if(CircleCollision(pos,size,b.pos,b.vel)){
@@ -1373,6 +1416,205 @@ class Barrier extends M_Boss_Y implements BossEnemy{
     }else{
       super.BulletCollision(b);
     }
+  }
+}
+
+class GoldEnemy extends Enemy implements BossEnemy{
+  
+  @Override
+  protected void init(){
+    setHP(100);
+    setExpMag(2);
+    maxSpeed=2.2;
+    rotateSpeed=2;
+    setSize(25);
+    setMass(30);
+    setColor(new Color(230,180,34));
+  }
+  
+  void Hit(Weapon w){
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass())*0.5:0.5;
+    HP-=w.power*mult;
+    damage+=w.power*mult;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }else if(damage>0){
+      NextEntities.add(new Particle(this,(int)(size*0.5),1));
+    }
+  }
+  
+  void Hit(float f){
+    f*=0.5;
+    HP-=f;
+    damage+=f;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }else if(damage>0){
+      NextEntities.add(new Particle(this,(int)(size*0.5),1));
+    }
+  }
+}
+
+class SnipeEnemy extends Turret_S implements BossEnemy{
+  boolean stop=false;
+  
+  @Override
+  protected void init(){
+    setHP(200);
+    setExpMag(0.8);
+    maxSpeed=1.2;
+    rotateSpeed=3.5;
+    setSize(40);
+    setMass(30);
+    setColor(new Color(230,180,34));
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new SnipeWeapon(this));
+    return this;
+  }
+  
+  @Override
+  void Process(){
+    if(stop&&!(useWeapon.coolTime*0.9<cooltime)){
+      stop=false;
+      rotateSpeed=3.5;
+      maxSpeed=1.2;
+    }
+    if(useWeapon.coolTime*0.9<cooltime){
+      stop=true;
+      rotateSpeed=maxSpeed=0;
+    }
+    super.Process();
+  }
+  
+  @Override
+  void display(PGraphics g){
+    if(!inScreen)return;
+    if(Debug){
+      displayAABB(g);
+    }
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(-rotate);
+    g.strokeWeight(1);
+    g.stroke(255,0,0,150);
+    g.line(0,0,0,-150);
+    g.noStroke();
+    g.fill(255,0,0,150);
+    g.ellipse(0,0,3,3);
+    g.rectMode(CENTER);
+    g.noFill();
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(toColor(c));
+    }
+    g.rect(0,0,size*0.7071,size*0.7071);
+    g.popMatrix();
+  }
+}
+
+class Sealed extends M_Boss_Y implements BossEnemy{
+  ArrayList<SealedFrag>Frags=new ArrayList<SealedFrag>();
+  boolean release=false;
+  
+  @Override
+  protected void init(){
+    setHP(2750);
+    maxSpeed=2;
+    rotateSpeed=2;
+    setSize(54);
+    setMass(35);
+    setColor(new Color(255,40,40));
+    if(StageName.equals("Stage5")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));
+        boss.Dispose();
+      };
+    }
+    for(int i=0;i<4;i++){
+      SealedFrag f=new SealedFrag(i);
+      Frags.add(f);
+      NextEntities.add(f);
+    }
+  }
+  
+  @Override
+  void Process(){
+    super.Process();
+    if(!release){
+      ArrayList<SealedFrag>next=new ArrayList<SealedFrag>();
+      for(SealedFrag f:Frags){
+        if(EntitySet.contains(f)){
+          next.add(f);
+          switch(f.num){
+            case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(QUARTER_PI));break;
+            case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(HALF_PI+QUARTER_PI));break;
+            case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(PI+QUARTER_PI));break;
+            case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(QUARTER_PI-HALF_PI));break;
+          }
+        }
+      }
+      Frags=next;
+      if(Frags.size()==0)release=true;
+    }
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){
+    if(release)super.ExplosionCollision(e);
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(release)super.BulletCollision(b);
+  }
+  
+  @Override
+  Enemy setPos(PVector p){
+    super.setPos(p);
+    if(StageName.equals("Stage5")){
+      boss.setTarget(this);
+      main.HUDSet.add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+  
+  final private class SealedFrag extends Enemy implements BossEnemy{
+    int num=0;
+    
+    SealedFrag(int i){
+      setColor(new Color(0,255,255));
+      num=i;
+      init();
+    }
+    
+    @Override
+    protected void init(){
+      setHP(200);
+      setExpMag(0.8);
+      maxSpeed=0;
+      rotateSpeed=0;
+      setSize(16);
+      setMass(1000);
+      setColor(new Color(230,180,34));
+      co_type=CollisionType.Inside;
+    }
+    
+    @Override
+    void EnemyCollision(Enemy e){}
   }
 }
 

@@ -76,6 +76,9 @@ class GameProcess{
        case "Stage4":player.subWeapons.add(masterTable.get("G_Shot").getWeapon());
                      player.subWeapons.add(masterTable.get("Grenade").getWeapon());
                      break;
+       case "Stage5":player.subWeapons.add(masterTable.get("Fire").getWeapon());
+                     player.subWeapons.add(masterTable.get("Lightning").getWeapon());
+                     break;
      }
   }
   
@@ -191,10 +194,15 @@ class GameProcess{
     }
     done=false;
     background(0);
-    testShader.set("time",0);
-    testShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
-    testShader.set("resolution",width,height);
-    filter(testShader);
+    if(HighQuality){
+      Title_HighShader.set("time",0);
+      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      Title_HighShader.set("resolution",width,height);
+      filter(Title_HighShader);
+    }else{
+      backgroundShader.set("offset",player.pos.x,-player.pos.y);
+      filter(backgroundShader);
+    }
     drawShape();
     if(gameOver){
       StageFlag.add("Game_Over");
