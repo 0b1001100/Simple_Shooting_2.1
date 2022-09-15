@@ -10,6 +10,7 @@ class Myself extends Entity{
   Status HP;
   Status Attak;
   Status Defence;
+  boolean useSub=true;
   boolean autoShot=true;
   boolean levelup=false;
   boolean shield=false;
@@ -29,6 +30,7 @@ class Myself extends Entity{
   float coolingTime=0;
   float invincibleTime=0;
   float magnetDist=40;
+  float speedMag=1;
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
@@ -54,6 +56,7 @@ class Myself extends Entity{
       HeapEntity.get(0).add(new Explosion(this,250,1).Infinity(true));
       NextEntities.add(new Particle(this,(int)(size*3),1));
     });
+    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -94,9 +97,9 @@ class Myself extends Entity{
         Rotate();
         move();
       }
-      if(HP.get().intValue()<=0){
+      if(HP.get().floatValue()<=0){
         isDead=true;
-        main.EventSet.add("player_dead");
+        main.EventSet.put("player_dead","");
         return;
       }
       keyEvent();
@@ -107,7 +110,7 @@ class Myself extends Entity{
       }
       effects=nextEffects;
     }
-    subWeapons.forEach(w->{w.update();});
+    if(useSub)subWeapons.forEach(w->{w.update();});
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
     invincibleTime=max(0,invincibleTime-0.016*vectorMagnification);
@@ -210,7 +213,7 @@ class Myself extends Entity{
   private void addVel(float accel,boolean force){
     if(!force){
       Speed+=accel*vectorMagnification;
-      Speed=min(maxSpeed,Speed);
+      Speed=min(maxSpeed*speedMag,Speed);
     }else{
       Speed+=accel*vectorMagnification;
     }
@@ -252,25 +255,48 @@ class Myself extends Entity{
   
   void resetSpeed(){
     Speed=dist(0,0,vel.x,vel.y)*sign(Speed);
-    Speed=min(abs(Speed),maxSpeed)/vectorMagnification*sign(Speed);
+    Speed=min(abs(Speed),maxSpeed*speedMag)/vectorMagnification*sign(Speed);
   }
   
   @Override
-  void Collision(Entity e){
-    if(e instanceof Explosion){
-      if(!((Explosion)e).myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
-        Hit(((Explosion)e).power);
-      }
-    }else if((e instanceof Enemy)||e instanceof WallEntity){
-      e.Collision(this);
-    }else if(e instanceof Bullet){
-      if(!((Bullet)e).isMine){
-        if(CircleCollision(pos,size,e.pos,e.vel)){
-          e.isDead=true;
-          Hit(((Bullet)e).power);
-        }
+  public void Collision(Entity e){
+    if(e.co_type==CollisionType.Inside){
+      e.MyselfCollision(this);
+    }else{
+      if(e instanceof Explosion){
+        ExplosionCollision((Explosion)e);
+      }else if(e instanceof Enemy){
+        EnemyCollision((Enemy)e);
+      }else if(e instanceof Bullet){
+        BulletCollision((Bullet)e);
+      }else if(e instanceof Myself){
+        MyselfCollision((Myself)e);
+      }else if(e instanceof WallEntity){
+        WallCollision((WallEntity)e);
       }
     }
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){
+    if(!e.myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
+      Hit(e.power);
+    }
+  }
+  
+  @Override
+  void EnemyCollision(Enemy e){
+    e.MyselfCollision(this);
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    if(!b.isMine)b.MyselfCollision(this);
+  }
+  
+  @Override
+  void WallCollision(WallEntity w){
+    w.MyselfCollision(this);
   }
   
   protected void Hit(float d){
@@ -284,24 +310,63 @@ class Myself extends Entity{
 
 class Satellite extends Entity{
   SatelliteWeapon satellite;
+  PVector target;
+  float rad=0;
+  float cooltime=0;
+  float maxCooltime=15;
+  float attackTime=0;
+  boolean attack=false;
   
   Satellite(SatelliteWeapon w){
     satellite=w;
+    rad=random(0,TWO_PI);
+    pos=player.pos.copy().add(new PVector(140,0).rotate(rad));
+    init();
   }
   
   void init(){
-    
+    setColor(new Color(0,255,150));
+    setSize(15);
   }
   
-  void display(){
-    
+  @Override
+  void display(PGraphics g){
+    g.noFill();
+    g.stroke(toColor(c));
+    g.strokeWeight(1);
+    g.triangle(pos.x+cos(rotate)*size,pos.y+sin(rotate)*size,pos.x+cos(rotate+TWO_PI/3)*size,pos.y+sin(rotate+TWO_PI/3)*size,pos.x+cos(rotate-TWO_PI/3)*size,pos.y+sin(rotate-TWO_PI/3)*size);
   }
   
+  @Override
   void update(){
-    
+    cooltime+=vectorMagnification;
+    if(attack){
+      attackTime+=vectorMagnification;
+      if(cooltime>maxCooltime){
+        shot();
+        cooltime=0;
+        if(attackTime>=satellite.duration){
+          attack=false;
+          attackTime=0;
+        }
+      }
+    }else{
+      if(cooltime>satellite.coolTime){
+        attack=true;
+        cooltime=0;
+      }
+    }
+    rotate+=radians(vectorMagnification)*2;
+    rotate%=TWO_PI;
+    rad=atan2(player.pos,pos);
+    vel=new PVector(2,0).rotate(-rad);
+    vel.add(new PVector(0.01*(dist(pos,player.pos)-140),0).rotate(-rad-HALF_PI));
+    vel.normalize().mult(max(1.7,dist(pos,player.pos)/70));
+    pos.add(vel);
   }
   
   void shot(){
-    
+    target=player.pos.copy().add(player.pos.copy().sub(pos));
+    NextEntities.add(new SatelliteBullet(satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
   }
 }

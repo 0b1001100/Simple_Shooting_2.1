@@ -76,7 +76,7 @@ class EntityCollision implements Callable<String>{
       if(SortedDataX[j].getType().equals("e")){
         continue;
       }
-      if(abs(e.Center.y-E.Center.y)<=abs((e.AxisSize.y+E.AxisSize.y)*0.5)){
+      if(abs(e.Center.y-E.Center.y)<=(e.AxisSize.y+E.AxisSize.y)*0.5){
         E.Collision(e);
       }
     }
@@ -123,7 +123,7 @@ class saveConfig implements Runnable{
   void run(){
     if(!StageFlag.contains("Game_Over")){
       conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
-      saveJSONObject(conf,".\\data\\save\\config.json");
+      saveJSONObject(conf,SavePath+"config.json");
     }
   }
 }

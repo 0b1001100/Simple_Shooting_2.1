@@ -1,0 +1,7 @@
+{
+  "java.project.referencedLibraries": [
+    "lib/**/*.jar",
+    "Library/parser.jar",
+    "c:\\Users\\okumura\\Documents\\Processing\\libraries\\antlr\\library\\antlr.jar"
+  ]
+}

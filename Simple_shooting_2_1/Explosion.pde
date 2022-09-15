@@ -54,20 +54,54 @@ class Explosion extends Enemy{
   }
   
   @Override
-  void Collision(Entity e){
-    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
+  public void Collision(Entity e){
+    if(e.co_type==CollisionType.Inside){
+      e.EnemyCollision(this);
+    }else{
+      if(e instanceof Explosion){
+        ExplosionCollision((Explosion)e);
+      }else if(e instanceof Enemy){
+        EnemyCollision((Enemy)e);
+      }else if(e instanceof Bullet){
+        BulletCollision((Bullet)e);
+      }else if(e instanceof Myself){
+        MyselfCollision((Myself)e);
+      }else if(e instanceof WallEntity){
+        WallCollision((WallEntity)e);
+      }
+    }
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){}
+  
+  @Override
+  void EnemyCollision(Enemy e){
+    if(!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
       HitEnemy.add(e);
       if(inf){
         if(e instanceof BossEnemy){
-          ((Enemy)e).Hit(power);
+          e.Hit(power);
           return;
         }
-        ((Enemy)e).Down();
+        e.Down();
         e.dead.deadEvent(e);
       }else{
-        ((Enemy)e).Hit(power);
+        e.Hit(power);
       }
+    }else if(e instanceof ExplosionEnemy){
+      e.ExplosionCollision(this);
     }
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    b.EnemyCollision(this);
+  }
+  
+  @Override
+  void MyselfCollision(Myself m){
+    m.ExplosionCollision(this);
   }
   
   @Override
@@ -91,8 +125,8 @@ class BulletExplosion extends Explosion{
   }
   
   @Override
-  void Collision(Entity e){
-    if((e instanceof Enemy)&&!(e instanceof Explosion)&&!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
+  void EnemyCollision(Enemy e){
+    if(!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
       HitEnemy.add(e);
       ((Enemy)e).Hit(parent);
     }

@@ -1,7 +1,7 @@
 class Stage{
   HashMap<String,ArrayList<TimeSchedule>> t;
   ArrayList<SpownPoint>spown;
-  ArrayList<Enemy>autoEnemy;
+  HashMap<Enemy,Float>autoEnemy;
   boolean displaySpown;
   boolean endSchedule;
   String name;
@@ -13,7 +13,7 @@ class Stage{
   Stage(){
     t=new HashMap<String,ArrayList<TimeSchedule>>();
     spown=new ArrayList<SpownPoint>();
-    autoEnemy=new ArrayList<Enemy>();
+    autoEnemy=new HashMap<Enemy,Float>();
     displaySpown=false;
     endSchedule=false;
     score=0;
@@ -78,11 +78,10 @@ class Stage{
     }catch(CloneNotSupportedException f){}
   }
   
-  void autoSpown(boolean b,float freq,Enemy... e){
+  void autoSpown(boolean b,float freq,HashMap<Enemy,Float> map){
     this.freq=freq;
     displaySpown=b;
-    autoEnemy.clear();
-    autoEnemy.addAll(Arrays.asList(e));
+    autoEnemy=map;
   }
   
   void clearSpown(){
@@ -94,31 +93,7 @@ class Stage{
   }
   
   void update(){
-    if(freq!=0&&random(0,1)<freq*vectorMagnification){
-      float r=TWO_PI*random(0,1);
-      PVector v=new PVector(cos(r)*(width+height),sin(r)*(width+height));
-      for(int i=0;i<4;i++){
-        PVector p=new PVector();
-        switch(i){
-          case 0:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(width,0),player.pos.copy(),v);break;
-          case 1:p=SegmentCrossPoint(scroll.copy().mult(-1).add(0,height),new PVector(width,0),player.pos.copy(),v);break;
-          case 2:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(0,height),player.pos.copy(),v);break;
-          case 3:p=SegmentCrossPoint(scroll.copy().mult(-1).add(width,0),new PVector(0,height),player.pos.copy(),v);break;
-        }
-        if(p!=null){
-          v=p;
-          break;
-        }
-      }
-      try{
-        Enemy e=autoEnemy.get(round(random(0,autoEnemy.size()-1))).clone();
-        if(displaySpown){
-          spown.add(new SpownPoint(v.add(cos(r)*e.size,sin(r)*e.size),e));
-        }else{
-          NextEntities.add(e.setPos(v.add(cos(r)*e.size,sin(r)*e.size)));
-        }
-      }catch(CloneNotSupportedException f){}
-    }
+    spownEnemy();
     scheduleUpdate();
     ArrayList<SpownPoint>nextSpown=new ArrayList<SpownPoint>(spown.size());
     spown.forEach(s->{
@@ -127,6 +102,42 @@ class Stage{
     });
     spown=nextSpown;
     time+=vectorMagnification;
+  }
+  
+  void spownEnemy(){
+    if(freq!=0&&random(0,1)<freq*vectorMagnification){
+      float r=TWO_PI*random(0,1);
+      PVector[] v={new PVector(cos(r)*(width+height),sin(r)*(width+height))};
+      for(int i=0;i<4;i++){
+        PVector p=new PVector();
+        switch(i){
+          case 0:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(width,0),player.pos.copy(),v[0]);break;
+          case 1:p=SegmentCrossPoint(scroll.copy().mult(-1).add(0,height),new PVector(width,0),player.pos.copy(),v[0]);break;
+          case 2:p=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(0,height),player.pos.copy(),v[0]);break;
+          case 3:p=SegmentCrossPoint(scroll.copy().mult(-1).add(width,0),new PVector(0,height),player.pos.copy(),v[0]);break;
+        }
+        if(p!=null){
+          v[0]=p;
+          break;
+        }
+      }
+      Enemy[] e={null};
+      float rand=random(0,1);
+      float[] sum={0};
+      autoEnemy.forEach((ene,freq)->{
+        try{
+          if(sum[0]<=rand&rand<sum[0]+freq){
+            e[0]=ene.clone();
+            if(displaySpown){
+              spown.add(new SpownPoint(v[0].add(cos(r)*e[0].size,sin(r)*e[0].size),e[0]));
+            }else{
+              NextEntities.add(e[0].setPos(v[0].add(cos(r)*e[0].size,sin(r)*e[0].size)));
+            }
+          }
+          sum[0]+=freq;
+        }catch(CloneNotSupportedException f){}
+      });
+    }
   }
   
   void scheduleUpdate(){

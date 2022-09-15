@@ -41,9 +41,14 @@ class Exp extends Entity{
   
   void update(){
     if(inScreen&&qDist(player.pos,pos,player.magnetDist)&&player.canMagnet){
+      getProcess();
       player.exp+=this.exp;
       isDead=true;
     }
+  }
+  
+  void getProcess(){
+    
   }
   
   void setPos(PVector p){

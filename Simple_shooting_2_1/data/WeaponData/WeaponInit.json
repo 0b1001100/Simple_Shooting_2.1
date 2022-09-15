@@ -9,7 +9,11 @@
     "velocity":5,
     "duration":90,
     "cooltime":210,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"Grenade",
@@ -21,7 +25,11 @@
     "velocity":5,
     "duration":30,
     "cooltime":210,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"Turret",
@@ -33,19 +41,77 @@
     "velocity":5,
     "duration":200,
     "cooltime":150,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"MP5",
+      "need":[
+        {
+          "name":"Turret",
+          "type":"use"
+        },
+        {
+          "name":"cooltime",
+          "type":"exist"
+        }
+      ]
+    }
+  },
+  {
+    "name":"MP5",
+    "type":"next_weapon",
+    "weight":10,
+    "projectile":1,
+    "scale":0,
+    "power":12,
+    "velocity":6,
+    "duration":200,
+    "cooltime":10,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"Mirror",
     "type":"weapon",
     "weight":40,
-    "projectile":1,
+    "projectile":2,
     "scale":15,
-    "power":2,
-    "velocity":3,
+    "power":3,
+    "velocity":4,
     "duration":120,
     "cooltime":230,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"InfinityShield",
+      "need":[
+        {
+          "name":"Mirror",
+          "type":"use"
+        },
+        {
+          "name":"duration",
+          "type":"exist"
+        }
+      ]
+    }
+  },
+  {
+    "name":"InfinityShield",
+    "type":"next_weapon",
+    "weight":10,
+    "projectile":8,
+    "scale":35,
+    "power":10,
+    "velocity":11,
+    "duration":300,
+    "cooltime":300,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"PlasmaField",
@@ -57,7 +123,11 @@
     "velocity":0,
     "duration":0,
     "cooltime":60,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"Laser",
@@ -69,7 +139,36 @@
     "velocity":4,
     "duration":140,
     "cooltime":150,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"Electron",
+      "need":[
+        {
+          "name":"Laser",
+          "type":"use"
+        },
+        {
+          "name":"speed",
+          "type":"exist"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Electron",
+    "type":"next_weapon",
+    "weight":7,
+    "projectile":4,
+    "scale":0,
+    "power":9,
+    "velocity":6,
+    "duration":250,
+    "cooltime":85,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"Lightning",
@@ -78,10 +177,14 @@
     "projectile":1,
     "scale":2,
     "power":2,
-    "velocity":0,
-    "duration":0,
+    "velocity":1,
+    "duration":6,
     "cooltime":170,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"Reflector",
@@ -93,7 +196,75 @@
     "velocity":3,
     "duration":90,
     "cooltime":150,
-    "through":0
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
+  },
+  {
+    "name":"Absorption",
+    "type":"weapon",
+    "weight":20,
+    "projectile":1,
+    "scale":120,
+    "power":20,
+    "velocity":0,
+    "duration":0,
+    "cooltime":0,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
+  },
+  {
+    "name":"Fire",
+    "type":"weapon",
+    "weight":22,
+    "projectile":1,
+    "scale":120,
+    "power":1,
+    "velocity":2,
+    "duration":150,
+    "cooltime":240,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
+  },
+  {
+    "name":"Ice",
+    "type":"weapon",
+    "weight":22,
+    "projectile":1,
+    "scale":120,
+    "power":1,
+    "velocity":2,
+    "duration":150,
+    "cooltime":240,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
+  },
+  {
+    "name":"Satellite",
+    "type":"weapon",
+    "weight":22,
+    "projectile":1,
+    "scale":5,
+    "power":3,
+    "velocity":4,
+    "duration":120,
+    "cooltime":200,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
   },
   {
     "name":"projectile",

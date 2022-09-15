@@ -6,7 +6,7 @@
     },
     {
       "name":["power","weight"],
-      "power":3,
+      "power":2,
       "weight":40
     },
     {
@@ -15,7 +15,7 @@
     },
     {
       "name":["power","cooltime"],
-      "power":4,
+      "power":2,
       "cooltime":30
     },
     {
@@ -24,12 +24,14 @@
       "weight":30
     },
     {
-      "name":["power"],
-      "power":5
+      "name":["power","cooltime"],
+      "power":2,
+      "cooltime":15
     },
     {
-      "name":["projectile","weight"],
+      "name":["projectile","cooltime","weight"],
       "projectile":1,
+      "cooltime":10,
       "weight":0
     }
   ],
@@ -110,9 +112,10 @@
   ],
   "Mirror":[
     {
-      "name":["cooltime","power"],
+      "name":["cooltime","power","velocity"],
       "cooltime":10,
-      "power":1
+      "power":1,
+      "velocity":1
     },
     {
       "name":["scale","projectile","weight"],
@@ -121,23 +124,26 @@
       "weight":30
     },
     {
-      "name":["projectile","power"],
+      "name":["projectile","power","velocity"],
       "projectile":1,
-      "power":1
+      "power":1,
+      "velocity":1
     },
     {
-      "name":["duration","power"],
+      "name":["projectile","duration","power"],
+      "projectile":1,
       "duration":30,
       "power":2
     },
     {
-      "name":["projectile","velocity"],
+      "name":["cooltime","projectile","velocity"],
+      "cooltime":20,
       "projectile":1,
       "velocity":2
     },
     {
-      "name":["projectile","scale","power"],
-      "projectile":1,
+      "name":["cooltime","scale","power"],
+      "cooltime":10,
       "scale":5,
       "power":2
     },
@@ -229,8 +235,9 @@
   ],
   "Lightning":[
     {
-      "name":["cooltime"],
-      "cooltime":20
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":1
     },
     {
       "name":["power","cooltime"],
@@ -243,8 +250,9 @@
       "scale":1
     },
     {
-      "name":["cooltime","weight"],
+      "name":["cooltime","power","weight"],
       "cooltime":20,
+      "power":2,
       "weight":20
     },
     {
@@ -267,8 +275,9 @@
   ],
   "Reflector":[
     {
-      "name":["power"],
-      "power":2
+      "name":["power","projectile"],
+      "power":2,
+      "projectile":1
     },
     {
       "name":["velocity","cooltime"],
@@ -288,8 +297,9 @@
       "power":1
     },
     {
-      "name":["duration","power"],
+      "name":["duration","cooltime","power"],
       "duration":30,
+      "cooltime":15,
       "power":2
     },
     {
@@ -304,97 +314,235 @@
       "weight":0
     }
   ],
+  "Absorption":[
+    {
+      "name":["scale","power"],
+      "scale":30,
+      "power":5
+    },
+    {
+      "name":["scale","power","weight"],
+      "scale":40,
+      "power":5,
+      "weight":15
+    },
+    {
+      "name":["scale","power"],
+      "scale":45,
+      "power":5
+    },
+    {
+      "name":["scale","power","weight"],
+      "scale":45,
+      "power":5,
+      "weight":0
+    }
+  ],
+  "Fire":[
+    {
+      "name":["cooltime"],
+      "cooltime":20
+    },
+    {
+      "name":["velocity","duration"],
+      "velocity":1,
+      "duration":20
+    },
+    {
+      "name":["projectile","scale","weight"],
+      "projectile":1,
+      "scale":20,
+      "weight":18
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["duration","scale"],
+      "duration":30,
+      "scale":20
+    },
+    {
+      "name":["cooltime"],
+      "cooltime":20
+    },
+    {
+      "name":["duration","projectile","weight"],
+      "duration":20,
+      "projectile":1,
+      "weight":0
+    }
+  ],
+  "Ice":[
+    {
+      "name":["cooltime"],
+      "cooltime":20
+    },
+    {
+      "name":["velocity","duration"],
+      "velocity":1,
+      "duration":20
+    },
+    {
+      "name":["projectile","scale","weight"],
+      "projectile":1,
+      "scale":20,
+      "weight":18
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["duration","scale"],
+      "duration":30,
+      "scale":20
+    },
+    {
+      "name":["cooltime"],
+      "cooltime":20
+    },
+    {
+      "name":["duration","projectile","weight"],
+      "duration":20,
+      "projectile":1,
+      "weight":0
+    }
+  ],
+  "Satellite":[
+    {
+      "name":["power","projectile"],
+      "power":2,
+      "projectile":1
+    },
+    {
+      "name":["velocity","cooltime"],
+      "velocity":1,
+      "cooltime":20
+    },
+    {
+      "name":["projectile","duration","weight"],
+      "projectile":1,
+      "duration":20,
+      "weight":15
+    },
+    {
+      "name":["cooltime","power","velocity"],
+      "velocity":1,
+      "cooltime":20,
+      "power":2
+    },
+    {
+      "name":["duration","cooltime","power"],
+      "duration":30,
+      "cooltime":20,
+      "power":2
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":2
+    },
+    {
+      "name":["duration","weight"],
+      "duration":20,
+      "weight":0
+    }
+  ],
   "projectile":[
     {
-      "name":["value","weight"],
-      "value":1,
+      "name":["projectile","weight"],
+      "projectile":1,
       "weight":0
     }
   ],
   "scale":[
     {
-      "name":["value"],
-      "value":10
+      "name":["scale"],
+      "scale":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["scale"],
+      "scale":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["scale"],
+      "scale":10
     },
     {
-      "name":["value","weight"],
-      "value":10,
+      "name":["scale","weight"],
+      "scale":10,
       "weight":0
     }
   ],
   "power":[
     {
-      "name":["value"],
-      "value":10
+      "name":["power"],
+      "power":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["power"],
+      "power":10
     },
     {
-      "name":["value","weight"],
-      "value":10,
+      "name":["power","weight"],
+      "power":10,
       "weight":0
     }
   ],
   "speed":[
     {
-      "name":["value"],
-      "value":10
+      "name":["velocity"],
+      "velocity":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["velocity"],
+      "velocity":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["velocity"],
+      "velocity":10
     },
     {
-      "name":["value","weight"],
-      "value":10,
+      "name":["velocity","weight"],
+      "velocity":10,
       "weight":0
     }
   ],
   "duration":[
     {
-      "name":["value"],
-      "value":10
+      "name":["duration"],
+      "duration":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["duration"],
+      "duration":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["duration"],
+      "duration":10
     },
     {
-      "name":["value","weight"],
-      "value":10,
+      "name":["duration","weight"],
+      "duration":10,
       "weight":0
     }
   ],
   "cooltime":[
     {
-      "name":["value"],
-      "value":10
+      "name":["cooltime"],
+      "cooltime":10
     },
     {
-      "name":["value"],
-      "value":10
+      "name":["cooltime"],
+      "cooltime":10
     },
     {
-      "name":["value","weight"],
-      "value":10,
+      "name":["cooltime","weight"],
+      "cooltime":10,
       "weight":0
     }
   ]

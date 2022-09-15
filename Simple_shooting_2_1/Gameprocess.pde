@@ -1,14 +1,12 @@
 class GameProcess{
-  HashSet<String>EventSet;
+  HashMap<String,String>EventSet;
+  HashMap<String,Command>CommandQue=new HashMap<String,Command>();
   ComponentSet HUDSet;
   ComponentSet UpgradeSet;
+  ComponentSet PauseSet;
   WallEntity[] wall=null;
   Color menuColor=new Color(230,230,230);
   PVector FieldSize=null;
-  PFont font_20;
-  PFont font_15;
-  PShader menuShader;
-  PShader backgroundShader;
   float UItime=0;
   boolean gameOver=false;
   boolean animation=false;
@@ -29,18 +27,19 @@ class GameProcess{
   
    public void setup(){
     init();
-    font_20=createFont("SansSerif.plain",20);
-    font_15=createFont("SansSerif.plain",15);
   }
   
    public void init(){
      FieldSize=null;
-     EventSet=new HashSet<String>();
+     EventSet=new HashMap<String,String>();
      HUDSet=new ComponentSet();
      UpgradeSet=new ComponentSet();
+     PauseSet=new ComponentSet();
+     initPause();
      stageLayer=new ComponentSetLayer();
      stageLayer.addLayer("root",UpgradeSet);
      stageLayer.addSubChild("root","HUD",HUDSet);
+     initStatus();
      Entities=new ArrayList<Entity>();
      nearEnemy.clear();
      player=new Myself();
@@ -54,7 +53,10 @@ class GameProcess{
      addtionalSpeed=1;
      addtionalDuration=1;
      reductionCoolTime=1;
-     backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
+     playerTable.clear();
+     Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{
+       playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());
+     });
      playerTable.getAll().forEach(i->{
        i.reset();
        playerTable.addTable(i,i.weight);
@@ -65,15 +67,49 @@ class GameProcess{
        case "Stage1":player.subWeapons.add(masterTable.get("Laser").getWeapon());
                      player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
                      break;
+       case "Stage2":player.subWeapons.add(masterTable.get("Mirror").getWeapon());
+                     player.subWeapons.add(masterTable.get("Reflector").getWeapon());
+                     break;
+       case "Stage3":player.subWeapons.add(masterTable.get("Turret").getWeapon());
+                     player.subWeapons.add(masterTable.get("Satellite").getWeapon());
+                     break;
+       case "Stage4":player.subWeapons.add(masterTable.get("G_Shot").getWeapon());
+                     player.subWeapons.add(masterTable.get("Grenade").getWeapon());
+                     break;
+       case "Stage5":player.subWeapons.add(masterTable.get("Fire").getWeapon());
+                     player.subWeapons.add(masterTable.get("Lightning").getWeapon());
+                     break;
      }
+  }
+  
+  private void initPause(){
+    SkeletonButton back=new SkeletonButton(getLanguageText("me_back"));
+    back.setBounds(width*0.5-90,height*0.5-36,180,37);
+    back.addWindowResizeEvent(()->{
+      back.setBounds(width*0.5-90,height*0.5-36,180,37);
+    });
+    back.addListener(()->{
+      menu=false;
+      pause=false;
+    });
+    SkeletonButton menu=new SkeletonButton(getLanguageText("me_menu"));
+    menu.setBounds(width*0.5-90,height*0.5+36,180,37);
+    menu.addWindowResizeEvent(()->{
+      menu.setBounds(width*0.5-90,height*0.5+36,180,37);
+    });
+    menu.addListener(()->{
+      done=true;
+      scene=0;
+    });
+    PauseSet.addAll(back,menu);
   }
   
   private void initTutorial(){
     player.canMagnet=false;
     HUDText tu_upgrade=new HUDText(Language.getString("tu_upgrade"));
-    tu_upgrade.setBounds(width*0.5+200,height*0.5-200,0,0);
+    tu_upgrade.setBounds(width*0.5f+200,height*0.5f-200,0,0);
     tu_upgrade.addWindowResizeEvent(()->{
-      tu_upgrade.setBounds(width*0.5+200,height*0.5-200,0,0);
+      tu_upgrade.setBounds(width*0.5f+200,height*0.5f-200,0,0);
     });
     tu_upgrade.setProcess(()->{
       if(!upgrade){
@@ -158,8 +194,15 @@ class GameProcess{
     }
     done=false;
     background(0);
-    backgroundShader.set("offset",player.pos.x,-player.pos.y);
-    filter(backgroundShader);
+    if(HighQuality){
+      Title_HighShader.set("time",0);
+      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      Title_HighShader.set("resolution",width,height);
+      filter(Title_HighShader);
+    }else{
+      backgroundShader.set("offset",player.pos.x,-player.pos.y);
+      filter(backgroundShader);
+    }
     drawShape();
     if(gameOver){
       StageFlag.add("Game_Over");
@@ -177,6 +220,7 @@ class GameProcess{
 
   public void updateShape(){
     if(!pause){
+      EntitySet=new HashSet(Entities);
       for(int i=0;i<nearEnemy.size();i++){
         Enemy e=nearEnemy.get(i);
         if(e!=null&&(e.isDead||!e.inScreen)){
@@ -190,6 +234,7 @@ class GameProcess{
           return Float.compare(e1.playerDistsq,e2.playerDistsq);
         }
       });
+      applyStaus();
       player.update();
       stage.update();
     }else{
@@ -280,6 +325,12 @@ class GameProcess{
         }
       });
     }
+    HashMap<String,Command>nextQue=new HashMap<String,Command>();
+    CommandQue.forEach((k,v)->{
+      v.update();
+      if(!v.isDead())nextQue.put(k,v);
+    });
+    CommandQue=nextQue;
   }
   
   public void drawShape(){
@@ -321,11 +372,26 @@ class GameProcess{
       Entities.forEach(e->{e.display(g);});
     }
     if(!player.isDead)player.display(g);
-    for(GravityBullet G:LensData){
+    if(LensData.size()>0){
+      loadPixels();
+      float[] centers=new float[20];
+      float[] rads=new float[10];
+      for(int i=0;i<10;i++){
+        if(i<LensData.size()){
+          centers[2*i]=LensData.get(i).screen.x;
+          centers[2*i+1]=LensData.get(i).screen.y;
+          rads[i]=LensData.get(i).scale*0.1f;
+        }else{
+          centers[2*i]=0;
+          centers[2*i+1]=0;
+          rads[i]=1;
+        }
+      }
+      GravityLens.set("center",centers,2);
+      GravityLens.set("g",rads);
+      GravityLens.set("len",LensData.size());
       GravityLens.set("texture",g);
-      GravityLens.set("center",G.screen.x,G.screen.y);
       GravityLens.set("resolution",width,height);
-      GravityLens.set("g",G.scale*0.1);
       applyShader(GravityLens);
     }
     LensData.clear();
@@ -337,14 +403,13 @@ class GameProcess{
   public void displayHUD(){
     push();
     resetMatrix();
-    if(upgrade){
-      fill(240);
-      noStroke();
-      rectMode(CENTER);
-      rect(width/2,height/2,400,600);
-    }
     stageLayer.display();
-    stageLayer.update();
+    if(menu){
+      PauseSet.display();
+      PauseSet.update();
+    }else{
+      stageLayer.update();
+    }
     rectMode(CORNER);
     noFill();
     stroke(200);
@@ -359,7 +424,7 @@ class GameProcess{
     text("LEVEL "+player.Level,190,52);
     textFont(font_15);
     textAlign(CENTER);
-    text("Time "+nf(floor(stage.time/3600),2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5,78);
+    text("Time "+nf(floor(stage.time/3600),2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5f,78);
     pop();
   }
   
@@ -370,8 +435,8 @@ class GameProcess{
     }
   }
   
-  void EventProcess(){
-    if(EventSet.contains("end_upgrade")){
+   public void EventProcess(){
+    if(EventSet.containsKey("end_upgrade")){
       UpgradeSet.removeAll();
       if(player.levelupNumber<1){
         pause=false;
@@ -379,32 +444,66 @@ class GameProcess{
         player.levelup=true;
       }
     }
+    if(EventSet.containsKey("getNextWeapon")){
+      String[] src=EventSet.get("getNextWeapon").split("_");
+      for(String s:src){
+        JSONArray a=nextDataMap.get(s);
+        for(int i=0;i<a.size();i++){
+          if(a.getJSONObject(i).getString("type").equals("use")){
+            player.subWeapons.remove(masterTable.get(a.getJSONObject(i).getString("name")).w);
+          }
+        }
+        playerTable.addTable(playerTable.get(s),playerTable.get(s).weight);
+      }
+    }
+    if(EventSet.containsKey("addNextWeapon")){
+      String[] src=EventSet.get("addNextWeapon").split("_");
+      for(String s:src){
+        Item i=masterTable.get(s);
+        playerTable.addTable(i,i.weight);
+      }
+    }
   }
   
-  void upgrade(){
+   public void upgrade(){
     if(player.levelup){
-      EventSet.add("start_upgrade");
+      EventSet.put("start_upgrade","");
       upgrade=true;
-      int num=min(playerTable.probSize(),3);
+      int num=min(playerTable.probSize(),round(random(3,3.55)));
       Item[]list=new Item[num];
       ItemTable copy=playerTable.clone();
       for(int i=0;i<num;i++){
         list[i]=copy.getRandomWeapon();
         switch(i){
-          case 0:if(sumLevel>=17&&0.5>random(1))list[i]=copy.getRandomItem();break;
-          case 1:if(sumLevel>=9&&0.5>random(1))list[i]=copy.getRandomItem();break;
-          case 2:if(sumLevel>=4&&0.5>random(1))list[i]=copy.getRandomItem();break;
-          case 3:if(sumLevel>=2&&0.4>random(1))list[i]=copy.getRandomItem();break;
+          case 0:if((sumLevel>=17&&0.5f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
+          case 1:if((sumLevel>=9&&0.5f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
+          case 2:if((sumLevel>=4&&0.5f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
+          case 3:if((sumLevel>=2&&0.4f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
         }
+        if(list[i]==null)list[i]=copy.getRandom();
         copy.removeTable(list[i].getName());
       }
       UpgradeSet.removeAll();
-      MenuButton[]buttons=new MenuButton[num];
+      UpgradeButton[]buttons=new UpgradeButton[num];
       for(int i=0;i<num;i++){
-        buttons[i]=(MenuButton)new MenuButton(list[i].getName()+"  Level"+(list[i].getWeapon()==null?list[i].level:(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1))).setBounds(width/2-150,height/2-60+45*i,300,30);
+        buttons[i]=(UpgradeButton)new UpgradeButton(list[i].getName()+"  Level"+(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1)).setBounds(width*0.45,100+(height-100)*0.25*i,width*0.5,(height-100)*0.225);
+        if(player.subWeapons.contains(list[i].w)){
+          if(list[i].type.equals("item")){
+            buttons[i].setExplanation(getLanguageText("ex_"+list[i].getName()));
+          }else{
+            String res="";
+            for(String t:list[i].upgradeData.getJSONObject(list[i].level-1).getJSONArray("name").getStringArray()){
+              if(!t.equals("weight"))res+=getLanguageText("ex_param_"+t)+list[i].upgradeData.getJSONObject(list[i].level-1).getInt(t)+"\n";
+            }
+            buttons[i].setExplanation(res);
+          }
+        }else{
+          buttons[i].setExplanation(getLanguageText("ex_"+list[i].getName()));
+        }
+        buttons[i].setType(list[i].type);
         int[] lambdaI={i};
         buttons[i].addWindowResizeEvent(()->{
-          buttons[lambdaI[0]].setBounds(width/2-150,height/2-60+45*lambdaI[0],300,30);
+          buttons[lambdaI[0]].setBounds(width*0.45,100+(height-100)*0.25*lambdaI[0],width*0.5,(height-100)*0.225);
         });
         Item item=list[i];
         buttons[i].addListener(()->{
@@ -416,55 +515,50 @@ class GameProcess{
             player.subWeapons.add(item.getWeapon());
             ++sumLevel;
           }else if(item.getType().equals("item")){
-            if(item.level==1){
-              switch(item.getName()){
-                case "projectile":addtionalProjectile+=(int)item.getData();break;
-                case "scale":addtionalScale+=item.getData()*0.01;break;
-                case "power":addtionalPower+=item.getData()*0.01;break;
-                case "speed":addtionalSpeed+=item.getData()*0.01;break;
-                case "duration":addtionalDuration+=item.getData()*0.01;break;
-                case "cooltime":reductionCoolTime-=item.getData()*0.01;break;
-              }
-              ++item.level;
-            }else{
-              item.update();
-              switch(item.getName()){
-                case "projectile":addtionalProjectile+=(int)item.getData(item.level);break;
-                case "scale":addtionalScale+=item.getData(item.level)*0.01;break;
-                case "power":addtionalPower+=item.getData(item.level)*0.01;break;
-                case "speed":addtionalSpeed+=item.getData(item.level)*0.01;break;
-                case "duration":addtionalDuration+=item.getData(item.level)*0.01;break;
-                case "cooltime":reductionCoolTime-=item.getData(item.level)*0.01;break;
-              }
-              ++item.level;
-            }
+            player.subWeapons.add(item.getWeapon());
+            item.getWeapon().update();
+          }else if(item.getType().equals("next_weapon")){
+            item.update();
+            player.subWeapons.add(item.getWeapon());
           }
-          player.subWeapons.forEach(w->{
-            w.reInit();
-          });
+          applyStaus();
           --player.levelupNumber;
+          playerTable.table.forEach((k,v)->{
+            v.checkNext();
+          });
           upgrade=false;
-          EventSet.add("end_upgrade");
+          EventSet.put("end_upgrade","");
         });
       }
+      Canvas c=new Canvas(g);
+      c.setContent((g->{
+        rectMode(CORNER);
+        noStroke();
+        fill(0,50);
+        rect(0,0,width,height);
+      }));
+      UpgradeSet.add(c);
       UpgradeSet.addAll(buttons);
+      if(UpgradeSet.selectedIndex<=0)UpgradeSet.addSelect();
+      UpgradeSet.addSelect();
+      UpgradeSet.subSelect();
       player.levelup=false;
     }
   }
   
-  void setWall(){
+   public void setWall(){
     if(FieldSize==null)return;
     if(wall==null){
       wall=new WallEntity[4];
-      wall[0]=new WallEntity(FieldSize.copy().mult(-0.5),new PVector(FieldSize.x,0));
-      wall[1]=new WallEntity(new PVector(FieldSize.x*-0.5,FieldSize.y*0.5),new PVector(FieldSize.x,0));
-      wall[2]=new WallEntity(new PVector(FieldSize.x*0.5,FieldSize.y*-0.5),new PVector(0,FieldSize.y));
-      wall[3]=new WallEntity(FieldSize.copy().mult(-0.5),new PVector(0,FieldSize.y));
+      wall[0]=new WallEntity(FieldSize.copy().mult(-0.5f),new PVector(FieldSize.x,0));
+      wall[1]=new WallEntity(new PVector(FieldSize.x*-0.5f,FieldSize.y*0.5f),new PVector(FieldSize.x,0));
+      wall[2]=new WallEntity(new PVector(FieldSize.x*0.5f,FieldSize.y*-0.5f),new PVector(0,FieldSize.y));
+      wall[3]=new WallEntity(FieldSize.copy().mult(-0.5f),new PVector(0,FieldSize.y));
       Entities.addAll(Arrays.asList(wall));
     }
   }
   
-  void commandProcess(java.util.List<Token>tokens){
+   public void commandProcess(java.util.List<Token>tokens){
     java.util.List<Token>ex_space_tokens=new ArrayList<Token>();
     tokens.forEach(t->{
       if(!t.getText().matches(" +"))ex_space_tokens.add(t);
@@ -479,15 +573,15 @@ class GameProcess{
     }
   }
   
-  void command_time(java.util.List<Token>tokens){
-    stage.time=max(0,setParameter(stage.time,tokens.get(1).getText(),float(tokens.get(2).getText())*60));
+   public void command_time(java.util.List<Token>tokens){
+    stage.time=max(0,setParameter(stage.time,tokens.get(1).getText(),PApplet.parseFloat(tokens.get(2).getText())*60));
     stage.scheduleUpdate();
     stage.clearSpown();
   }
   
-  void command_level(java.util.List<Token>tokens){
+   public void command_level(java.util.List<Token>tokens){
     if(tokens.get(1).getText().equals("@p")){
-      int targetLevel=(int)setParameter((float)player.Level,tokens.get(2).getText(),float(tokens.get(3).getText()));
+      int targetLevel=(int)setParameter((float)player.Level,tokens.get(2).getText(),PApplet.parseFloat(tokens.get(3).getText()));
       if(player.Level<targetLevel){
         player.levelup=true;
         player.levelupNumber=targetLevel-player.Level;
@@ -498,14 +592,15 @@ class GameProcess{
       player.nextLevel=10+(player.Level-1)*10*ceil(player.Level/10f);
     }else{
       Item i=masterTable.get(tokens.get(1).getText().replace("\"",""));
-      Weapon w=i.getWeapon();
+      SubWeapon w=i.getWeapon();
       if(player.subWeapons.contains(w)){
-        int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),float(tokens.get(3).getText()));
+        int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),PApplet.parseFloat(tokens.get(3).getText()));
         try{
           if(i.level<targetLevel){
             while(i.level<targetLevel){
               ++i.level;
               i.update();
+              if(i.getType().equals("item"))w.update();
               ++sumLevel;
             }
           }else{
@@ -513,33 +608,40 @@ class GameProcess{
             while(i.level<targetLevel){
               ++i.level;
               i.update();
+              if(i.getType().equals("item"))w.update();
               ++sumLevel;
             }
           }
         }catch(NullPointerException e){
-          
+        }finally{
+          i.level=constrain(i.level,1,i.upgradeData.size()+1);
+          applyStaus();
         }
       }
     }
   }
   
-  void command_give(java.util.List<Token>tokens){
-    if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))){
-      if(!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){
-        player.subWeapons.add(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon());
+   public void command_give(java.util.List<Token>tokens){
+    String src=tokens.get(1).getText();
+    if(tokens.get(1).getText().length()>2&&masterTable.contains(src.replace("\"",""))){
+      SubWeapon w=masterTable.get(src.replace("\"","")).getWeapon();
+      if(!player.subWeapons.contains(w)){
+        player.subWeapons.add(w);
+        if(masterTable.get(src.replace("\"","")).getType().equals("item"))w.update();
+        applyStaus();
       }else{
-        addWarning("You already have "+tokens.get(1).getText());
+        addWarning("You already have "+src);
       }
     }else{
-      addWarning(tokens.get(1).getText()+" doesn't exist");
+      addWarning(src+" doesn't exist");
     }
   }
   
-  void command_weapon(java.util.List<Token>tokens){
+   public void command_weapon(java.util.List<Token>tokens){
     if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))&&!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){}
   }
   
-  void command_kill(java.util.List<Token>tokens){
+   public void command_kill(java.util.List<Token>tokens){
     if(tokens.get(1).getText().equals("@p")){
       player.HP.set(0);
     }else{
@@ -554,7 +656,7 @@ class GameProcess{
     }
   }
   
-  void command_function(java.util.List<Token>tokens){
+   public void command_function(java.util.List<Token>tokens){
     try{
       String[] functions=loadStrings(tokens.get(1).getText().replace("\"",""));
       for(String s:functions){
@@ -573,12 +675,12 @@ class GameProcess{
     }
   }
   
-  void command_exit(){
+   public void command_exit(){
     scene=0;
     done=true;
   }
   
-  float setParameter(float data,String type,float num){
+   public float setParameter(float data,String type,float num){
     if(type.equals("add")){
       return data+num;
     }else if(type.equals("set")){
@@ -587,6 +689,63 @@ class GameProcess{
       return data-num;
     }
     return data;
+  }
+}
+
+class Command{
+  private Executable e=(s)->{};
+  private String state="wait";
+  private float cooltime=0;
+  private float duration=0;
+  private float offset=0;
+  private float time=0;
+  private int count=0;
+  private int num=1;
+  private boolean exec=false;
+  private boolean isDead=false;
+  
+  Command(float c,float d,float o,Executable e){
+    this.e=e;
+    cooltime=c;
+    duration=d;
+    offset=o;
+  }
+  
+  Command(float c,float d,float o,int i,Executable e){
+    this.e=e;
+    cooltime=c;
+    duration=d;
+    offset=o;
+    num=i;
+  }
+  
+  void update(){
+    if(isDead)return;
+    time+=vectorMagnification;
+    if(!exec&&offset<time){
+      state="exec";
+      exec=true;
+      time=0;
+      time+=vectorMagnification;
+    }
+    if(exec){
+      if(cooltime<time){
+        if(cooltime+duration<time){
+          ++count;
+          if(count>=num){
+            isDead=true;
+            state="shutdown";
+          }else{
+            time=0;
+          }
+        }
+        e.exec(state);
+      }
+    }
+  }
+  
+  boolean isDead(){
+    return isDead;
   }
 }
 
@@ -599,6 +758,7 @@ class WallEntity extends Entity{
   
   {
     size=0;
+    co_type=CollisionType.Inside;
   }
   
   WallEntity(PVector pos,PVector dist){
@@ -623,18 +783,66 @@ class WallEntity extends Entity{
     super.update();
   }
   
-  @Override
-  void Collision(Entity e){
-    if(((e instanceof Enemy)&&!(e instanceof Explosion))){
-      PVector copy=e.pos.copy();
-      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
-      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
-    }else if(e instanceof Myself){
-      PVector copy=e.pos.copy();
-      e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
-      e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
-    }else if(e instanceof Bullet){
-      e.Collision(this);
-    }
+  void Process(Entity e){
+    
   }
+  
+  @Override
+  public void Collision(Entity e){
+    if(e.co_type==CollisionType.Inside){
+      e.WallCollision(this);
+    }else{
+      if(e instanceof Explosion){
+        ExplosionCollision((Explosion)e);
+      }else if(e instanceof Enemy){
+        EnemyCollision((Enemy)e);
+      }else if(e instanceof Bullet){
+        BulletCollision((Bullet)e);
+      }else if(e instanceof Myself){
+        MyselfCollision((Myself)e);
+      }else if(e instanceof WallEntity){
+        WallCollision((WallEntity)e);
+      }
+    }
+    Process(e);
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){}
+  
+  @Override
+  void EnemyCollision(Enemy e){
+    PVector copy=e.pos.copy();
+    e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
+    e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){
+    b.WallCollision(this);
+  }
+  
+  @Override
+  void MyselfCollision(Myself m){
+    PVector copy=m.pos.copy();
+    m.pos=CircleMovePosition(m.pos,m.size,pos,dist);
+    m.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
+  }
+}
+
+class DynamicWall extends WallEntity{
+  double strength=10;
+  
+  DynamicWall(PVector pos,PVector dist){
+    super(pos,dist);
+  }
+  
+  DynamicWall setStrength(double s){
+    strength=s;
+    return this;
+  }
+}
+
+interface Executable{
+  void exec(String s);
 }

@@ -22,6 +22,7 @@ class GameComponent{
   protected Color selectforeground=new Color(0,0,0);
   protected Color border=new Color(0,0,0);
   protected Color nonSelectBorder=border;
+  protected int resizeNumber=0;
   
   GameComponent(){
     
@@ -65,7 +66,10 @@ class GameComponent{
   
   void update(){
     pFocus=focus;
-    if(windowResized)wre.Event();
+    if(windowResized||resizeNumber!=resizedNumber){
+      wre.Event();
+      resizeNumber=resizedNumber;
+    }
   }
   
   void executeEvent(){
@@ -329,7 +333,7 @@ class ButtonItem extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",d.y*0.8);
+      font=createFont("SansSerif.plain",d.y*0.5);
     };
   }
   
@@ -412,7 +416,6 @@ class CheckBox extends GameComponent{
   void keyProcess(){
     if(focus&&keyPress&&nowPressedKeyCode==ENTER){
       value=!value;
-      executeEvent();
     }
   }
   
@@ -769,6 +772,7 @@ class ItemList extends GameComponent{
     if(dist.y<Height*Contents.size()){
       float len=Height*Contents.size();
       float mag=pg.height/len;
+      pg.noStroke();
       pg.fill(255);
       pg.rect(pg.width-10,0,10,pg.height);
       pg.fill(drag?200:128);
@@ -810,8 +814,8 @@ class ItemList extends GameComponent{
   void mouseProcess(){
     float len=Height*Contents.size();
     float mag=pg.height/len;
-    if(dist.y<len&onMouse(pos.x+pg.width-10,pos.y+pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag)&mousePress){
-      drag=true;
+    if(dist.y<len&&onMouse(pos.x+pg.width-10,pos.y+pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag)&&mousePress){
+        drag=true;
     }
     if(!mousePressed){
       drag=false;
@@ -819,8 +823,11 @@ class ItemList extends GameComponent{
     if(pDrag&drag){
       scroll+=(mouseY-pmouseY)*(len-dist.y)/(dist.y*(1-mag));
       scroll=constrain(scroll,0,len-dist.y);
+    }else if(dist.y<len&&mouseWheel&&onMouse(pos.x,pos.y,dist.x,dist.y)){
+      scroll+=mouseWheelCount*16;
+      scroll=constrain(scroll,0,len-dist.y);
     }
-    if(onMouse(pos.x,pos.y,dist.x-(dist.y<len?10:0),max(len-scroll,0))&mousePress){
+    if(mousePress&&onMouse(pos.x,pos.y,dist.x-(dist.y<len?10:0),max(len-scroll,0))){
       if(selectedNumber==floor((mouseY-pos.y+scroll)/Height)){
         Select();
       }else{
@@ -1257,6 +1264,140 @@ class MenuButton extends TextButton{
   }
 }
 
+class MenuButton_B extends MenuButton{
+  
+  MenuButton_B(){
+    init();
+  }
+  
+  MenuButton_B(String s){
+    super(s);
+    init();
+  }
+  
+  void init(){
+    setBackground(new Color(35,35,35));
+    setForeground(new Color(255,255,255));
+    setSelectBackground(new Color(55,55,55));
+    setSelectForeground(new Color(215,215,215));
+    sideLineColor=new Color(255,105,0);
+    setBorderColor(new Color(0,0,0,0));
+  }
+}
+
+class SkeletonButton extends MenuButton{
+  
+  SkeletonButton(){
+    init();
+  }
+  
+  SkeletonButton(String s){
+    super(s);
+    init();
+  }
+  
+  void init(){
+    setBackground(new Color(35,35,35,40));
+    setForeground(new Color(255,255,255));
+    setSelectBackground(new Color(35,35,35,40));
+    setSelectForeground(new Color(255,255,255));
+    sideLineColor=new Color(0,0,0,0);
+    setBorderColor(new Color(0,150,255));
+  }
+  
+  void display(){
+    pushStyle();
+    if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
+    textFont(font);
+    blendMode(BLEND);
+    strokeWeight(1);
+    fill(!focus?toColor(background):toColor(selectbackground));
+    stroke(!focus?color(25,25,25,80):toColor(border));
+    beginShape();
+    vertex(pos.x,pos.y);
+    vertex(pos.x,pos.y+dist.y*0.9);
+    vertex(pos.x+dist.x*0.1,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y);
+    endShape(CLOSE);
+    fill(!focus?toColor(foreground):toColor(selectforeground));
+    noStroke();
+    textAlign(CENTER,CENTER);
+    textSize(dist.y*0.5);
+    text(text,pos.x+dist.x*0.5,pos.y+dist.y*0.4);
+    popStyle();
+  }
+}
+
+class UpgradeButton extends MenuButton{
+  String expText="";
+  String type="";
+  
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.2);
+    };
+  }
+  
+  UpgradeButton(){
+    init();
+  }
+  
+  UpgradeButton(String s){
+    super(s);
+    init();
+  }
+  
+  void init(){
+    setBackground(new Color(35,35,35,40));
+    setForeground(new Color(255,255,255));
+    setSelectBackground(new Color(35,35,35,40));
+    setSelectForeground(new Color(255,255,255));
+    sideLineColor=new Color(0,0,0,0);
+    setBorderColor(new Color(0,150,255));
+  }
+  
+  void display(){
+    pushStyle();
+    if(font==null)font=createFont("SansSerif.plain",dist.y*0.2);
+    textFont(font);
+    blendMode(BLEND);
+    strokeWeight(1);
+    fill(!focus?toColor(background):toColor(selectbackground));
+    stroke(!focus?color(25,25,25,80):toColor(border));
+    beginShape();
+    vertex(pos.x,pos.y);
+    vertex(pos.x,pos.y+dist.y*0.9);
+    vertex(pos.x+dist.x*0.1,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y+dist.y);
+    vertex(pos.x+dist.x,pos.y);
+    endShape(CLOSE);
+    fill(!focus?toColor(foreground):toColor(selectforeground));
+    noStroke();
+    textAlign(RIGHT,TOP);
+    textSize(dist.y*0.2);
+    text(type,pos.x+dist.x*0.95,pos.y+2);
+    textAlign(LEFT,TOP);
+    text(text,pos.x+dist.x*0.1,pos.y+2);
+    textLeading(dist.y*0.2);
+    text(expText,pos.x+dist.x*0.1,pos.y+dist.y*0.3+2,dist.x*0.9,dist.y*0.65);
+    stroke(255);
+    line(pos.x+dist.x*0.05,pos.y+dist.y*0.25+2,pos.x+dist.x*0.95,pos.y+dist.y*0.25+2);
+    popStyle();
+  }
+  
+  @Override
+  void setExplanation(String s){
+    expText=s;
+  }
+  
+  void setType(String s){
+    String res=s.toUpperCase().substring(0,1);
+    res+=s.substring(1,s.length());
+    type=res;
+  }
+}
+
 class MenuTextBox extends TextBox{
   
   MenuTextBox(){
@@ -1292,6 +1433,8 @@ class MenuTextBox extends TextBox{
 
 class MenuCheckBox extends CheckBox{
   MenuTextBox box=new MenuTextBox();
+  private String cust_true=null;
+  private String cust_false=null;
   boolean displayBox=false;
   
   MenuCheckBox(String text,boolean value){
@@ -1326,7 +1469,7 @@ class MenuCheckBox extends CheckBox{
     textFont(font);
     textAlign(CENTER);
     textSize(dist.y*0.5);
-    text(text+":"+(value?"ON":"OFF"),center.x,center.y+dist.y*0.2);
+    text(text+":"+(value?cust_true==null?"ON":cust_true:cust_false==null?"OFF":cust_false),center.x,center.y+dist.y*0.2);
     if(displayBox)box.display();
     popStyle();
   }
@@ -1339,9 +1482,15 @@ class MenuCheckBox extends CheckBox{
   void displayBox(boolean b){
     displayBox=b;
   }
+  
+  void setCustomizeText(String t,String f){
+    cust_true=t;
+    cust_false=f;
+  }
 }
 
 class ComponentSet{
+  Layout layout;
   ArrayList<GameComponent>components=new ArrayList<GameComponent>();
   boolean keyMove=true;
   boolean Focus=true;
@@ -1349,6 +1498,7 @@ class ComponentSet{
   int pSelectedIndex=0;
   int selectedIndex=0;
   int memoryIndex=0;
+  int resizeNumber=0;
   int type=0;
   
   static final int Down=0;
@@ -1359,7 +1509,13 @@ class ComponentSet{
   ComponentSet(){
   }
   
+  ComponentSet setLayout(Layout l){
+    layout=l;
+    return this;
+  }
+  
   void add(GameComponent val){
+    if(layout!=null)layout.alignment(val);
     components.add(val);
     if(components.size()==1){
       if(Focus){
@@ -1371,16 +1527,19 @@ class ComponentSet{
   }
   
   void addAll(GameComponent... val){
+    if(layout!=null)layout.alignment(val);
     for(GameComponent c:val){
       add(c);
     }
   }
   
   void remove(GameComponent val){
+    if(layout!=null)layout.remove(val);
     components.remove(val);
   }
   
   void removeAll(){
+    if(layout!=null)layout.reset();
     components.clear();
   }
   
@@ -1428,9 +1587,10 @@ class ComponentSet{
     }
     keyEvent();
     if(pSelectedIndex!=selectedIndex){
-      if(pSelectedIndex!=-1)components.get(pSelectedIndex).Fe.lostFocus();
-      if(selectedIndex!=-1)components.get(selectedIndex).Fe.getFocus();
+      if(pSelectedIndex!=-1&&!(pSelectedIndex>=components.size()))components.get(pSelectedIndex).Fe.lostFocus();
+      if(selectedIndex!=-1&&!(selectedIndex>=components.size()))components.get(selectedIndex).Fe.getFocus();
     }
+    resized();
     pSelectedIndex=selectedIndex;
   }
   
@@ -1490,68 +1650,131 @@ class ComponentSet{
   }
   
   void addSelect(){
+    if(components.size()==1)return;
     for(GameComponent c:components){
       c.removeFocus();
     }
     selectedIndex=selectedIndex>=components.size()-1?0:selectedIndex+1;
+    if(!components.get(selectedIndex).canFocus)addSelect();
     components.get(selectedIndex).requestFocus();
   }
   
   void subSelect(){
+    if(components.size()==1)return;
     for(GameComponent c:components){
       c.removeFocus();
     }
     selectedIndex=selectedIndex<=0?components.size()-1:selectedIndex-1;
+    if(!components.get(selectedIndex).canFocus)subSelect();
     components.get(selectedIndex).requestFocus();
   }
   
   GameComponent getSelected(){
     return components.get(selectedIndex);
   }
+  
+  void resized(){
+    if(windowResized||resizeNumber!=resizedNumber){
+      if(layout!=null)layout.resized();else components.forEach(c->c.wre.Event());
+      resizeNumber=resizedNumber;
+    }
+  }
 }
 
 class Layout{
+  WindowResizeEvent e=()->{};
+  ArrayList<GameComponent>list;
   PVector pos;
   PVector dist;
   PVector nextPos;
-  int size=0;
+  float Space;
+  
+  {
+    list=new ArrayList<GameComponent>();
+  }
   
   Layout(){
     pos=new PVector(0,0);
     dist=new PVector(0,0);
     nextPos=new PVector(0,0);
+    Space=0;
   }
   
-  Layout(float x,float y,float dx,float dy){
+  Layout(float x,float y,float dx,float dy,float space){
     pos=new PVector(x,y);
     dist=new PVector(dx,dy);
     nextPos=new PVector(x,y);
+    Space=space;
   }
   
-  void setPos(PVector p){
-    pos=p;
+  void setBounds(float x,float y,float dx,float dy,float space){
+    pos=new PVector(x,y);
+    dist=new PVector(dx,dy);
+    nextPos=new PVector(x,y);
+    Space=space;
+  }
+  
+  void reset(){
+    list.clear();
     nextPos=pos.copy();
   }
   
-  void setXdist(float x){
-    dist.x=x;
+  void remove(GameComponent c){
+    list.remove(c);
+    resized();
   }
   
-  void setYdist(float y){
-    dist.y=y;
+  void setWindowResizedListener(WindowResizeEvent e){
+    this.e=e;
   }
   
   void alignment(GameComponent c){
-    c.setBounds(nextPos.x,nextPos.y,c.dist.x,c.dist.y);
-    ++size;
-    nextPos=pos.copy().add(dist.mult(size));
   }
   
   void alignment(GameComponent[] c){
+  }
+  
+  void resized(){
+  }
+}
+
+class Y_AxisLayout extends Layout{
+  
+  Y_AxisLayout(){
+    super();
+  }
+  
+  Y_AxisLayout(float x,float y,float dx,float dy,float space){
+    super(x,y,dx,dy,space);
+  }
+  
+  @Override
+  void alignment(GameComponent c){
+    if(!list.contains(c)){
+      c.setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+      nextPos.add(0,dist.y+Space);
+      list.add(c);
+    }
+  }
+  
+  @Override
+  void alignment(GameComponent[] c){
     for(int i=0;i<c.length;i++){
-      c[i].setBounds(nextPos.x,nextPos.y,c[i].dist.x,c[i].dist.y);
-      ++size;
-      nextPos=pos.copy().add(dist.mult(size));
+      if(!list.contains(c[i])){
+        c[i].setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+        nextPos.add(0,dist.y+Space);
+        list.add(c[i]);
+      }
+    }
+  }
+  
+  @Override
+  void resized(){
+    e.Event();
+    nextPos=pos.copy();
+    for(int i=0;i<list.size();i++){
+      list.get(i).setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+      nextPos=nextPos.add(0,dist.y+Space);
     }
   }
 }
@@ -1565,6 +1788,7 @@ class ComponentSetLayer{
   String nowLayer=null;
   String nowParent=null;
   int selectNumber=0;
+  int resizeNumber=0;
   int SubChildshowType=0;
   int showType=0;
   
@@ -1669,6 +1893,10 @@ class ComponentSetLayer{
     if(nowLayer==null||Layers.get(nowLayer).getComponents().size()==0){
       return;
     }else{
+      if(windowResized||resizeNumber!=resizedNumber){
+        Layers.forEach((k,v)->v.Components.forEach(cs->{cs.resized();}));
+        resizeNumber=resizedNumber;
+      }
       int count=0;
       for(ComponentSet c:Layers.get(nowLayer).getComponents()){
         if(c==null)continue;
@@ -1895,6 +2123,13 @@ class ComponentSetLayer{
 
 ComponentSet toSet(GameComponent... c){
   ComponentSet r=new ComponentSet();
+  r.addAll(c);
+  return r;
+}
+
+ComponentSet toSet(Layout l,GameComponent... c){
+  ComponentSet r=new ComponentSet();
+  r.setLayout(l);
   r.addAll(c);
   return r;
 }
