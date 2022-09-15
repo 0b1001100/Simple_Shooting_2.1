@@ -1014,6 +1014,7 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
   float age=0;
   float rad=0;
   int attacknum=0;
+  int sum=0;
   
   @Override
   void init(){
@@ -1039,11 +1040,23 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
     super.Process();
     age+=vectorMagnification;
     rad+=radians(vectorMagnification*5);
+    ArrayList<EnemyShield_Child>nextChild=new ArrayList<EnemyShield_Child>();
+    for(EnemyShield_Child f:child){
+      if(EntitySet.contains(f))nextChild.add(f);
+    }
+    child=nextChild;
+    int i=0;//println(child);
+    for(EnemyShield_Child c:child){
+      c.setPos(pos.copy().add(new PVector(80,0).rotate(rad+TWO_PI*((i%12)/12f))));
+      c.rotate=atan2(c.pos,pos);
+      ++i;
+    }
     if(age>300&&child.size()<12&&!shot){
       age=0;
-      EnemyShield_Child bullet=(EnemyShield_Child)new EnemyShield_Child(child.size()).setPos(pos.copy().add(new PVector(80,0).rotate(rad+TWO_PI*(child.size()+1)/12)));
+      EnemyShield_Child bullet=(EnemyShield_Child)new EnemyShield_Child(child.size()).setPos(pos.copy().add(new PVector(80,0).rotate(rad+TWO_PI*((sum%12)/12f))));
       NextEntities.add(bullet);
-      this.child.add(bullet);
+      child.add(bullet);
+      ++sum;
     }else if(age>300&&(child.size()==12||shot)){
       shot=true;
       ArrayList<EnemyShield_Child>list=new ArrayList<EnemyShield_Child>();
@@ -1059,11 +1072,6 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
         age=0;
       }
     }
-    ArrayList<EnemyShield_Child>nextChild=new ArrayList<EnemyShield_Child>();
-    for(EnemyShield_Child f:child){
-      if(EntitySet.contains(f))nextChild.add(f);
-    }
-    child=nextChild;
   }
   
   @Override
@@ -1093,8 +1101,8 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
     @Override
     void init(){
       setHP(15);
-      maxSpeed=5;
-      rotateSpeed=0.8;
+      maxSpeed=0;
+      rotateSpeed=0;
       setSize(25);
       setMass(20);
       setColor(new Color(10,180,255));
@@ -1105,10 +1113,9 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
     void Process(){
       if(!go){
         HP=min(15f,(float)HP+3);
-        rotate=atan2(pos,getPos());
-        pos=getPos().copy().add(new PVector(80,0).rotate(rad+TWO_PI*(num+1)/12));
-        vel=new PVector(0,10).rotate(rad);
       }else{
+        maxSpeed=5;
+        rotateSpeed=0.2;
         if(!inScreen)maxSpeed=2.5;
       }
     }
@@ -1524,7 +1531,7 @@ class SnipeEnemy extends Turret_S implements BossEnemy{
 }
 
 class Sealed extends M_Boss_Y implements BossEnemy{
-  ArrayList<SealedFrag>Frags=new ArrayList<SealedFrag>();
+  ArrayList<SealedFrag>Frags;
   boolean release=false;
   
   @Override
@@ -1539,14 +1546,9 @@ class Sealed extends M_Boss_Y implements BossEnemy{
       boss=new HUDText("BOSS");
       dead=(e)->{
         StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{conf.setBoolean("clear",true);scene=3;}));
         boss.Dispose();
       };
-    }
-    for(int i=0;i<4;i++){
-      SealedFrag f=new SealedFrag(i);
-      Frags.add(f);
-      NextEntities.add(f);
     }
   }
   
@@ -1572,24 +1574,55 @@ class Sealed extends M_Boss_Y implements BossEnemy{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){
-    if(release)super.ExplosionCollision(e);
-  }
-  
-  @Override
-  void BulletCollision(Bullet b){
-    if(release)super.BulletCollision(b);
-  }
-  
-  @Override
   Enemy setPos(PVector p){
-    super.setPos(p);
+    pos=p;
     if(StageName.equals("Stage5")){
       boss.setTarget(this);
       main.HUDSet.add(boss);
       boss.startDisplay();
     }
+    Frags=new ArrayList<SealedFrag>();
+    for(int i=0;i<4;i++){
+      SealedFrag f=new SealedFrag(i);
+      switch(f.num){
+        case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(QUARTER_PI));break;
+        case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(HALF_PI+QUARTER_PI));break;
+        case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(PI+QUARTER_PI));break;
+        case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(QUARTER_PI-HALF_PI));break;
+      }
+      Frags.add(f);
+      NextEntities.add(f);
+    }
     return this;
+  }
+  
+  @Override
+  void Hit(Weapon w){
+    if(!release)return;
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1;
+    HP-=w.power*mult;
+    damage+=w.power*mult;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }else if(damage>0){
+      NextEntities.add(new Particle(this,(int)(size*0.5),1));
+    }
+  }
+  
+  @Override
+  void Hit(float f){
+    if(!release)return;
+    HP-=f;
+    damage+=f;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }else if(damage>0){
+      NextEntities.add(new Particle(this,(int)(size*0.5),1));
+    }
   }
   
   final private class SealedFrag extends Enemy implements BossEnemy{

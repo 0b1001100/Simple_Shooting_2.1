@@ -1750,17 +1750,21 @@ class Y_AxisLayout extends Layout{
   
   @Override
   void alignment(GameComponent c){
-    if(!list.contains(c))c.setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
-    nextPos.add(0,dist.y+Space);
-    list.add(c);
+    if(!list.contains(c)){
+      c.setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+      nextPos.add(0,dist.y+Space);
+      list.add(c);
+    }
   }
   
   @Override
   void alignment(GameComponent[] c){
     for(int i=0;i<c.length;i++){
-      if(!list.contains(c[i]))c[i].setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
-      nextPos.add(0,dist.y+Space);
-      list.add(c[i]);
+      if(!list.contains(c[i])){
+        c[i].setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+        nextPos.add(0,dist.y+Space);
+        list.add(c[i]);
+      }
     }
   }
   

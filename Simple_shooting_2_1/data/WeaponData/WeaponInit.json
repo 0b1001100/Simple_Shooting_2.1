@@ -235,6 +235,22 @@
     }
   },
   {
+    "name":"Ice",
+    "type":"weapon",
+    "weight":22,
+    "projectile":1,
+    "scale":120,
+    "power":1,
+    "velocity":2,
+    "duration":150,
+    "cooltime":240,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
+  },
+  {
     "name":"Satellite",
     "type":"weapon",
     "weight":22,

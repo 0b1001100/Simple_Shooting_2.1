@@ -124,7 +124,7 @@ boolean displayFPS=true;
 boolean colorInverse=false;
 boolean FXAA=false;
 
-static final String VERSION="beta 2";
+static final String VERSION="1.0.0";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
@@ -571,13 +571,52 @@ String getLanguageText(String s){
       pg.endDraw();
     });
   //--
+  MenuButton credit=new MenuButton(Language.getString("credit"));
+  credit.addListener(()->{
+    starts.toChild("credit");
+  });
+  //--
+    MenuButton back_cr=new MenuButton(Language.getString("back"));
+    back_cr.setBounds(width*0.5f-60,height*0.9f,120,25);
+    back_cr.addListener(()->{
+      starts.toParent();
+    });
+    back_cr.addWindowResizeEvent(()->{
+      back_cr.setBounds(width*0.5f-60,height*0.9f,120,25);
+    });
+    PFont[] f={createFont("SansSerif.plain",height*0.03)};
+    boolean[] cr_res={true};
+    Canvas cr_canvas=new Canvas(g);
+    cr_canvas.addWindowResizeEvent(()->{
+      cr_res[0]=true;
+    });
+    cr_canvas.setContent((pg)->{
+      pg.beginDraw();
+      if(cr_res[0]){
+        f[0]=createFont("SansSerif.plain",height*0.03);
+        cr_res[0]=false;
+      }
+      pg.fill(0);
+      pg.rectMode(CORNER);
+      pg.textAlign(CENTER,TOP);
+      pg.textLeading(30);
+      pg.textSize(height*0.03);
+      pg.textFont(f[0]);
+      pg.text(getLanguageText("credit_co"),0,30,width,height*0.9-30);
+      pg.textAlign(CENTER,BOTTOM);
+      pg.textLeading(30);
+      if(conf.getBoolean("clear"))pg.text(getLanguageText("credit_co_2"),0,0,width,height*0.9-30);
+      pg.endDraw();
+    });
+  //--
   starts.setSubChildDisplayType(1);
   starts.addLayer("root",titleSet);
-  starts.addChild("root","main",toSet(mainLayout,Select,Config,operationEx));
+  starts.addChild("root","main",toSet(mainLayout,Select,Config,operationEx,credit));
   starts.addSubChild("main","stage",toSet(stageList));
   starts.addSubChild("main","confMenu",toSet(confLayout,Colorinv,dispFPS,Quality,vsy,Lang,exit),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
   starts.addChild("main","operation",toSet(back_op,op_canvas));
+  starts.addChild("main","credit",toSet(back_cr,cr_canvas));
   if(launched){
     starts.toChild("main");
   }else{

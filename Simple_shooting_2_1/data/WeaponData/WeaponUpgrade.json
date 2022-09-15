@@ -375,6 +375,43 @@
       "weight":0
     }
   ],
+  "Ice":[
+    {
+      "name":["cooltime"],
+      "cooltime":20
+    },
+    {
+      "name":["velocity","duration"],
+      "velocity":1,
+      "duration":20
+    },
+    {
+      "name":["projectile","scale","weight"],
+      "projectile":1,
+      "scale":20,
+      "weight":18
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["duration","scale"],
+      "duration":30,
+      "scale":20
+    },
+    {
+      "name":["cooltime"],
+      "cooltime":20
+    },
+    {
+      "name":["duration","projectile","weight"],
+      "duration":20,
+      "projectile":1,
+      "weight":0
+    }
+  ],
   "Satellite":[
     {
       "name":["power","projectile"],

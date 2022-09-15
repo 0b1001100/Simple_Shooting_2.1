@@ -12,6 +12,7 @@
     "Reflector",
     "Absorption",
     "Fire",
+    "Ice",
     "Satellite",
     "projectile",
     "scale",
@@ -22,6 +23,7 @@
   ],
   "vsync": true,
   "FPS": true,
+  "clear": true,
   "Stage": [
     "Tutorial",
     "Stage1",

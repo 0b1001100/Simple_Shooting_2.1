@@ -608,7 +608,7 @@
     "type":"add",
     "param":{
       "number":3,
-      "dist":5,
+      "dist":3,
       "offset":0,
       "name":"M_Boss_Y"
     }
@@ -618,7 +618,7 @@
     "type":"add",
     "param":{
       "number":1,
-      "dist":5,
+      "dist":2,
       "offset":0,
       "name":"Formation"
     }
@@ -628,7 +628,7 @@
     "type":"add",
     "param":{
       "number":1,
-      "dist":5,
+      "dist":2,
       "offset":0,
       "name":"EnemyShield"
     }
@@ -638,7 +638,7 @@
     "type":"add",
     "param":{
       "number":2,
-      "dist":5,
+      "dist":3,
       "offset":0,
       "name":"Barrier"
     }
@@ -648,7 +648,7 @@
     "type":"add",
     "param":{
       "number":1,
-      "dist":5,
+      "dist":2,
       "offset":0,
       "name":"Sealed"
     }

@@ -1124,6 +1124,7 @@ class FireBullet extends SubBullet{
     if(Debug){
       displayAABB(g);
     }
+    g.strokeWeight(1);
     if(stop){
       g.stroke(255,100,0,100);
       g.fill(255,30,0,50);
@@ -1193,6 +1194,124 @@ class FireBullet extends SubBullet{
             cooltimes.replace(e,20f);
           }
         }
+      }
+    }else{
+      if(CircleCollision(e.pos,e.size,pos,vel)){
+        e.Hit(parent.power*3);
+        age=0;
+        stop=true;
+        vel=new PVector(0,0);
+      }
+    }
+  }
+  
+  @Override
+  void BulletCollision(Bullet b){}
+  
+  @Override
+  void WallCollision(WallEntity w){
+    if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
+     &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+    age=0;
+    stop=true;
+    vel=new PVector(0,0);
+    NextEntities.add(new Particle(this,5));
+  }
+}
+
+class IceBullet extends SubBullet{
+  HashMap<Entity,Float>cooltimes;
+  HashSet<Entity>outEntity;
+  PVector screen;
+  boolean stop=false;
+  float count=0;
+  final float damageCoolTime=30;
+  
+  IceBullet(SubWeapon w,int num){
+    super(w);
+    setNear(num);
+    screen=new PVector(pos.x-player.pos.x+width*0.5f,height-(pos.y-player.pos.y+height*0.5f));
+    bulletColor=new Color(40,245,255);
+    cooltimes=new HashMap<Entity,Float>();
+    outEntity=new HashSet<Entity>();
+    co_type=CollisionType.Inside;
+  }
+  
+   public void display(PGraphics g){
+    if(Debug){
+      displayAABB(g);
+    }
+    g.strokeWeight(1);
+    if(stop){
+      g.stroke(40,245,255,100);
+      g.fill(40,210,255,50);
+      g.ellipse(pos.x,pos.y,scale,scale);
+    }else{
+      g.stroke(toColor(bulletColor));
+      g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    }
+  }
+  
+   public void update(){
+    HashMap<Entity,Float>nextCooltimes=new HashMap<Entity,Float>();
+    cooltimes.forEach((k,v)->{
+      cooltimes.replace(k,v-vectorMagnification);
+      if(Entities.contains(k)&&!(outEntity.contains(k)&&cooltimes.get(k)<=0)){
+        nextCooltimes.put(k,cooltimes.get(k));
+        outEntity.add(k);
+      }
+    });
+    cooltimes=nextCooltimes;
+    pos.add(vel.copy().mult(vectorMagnification));
+    if(stop&&age%10<vectorMagnification)NextEntities.add(new Particle(pos.copy().add(new PVector(random(0,scale*0.5),0).rotate(random(TWO_PI))),new Color(40,245,255),1));
+    if(!stop&&age>150){
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
+    }
+    if(count>damageCoolTime){
+      count=0;
+    }
+    if(duration<0)isDead=true;
+    if(stop){
+      duration-=vectorMagnification;
+      count+=vectorMagnification;
+    }else{
+      age+=vectorMagnification;
+    }
+    screen=new PVector(pos.x-player.pos.x+width*0.5f,height-(pos.y-player.pos.y+height*0.5f));
+    setAABB();
+  }
+  
+   public void setAABB(){
+    if(stop){
+      Center=pos;
+      AxisSize=new PVector(scale,scale);
+    }else{
+      Center=pos.copy().add(vel.copy().mult(0.5f).mult(vectorMagnification));
+      AxisSize=new PVector(abs(vel.x),abs(vel.y)).mult(vectorMagnification);
+    }
+    putAABB();
+  }
+  
+  @Override
+  void ExplosionCollision(Explosion e){}
+  
+  @Override
+  void EnemyCollision(Enemy e){
+    if(stop){
+      if(qDist(pos,e.pos,(e.size+scale)*0.5)){
+        outEntity.remove(e);
+        if(!cooltimes.containsKey(e)){
+          e.Hit(this.parent);
+          cooltimes.put(e,30f);
+        }else{
+          if(cooltimes.get(e)<=0){
+            e.Hit(this.parent);
+            cooltimes.replace(e,30f);
+          }
+        }
+        e.addVel(e.Speed>0.5?-e.accelSpeed*1.1:-e.accelSpeed,true);
       }
     }else{
       if(CircleCollision(e.pos,e.size,pos,vel)){
