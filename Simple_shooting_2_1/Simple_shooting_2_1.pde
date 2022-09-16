@@ -125,7 +125,7 @@ boolean displayFPS=true;
 boolean colorInverse=false;
 boolean FXAA=false;
 
-static final String VERSION="1.0.0";
+static final String VERSION="1.1.0";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
