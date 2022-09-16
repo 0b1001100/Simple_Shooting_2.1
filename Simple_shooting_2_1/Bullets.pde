@@ -97,41 +97,52 @@ class Bullet extends Entity{
   
   @Override
   public void Collision(Entity e){
-    if(e.co_type==CollisionType.Inside){
-      e.BulletCollision(this);
-    }else{
-      if(e instanceof Explosion){
-        ExplosionCollision((Explosion)e);
-      }else if(e instanceof Enemy){
-        EnemyCollision((Enemy)e);
-      }else if(e instanceof Bullet){
-        BulletCollision((Bullet)e);
-      }else if(e instanceof Myself){
-        MyselfCollision((Myself)e);
-      }else if(e instanceof WallEntity){
-        WallCollision((WallEntity)e);
-      }
+    if(e instanceof Explosion){
+      ExplosionCollision((Explosion)e);
+    }else if(e instanceof Enemy){
+      EnemyCollision((Enemy)e);
+    }else if(e instanceof Bullet){
+      BulletCollision((Bullet)e);
+    }else if(e instanceof Myself){
+      MyselfCollision((Myself)e);
+    }else if(e instanceof WallEntity){
+      WallCollision((WallEntity)e);
     }
   }
   
   @Override
   void ExplosionCollision(Explosion e){
     if(CircleCollision(e.pos,e.size,pos,vel)){
-      isDead=true;
+      ExplosionHit(e,true);
     }
+  }
+  
+  @Override
+  void ExplosionHit(Explosion e,boolean p){
+    isDead=true;
   }
   
   @Override
   void EnemyCollision(Enemy e){
     if(CircleCollision(e.pos,e.size,pos,vel)){
-      e.Hit(parent);
-      e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
-      isDead=true;
+      EnemyHit(e,true);
     }
   }
   
   @Override
+  void EnemyHit(Enemy e,boolean p){
+    e.Hit(parent);
+    e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
+    isDead=true;
+  }
+  
+  @Override
   void BulletCollision(Bullet b){
+    b.BulletHit(this,true);
+  }
+  
+  @Override
+  void BulletHit(Bullet b,boolean p){
     if(!(b instanceof SubBullet)&&(b instanceof Bullet)){
       if(b.isMine!=isMine){
         b.isDead=true;
@@ -145,15 +156,25 @@ class Bullet extends Entity{
   @Override
   void MyselfCollision(Myself m){
     if(!isMine&&CircleCollision(m.pos,m.size,pos,vel)){
-      isDead=true;
-      m.Hit(parent.power);
+      MyselfHit(m,true);
     }
+  }
+  
+  @Override
+  void MyselfHit(Myself m,boolean b){
+    isDead=true;
+    m.Hit(parent.power);
   }
   
   @Override
   void WallCollision(WallEntity w){
     if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
      &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+    WallHit(w,true);
+  }
+  
+  @Override
+  void WallHit(WallEntity e,boolean b){
     isDead=true;
     NextEntities.add(new Particle(this,5));
   }
@@ -220,6 +241,18 @@ class SubBullet extends Bullet{
       vel=new PVector(cos(rad)*speed,sin(rad)*speed);
     }
   }
+  
+  @Override
+  void ExplosionCollision(Explosion e){}
+  
+  @Override
+  void ExplosionHit(Explosion e,boolean b){}
+  
+  @Override
+  void BulletCollision(Bullet b){}
+  
+  @Override
+  void BulletHit(Bullet b,boolean p){}
 }
 
 class GravityBullet extends SubBullet{
@@ -233,7 +266,6 @@ class GravityBullet extends SubBullet{
     setNear(num);
     screen=new PVector(pos.x-player.pos.x+width*0.5f,height-(pos.y-player.pos.y+height*0.5f));
     bulletColor=new Color(200,110,255);
-    co_type=CollisionType.Inside;
   }
   
    public void display(PGraphics g){
@@ -284,26 +316,33 @@ class GravityBullet extends SubBullet{
   void EnemyCollision(Enemy e){
     if(stop){
       if(qDist(pos,e.pos,(e.size+scale)*0.75f)){
-        float rad=-atan2(pos,e.pos)+HALF_PI;
-        e.vel.add(new PVector(-dist(pos,e.pos)/((e.size+scale)*0.75f),0).rotate(rad));
-      }
-      if(count>=damageCoolTime&&qDist(pos,e.pos,(e.size+scale)*0.5f)){
-        ((Enemy)e).Hit(parent);
+        EnemyHit(e,true);
       }
     }else{
       if(CircleCollision(e.pos,e.size,pos,vel)){
-        ((Enemy)e).Hit(parent.power*3);
-        age=0;
-        stop=true;
-        vel=new PVector(0,0);
+        EnemyHit(e,true);
       }
     }
   }
   
   @Override
-  void WallCollision(WallEntity w){
-    if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
-     &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+  void EnemyHit(Enemy e,boolean b){
+    if(stop){
+      float rad=-atan2(pos,e.pos)+HALF_PI;
+      e.vel.add(new PVector(-dist(pos,e.pos)/((e.size+scale)*0.75f),0).rotate(rad));
+      if(count>=damageCoolTime&&qDist(pos,e.pos,(e.size+scale)*0.5f)){
+        ((Enemy)e).Hit(parent);
+      }
+    }else{
+      ((Enemy)e).Hit(parent.power*3);
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
+    }
+  }
+  
+  @Override
+  void WallHit(WallEntity w,boolean b){
     age=0;
     stop=true;
     vel=new PVector(0,0);
@@ -336,7 +375,6 @@ class GrenadeBullet extends SubBullet{
     setNear(num);
     bulletColor=new Color(0,150,255);
     duration=60;
-    co_type=CollisionType.Inside;
   }
   
    public void update(){
@@ -351,24 +389,17 @@ class GrenadeBullet extends SubBullet{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
-  void EnemyCollision(Enemy e){
-    if(CircleCollision(e.pos,e.size,pos,vel)){
-      e.Hit(parent.power*3);
-      isDead=true;
-      if(!hit){
-        HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3f,true,parent));
-        hit=true;
-      }
+  void EnemyHit(Enemy e,boolean b){
+    e.BulletHit(this,false);
+    isDead=true;
+    if(!hit){
+      HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3f,true,parent));
+      hit=true;
     }
   }
   
   @Override
-  void WallCollision(WallEntity w){
-    if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
-     &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+  void WallHit(WallEntity w,boolean b){
     isDead=true;
     if(!hit){
       HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3f,true,parent));
@@ -407,7 +438,6 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
     RightDown=new PVector(scale*5.125f,-scale*0.5f);
     vector=new PVector(0,scale);
     bulletColor=new Color(0,255,220);
-    co_type=CollisionType.Inside;
   }
   
   @Override public 
@@ -449,16 +479,18 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
   void EnemyCollision(Enemy e){
     if(circleOrientedRectangleCollision(e.pos,e.size,LeftDown,new PVector(scale*0.25f,scale),axis)){
-      nextHitEnemy.add(e);
-      e.addtionalVel=e.vel.copy().mult(-(20/e.Mass));
-      if(!HitEnemy.contains(e)){
-        e.Hit(this.parent);
-      }
+      EnemyHit(e,true);
+    }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    e.addtionalVel=e.vel.copy().mult(-(20/e.Mass));
+    if(!HitEnemy.contains(e)){
+      e.Hit(this.parent);
     }
   }
   
@@ -466,12 +498,17 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   void BulletCollision(Bullet b){
     if(!b.isMine){
       if(SegmentOrientedRectangleCollision(b.pos,b.vel,LeftDown,new PVector(scale*0.25f,scale),axis)){
-        b.reflectFromNormal(axis);
-        if(b instanceof ThroughBullet){
-          b.isMine=true;
-          b.parent.parent=player;
-        }
+        BulletHit(b,false);
       }
+    }
+  }
+  
+  @Override
+  void BulletHit(Bullet b,boolean p){
+    b.reflectFromNormal(axis);
+    if(b instanceof ThroughBullet){
+      b.isMine=true;
+      b.parent.parent=player;
     }
   }
   
@@ -496,7 +533,6 @@ class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
     cooltimes=new HashMap<Entity,Float>();
     outEntity=new HashSet<Entity>();
     hitPosition=new HashSet<PVector>();
-    co_type=CollisionType.Inside;
   }
   
   @Override public 
@@ -539,31 +575,33 @@ class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
   void EnemyCollision(Enemy e){
     if(qDist(pos,e.pos,(scale+e.size)*0.5f)){
-      outEntity.remove(e);
-      if(!cooltimes.containsKey(e)){
+      EnemyHit(e,true);
+    }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    outEntity.remove(e);
+    if(!cooltimes.containsKey(e)){
+      e.Hit(this.parent);
+      cooltimes.put(e,parent.coolTime);
+      hitPosition.add(e.pos.copy());
+    }else{
+      if(cooltimes.get(e)<=0){
         e.Hit(this.parent);
-        cooltimes.put(e,parent.coolTime);
+        cooltimes.replace(e,parent.coolTime);
         hitPosition.add(e.pos.copy());
-      }else{
-        if(cooltimes.get(e)<=0){
-          e.Hit(this.parent);
-          cooltimes.replace(e,parent.coolTime);
-          hitPosition.add(e.pos.copy());
-        }
       }
     }
   }
   
   @Override
-  void BulletCollision(Bullet b){}
+  void WallCollision(WallEntity w){}
   
   @Override
-  void WallCollision(WallEntity w){}
+  void WallHit(WallEntity w,boolean b){}
 }
 
 class LaserBullet extends SubBullet implements ExcludeGPGPU{
@@ -583,7 +621,6 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
     nextHitEnemy=new HashSet<Entity>();
     points=new ArrayList<PVector>(memory);
     vertex=new LinkedHashMap<PVector,Integer>();
-    co_type=CollisionType.Inside;
   }
   
   @Override public 
@@ -675,26 +712,23 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
   void EnemyCollision(Enemy e){
     if(CircleCollision(e.pos,e.size,pos,vel)){
-      nextHitEnemy.add(e);
-      if(!HitEnemy.contains(e)){
-        e.Hit(parent);
-        e.addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
-      }
+      EnemyHit(e,true);
     }
   }
   
   @Override
-  void BulletCollision(Bullet b){}
+  void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    if(!HitEnemy.contains(e)){
+      e.Hit(parent);
+      e.addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
+    }
+  }
   
   @Override
-  void WallCollision(WallEntity w){
-    if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
-     &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+  void WallHit(WallEntity w,boolean b){
     nextHitEnemy.add(w);
     reflectFromNormal(w.norm);
     vertex.put(pos.copy(),0);
@@ -745,7 +779,6 @@ class LightningBullet extends SubBullet implements ExcludeGPGPU{
     }
     HitEnemy=new HashSet<Entity>();
     nextHitEnemy=new HashSet<Entity>();
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -769,21 +802,13 @@ class LightningBullet extends SubBullet implements ExcludeGPGPU{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
-  void EnemyCollision(Enemy e){
-    if(CircleCollision(e.pos,(e.size+size+4)*0.5f,pos,vel)){
-      nextHitEnemy.add(e);
-      if(!HitEnemy.contains(e)){
-        e.Hit(parent);
-        e.addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
-      }
+  void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    if(!HitEnemy.contains(e)){
+      e.Hit(parent);
+      e.addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
     }
   }
-  
-  @Override
-  void BulletCollision(Bullet b){}
   
   @Override
   void WallCollision(WallEntity w){}
@@ -799,7 +824,6 @@ class ReflectorBullet extends SubBullet{
     bulletColor=new Color(230,230,230);
     HitEnemy=new HashSet<Entity>();
     nextHitEnemy=new HashSet<Entity>();
-    co_type=CollisionType.Inside;
   }
   
   @Override public 
@@ -811,31 +835,21 @@ class ReflectorBullet extends SubBullet{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
-  void EnemyCollision(Enemy e){
-    if(CircleCollision(e.pos,e.size,pos,vel)){
-      nextHitEnemy.add(e);
-      if(!HitEnemy.contains(e)){
-        reflectFromNormal(atan2(pos,e.pos));
-        e.Hit(parent);
-        e.addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
-        age-=30;
-      }
+  void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    if(!HitEnemy.contains(e)){
+      reflectFromNormal(atan2(pos,e.pos));
+      e.Hit(parent);
+      e.addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
+      age-=30;
     }
   }
   
   @Override
-  void BulletCollision(Bullet b){}
-  
-  @Override
-  void WallCollision(WallEntity w){
-  if(!(SegmentCollision(pos,vel,w.pos,w.dist)
-   &&SegmentCollision(pos,vel.copy().mult(-1),w.pos,w.dist)))return;
-  nextHitEnemy.add(w);
-  reflectFromNormal(w.norm);
-  NextEntities.add(new Particle(this,5));
+  void WallHit(WallEntity w,boolean b){
+    nextHitEnemy.add(w);
+    reflectFromNormal(w.norm);
+    NextEntities.add(new Particle(this,5));
   }
 }
 
@@ -847,7 +861,6 @@ class ThroughBullet extends Bullet{
     isMine=false;
     HitEnemy=new HashSet<Entity>();
     nextHitEnemy=new HashSet<Entity>();
-    co_type=CollisionType.Inside;
   }
   
   ThroughBullet(Enemy e,Weapon w){
@@ -881,19 +894,22 @@ class ThroughBullet extends Bullet{
   @Override
   void EnemyCollision(Enemy e){
     if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
-      nextHitEnemy.add(e);
-      if(HitEnemy.contains(e))return;
-      if(e instanceof Explosion)isDead=true;
-      e.Hit(parent);
-      e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
-      if(e instanceof Turret_S)((Turret_S)e).target=parent.parent;
+      EnemyHit(e,true);
     }
   }
   
   @Override
-  void WallCollision(WallEntity w){
-  if(!(SegmentCollision(pos,vel,w.pos,w.dist)
-   &&SegmentCollision(pos,vel.copy().mult(-1),w.pos,w.dist)))return;
+  void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    if(HitEnemy.contains(e))return;
+    if(e instanceof Explosion)isDead=true;
+    e.Hit(parent);
+    e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
+    if(e instanceof Turret_S)((Turret_S)e).target=parent.parent;
+  }
+  
+  @Override
+  void WallHit(WallEntity w,boolean b){
     nextHitEnemy.add(w);
     reflectFromNormal(w.norm);
     NextEntities.add(new Particle(this,5));
@@ -905,46 +921,26 @@ class EnemyPoisonBullet extends ThroughBullet{
   EnemyPoisonBullet(Enemy e,Weapon w){
     super(e,w);
     setColor(new Color(5,200,70));
-    co_type=CollisionType.Inside;
-  }
-  
-  @Override public 
-  void Collision(Entity e){
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
-  void EnemyCollision(Enemy e){
-    if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
-      nextHitEnemy.add(e);
-      if(HitEnemy.contains(e))return;
-      if(e instanceof Explosion)isDead=true;
-      e.Hit(parent);
-      e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
-      if(e instanceof Turret_S)((Turret_S)e).target=parent.parent;
-    }
+  void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    if(HitEnemy.contains(e))return;
+    if(e instanceof Explosion)isDead=true;
+    e.Hit(parent);
+    e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
+    if(e instanceof Turret_S)((Turret_S)e).target=parent.parent;
   }
   
   @Override
-  void MyselfCollision(Myself m){
-    if(!isMine&&CircleCollision(m.pos,m.size,pos,vel)){
-      main.CommandQue.put("Poison",new Command(0,90,0,(s)->{
-        if(s.equals("exec"))player.speedMag=0.5;
-        if(s.equals("shutdown"))player.speedMag=1;
-      }));
-      m.Hit(parent.power);
-      isDead=true;
-    }
-  }
-  
-  @Override
-  void WallCollision(WallEntity w){
-    if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
-     &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+  void MyselfHit(Myself m,boolean b){
+    main.CommandQue.put("Poison",new Command(0,90,0,(s)->{
+      if(s.equals("exec"))player.speedMag=0.5;
+      if(s.equals("shutdown"))player.speedMag=1;
+    }));
+    m.Hit(parent.power);
     isDead=true;
-    NextEntities.add(new Particle(this,5));
   }
 }
 
@@ -953,19 +949,16 @@ class AntiSkillBullet extends ThroughBullet{
   AntiSkillBullet(Enemy e,Weapon w){
     super(e,w);
     setColor(new Color(235,200,200));
-    co_type=CollisionType.Inside;
   }
   
   @Override
-  void MyselfCollision(Myself m){
-    if(!isMine&&CircleCollision(m.pos,m.size,pos,vel)){
-      main.CommandQue.put("Poison",new Command(0,90,0,(s)->{
-        if(s.equals("exec"))player.useSub=false;
-        if(s.equals("shutdown"))player.useSub=true;
-      }));
-      m.Hit(parent.power);
-      isDead=true;
-    }
+  void MyselfHit(Myself m,boolean b){
+    main.CommandQue.put("Poison",new Command(0,90,0,(s)->{
+      if(s.equals("exec"))player.useSub=false;
+      if(s.equals("shutdown"))player.useSub=true;
+    }));
+    m.Hit(parent.power);
+    isDead=true;
   }
 }
 
@@ -974,16 +967,13 @@ class BoundBullet extends ThroughBullet{
   BoundBullet(Enemy e,Weapon w){
     super(e,w);
     setColor(new Color(255,220,100));
-    co_type=CollisionType.Inside;
   }
   
   @Override
-  void MyselfCollision(Myself m){
-    if(!isMine&&CircleCollision(m.pos,m.size,pos,vel)){
-      m.Speed=m.maxSpeed*-3;
-      m.Hit(parent.power);
-      isDead=true;
-    }
+  void MyselfHit(Myself m,boolean b){
+    m.Speed=m.maxSpeed*-3;
+    m.Hit(parent.power);
+    isDead=true;
   }
 }
 
@@ -998,7 +988,6 @@ class AntiBulletFieldBullet extends Bullet{
     vel=new PVector(0,0);
     scale=80;
     isMine=false;
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -1031,10 +1020,10 @@ class AntiBulletFieldBullet extends Bullet{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
+  void EnemyCollision(Enemy e){}
   
   @Override
-  void EnemyCollision(Enemy e){}
+  void EnemyHit(Enemy e,boolean b){}
   
   @Override
   void BulletCollision(Bullet b){
@@ -1054,7 +1043,6 @@ class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   
   {
     Source=new ArrayList<Enemy>();
-    co_type=CollisionType.Inside;
   }
   
   private AbsorptionBullet(){
@@ -1086,20 +1074,25 @@ class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
   void EnemyCollision(Enemy e){
     if(qDist(pos,e.pos,(scale+e.size)*0.5f)){
-      Source.add(e);
+      EnemyHit(e,true);
     }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    Source.add(e);
   }
   
   @Override
   void BulletCollision(Bullet b){}
   
   @Override
-  void WallCollision(WallEntity w){}
+  void BulletHit(Bullet b,boolean p){}
+  
+  @Override
+  void WallHit(WallEntity w,boolean p){}
 }
 
 class FireBullet extends SubBullet{
@@ -1117,7 +1110,6 @@ class FireBullet extends SubBullet{
     bulletColor=new Color(255,30,0);
     cooltimes=new HashMap<Entity,Float>();
     outEntity=new HashSet<Entity>();
-    co_type=CollisionType.Inside;
   }
   
    public void display(PGraphics g){
@@ -1181,27 +1173,39 @@ class FireBullet extends SubBullet{
   void ExplosionCollision(Explosion e){}
   
   @Override
+  void ExplosionHit(Explosion e,boolean b){}
+  
+  @Override
   void EnemyCollision(Enemy e){
     if(stop){
       if(qDist(pos,e.pos,(e.size+scale)*0.5)){
-        outEntity.remove(e);
-        if(!cooltimes.containsKey(e)){
-          e.Hit(this.parent);
-          cooltimes.put(e,20f);
-        }else{
-          if(cooltimes.get(e)<=0){
-            e.Hit(this.parent);
-            cooltimes.replace(e,20f);
-          }
-        }
+        EnemyHit(e,true);
       }
     }else{
       if(CircleCollision(e.pos,e.size,pos,vel)){
-        e.Hit(parent.power*3);
-        age=0;
-        stop=true;
-        vel=new PVector(0,0);
+        EnemyHit(e,true);
       }
+    }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    if(stop){
+      outEntity.remove(e);
+      if(!cooltimes.containsKey(e)){
+        e.Hit(this.parent);
+        cooltimes.put(e,20f);
+      }else{
+        if(cooltimes.get(e)<=0){
+          e.Hit(this.parent);
+          cooltimes.replace(e,20f);
+        }
+      }
+    }else{
+      e.Hit(parent.power*3);
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
     }
   }
   
@@ -1209,9 +1213,7 @@ class FireBullet extends SubBullet{
   void BulletCollision(Bullet b){}
   
   @Override
-  void WallCollision(WallEntity w){
-    if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
-     &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+  void WallHit(WallEntity w,boolean b){
     age=0;
     stop=true;
     vel=new PVector(0,0);
@@ -1234,7 +1236,6 @@ class IceBullet extends SubBullet{
     bulletColor=new Color(40,245,255);
     cooltimes=new HashMap<Entity,Float>();
     outEntity=new HashSet<Entity>();
-    co_type=CollisionType.Inside;
   }
   
    public void display(PGraphics g){
@@ -1298,28 +1299,40 @@ class IceBullet extends SubBullet{
   void ExplosionCollision(Explosion e){}
   
   @Override
+  void ExplosionHit(Explosion e,boolean b){}
+  
+  @Override
   void EnemyCollision(Enemy e){
     if(stop){
       if(qDist(pos,e.pos,(e.size+scale)*0.5)){
-        outEntity.remove(e);
-        if(!cooltimes.containsKey(e)){
-          e.Hit(this.parent);
-          cooltimes.put(e,30f);
-        }else{
-          if(cooltimes.get(e)<=0){
-            e.Hit(this.parent);
-            cooltimes.replace(e,30f);
-          }
-        }
-        e.addVel(e.Speed>0.5?-e.accelSpeed*1.1:-e.accelSpeed,true);
+        EnemyHit(e,true);
       }
     }else{
       if(CircleCollision(e.pos,e.size,pos,vel)){
-        e.Hit(parent.power*3);
-        age=0;
-        stop=true;
-        vel=new PVector(0,0);
+        EnemyHit(e,true);
       }
+    }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    if(stop){
+      outEntity.remove(e);
+      if(!cooltimes.containsKey(e)){
+        e.Hit(this.parent);
+        cooltimes.put(e,30f);
+      }else{
+        if(cooltimes.get(e)<=0){
+          e.Hit(this.parent);
+          cooltimes.replace(e,30f);
+        }
+      }
+      e.addVel(e.Speed>0.5?-e.accelSpeed*1.1:-e.accelSpeed,true);
+    }else{
+      e.Hit(parent.power*3);
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
     }
   }
   
@@ -1327,9 +1340,7 @@ class IceBullet extends SubBullet{
   void BulletCollision(Bullet b){}
   
   @Override
-  void WallCollision(WallEntity w){
-    if(SegmentCrossPoint(pos,vel,w.pos,w.dist)==null
-     &&SegmentCrossPoint(pos,vel.copy().mult(-1),w.pos,w.dist)==null)return;
+  void WallHit(WallEntity w,boolean b){
     age=0;
     stop=true;
     vel=new PVector(0,0);
@@ -1356,7 +1367,7 @@ class SatelliteBullet extends SubBullet{
   void display(PGraphics g){
     if(Debug)displayAABB(g);
     g.noFill();
-    g.stroke(toColor(c));
+    g.stroke(toColor(bulletColor));
     g.strokeWeight(1);
     g.triangle(pos.x+cos(rotate)*scale,pos.y+sin(rotate)*scale,pos.x+cos(rotate+TWO_PI/3)*scale,pos.y+sin(rotate+TWO_PI/3)*scale,pos.x+cos(rotate-TWO_PI/3)*scale,pos.y+sin(rotate-TWO_PI/3)*scale);
   }
@@ -1384,40 +1395,50 @@ class SatelliteBullet extends SubBullet{
   }
   
   @Override
-  public void Collision(Entity e){
-    if(e instanceof Enemy&&!(e instanceof ExcludeBullet)){
-      if(qDist(pos,e.pos,e.size*0.5+scale)){
-        ((Enemy)e).Hit(parent);
-        ((Enemy)e).addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
-        isDead=true;
-      }
-    }else if(e instanceof WallEntity){
-      if(!CircleCollision(pos,scale*2,e.pos,e.vel))return;
-      isDead=true;
-      NextEntities.add(new Particle(this,5));
-    }
-  }
-  
-  @Override
-  void ExplosionCollision(Explosion e){}
-  
-  @Override
   void EnemyCollision(Enemy e){
     if(qDist(pos,e.pos,e.size*0.5+scale)){
-      e.Hit(parent);
-      e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
-      isDead=true;
+      EnemyHit(e,true);
     }
   }
   
   @Override
-  void BulletCollision(Bullet b){}
+  void EnemyHit(Enemy e,boolean b){
+    e.Hit(parent);
+    e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
+    isDead=true;
+  }
   
   @Override
   void WallCollision(WallEntity w){
     if(!CircleCollision(pos,scale*2,w.pos,w.vel))return;
+    WallHit(w,true);
+  }
+  
+  @Override
+  void WallHit(WallEntity w,boolean b){
     isDead=true;
     NextEntities.add(new Particle(this,5));
+  }
+}
+
+class HexiteBullet extends SatelliteBullet{
+  
+  HexiteBullet(HexiteWeapon w,Hexite s,PVector target){
+    super(w,s,target);
+    bulletColor=new Color(255,128,0);
+  }
+  
+  @Override
+  void display(PGraphics g){
+    if(Debug)displayAABB(g);
+    g.noFill();
+    g.stroke(toColor(bulletColor));
+    g.strokeWeight(1);
+    g.beginShape();
+    for(int i=0;i<6;i++){
+      g.vertex(pos.x+cos(rotate+TWO_PI*(i/6f))*scale,pos.y+sin(rotate+TWO_PI*(i/6f))*scale);
+    }
+    g.endShape(CLOSE);
   }
 }
 

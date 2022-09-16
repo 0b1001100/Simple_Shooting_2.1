@@ -169,20 +169,16 @@ class Enemy extends Entity implements Cloneable{
   
   @Override
   public void Collision(Entity e){
-    if(e.co_type==CollisionType.Inside){
-      e.EnemyCollision(this);
-    }else{
-      if(e instanceof Explosion){
-        ExplosionCollision((Explosion)e);
-      }else if(e instanceof Enemy){
-        EnemyCollision((Enemy)e);
-      }else if(e instanceof Bullet){
-        BulletCollision((Bullet)e);
-      }else if(e instanceof Myself){
-        MyselfCollision((Myself)e);
-      }else if(e instanceof WallEntity){
-        WallCollision((WallEntity)e);
-      }
+    if(e instanceof Explosion){
+      ExplosionCollision((Explosion)e);
+    }else if(e instanceof Enemy){
+      EnemyCollision((Enemy)e);
+    }else if(e instanceof Bullet){
+      BulletCollision((Bullet)e);
+    }else if(e instanceof Myself){
+      MyselfCollision((Myself)e);
+    }else if(e instanceof WallEntity){
+      WallCollision((WallEntity)e);
     }
   }
   
@@ -192,18 +188,32 @@ class Enemy extends Entity implements Cloneable{
   }
   
   @Override
+  void ExplosionHit(Explosion e,boolean b){
+    if(e.inf){
+      Down();
+    }else{
+      e.EnemyHit(this,b);
+    }
+  }
+  
+  @Override
   void EnemyCollision(Enemy e){
     if(qDist(pos,e.pos,(size+e.size)*0.5)){
-      PVector c=pos.copy().sub(e.pos).normalize();
-      PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
-      vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
-      e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-      pos.sub(d);
-      if(vel.magSq()>maxSpeed*maxSpeed){
-        PVector v=vel.copy().normalize().mult(maxSpeed);
-        addtionalVel=vel.copy().sub(v);
-        vel=v;
-      }
+      EnemyHit(e,false);
+    }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    PVector c=pos.copy().sub(e.pos).normalize();
+    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+    vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
+    e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
+    pos.sub(d);
+    if(vel.magSq()>maxSpeed*maxSpeed){
+      PVector v=vel.copy().normalize().mult(maxSpeed);
+      addtionalVel=vel.copy().sub(v);
+      vel=v;
     }
   }
   
@@ -215,13 +225,18 @@ class Enemy extends Entity implements Cloneable{
   @Override
   void MyselfCollision(Myself m){
     if(!m.isDead&&qDist(m.pos,pos,(m.size+size)*0.5)){
-      float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
-      float d=(m.size+size)*0.5-dist(m.pos,pos);
-      vel=new PVector(-cos(r)*d,-sin(r)*d);
-      addtionalVel=new PVector(0,0);
-      pos.add(vel);
-      m.Hit(1);
+      MyselfHit(m,true);
     }
+  }
+  
+  @Override
+  void MyselfHit(Myself m,boolean b){
+    float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+    float d=(m.size+size)*0.5-dist(m.pos,pos);
+    vel=new PVector(-cos(r)*d,-sin(r)*d);
+    addtionalVel=new PVector(0,0);
+    pos.add(vel);
+    m.Hit(1);
   }
   
   @Override
@@ -361,7 +376,6 @@ class ExplosionEnemy extends Enemy{
     dead=(e)->{
       NextEntities.add(new Explosion(e,size*2,0.5,5));
     };
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -376,10 +390,9 @@ class ExplosionEnemy extends Enemy{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){
-    if(qDist(pos,e.pos,(e.size+size)*0.5)){
-      isDead=true;
-    }
+  void ExplosionHit(Explosion e,boolean b){
+    isDead=true;
+    if(player.isDead)NextEntities.add(new Explosion(this,size*2,0.5,5));
   }
 }
 
@@ -958,7 +971,6 @@ class AntiBullet extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(85,150,235));
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -968,6 +980,11 @@ class AntiBullet extends Enemy{
       addtionalVel=vel.copy().mult(-(vel.mag()/Mass));
       if(b instanceof GravityBullet||b instanceof GrenadeBullet||b instanceof FireBullet||b instanceof PlasmaFieldBullet)Hit(b.parent);
     }
+  }
+  
+  void HitBullet(Weapon w){
+    addtionalVel=vel.copy().mult(-(vel.mag()/Mass));
+    if(w instanceof G_ShotWeapon||w instanceof GrenadeWeapon||w instanceof FireWeapon||w instanceof IceWeapon||w instanceof PlasmaFieldWeapon)super.Hit(w);
   }
 }
 
@@ -1185,7 +1202,6 @@ class CollisionEnemy extends Enemy{
     setColor(new Color(30,255,180));
     maxSpeed=1.1;
     rotateSpeed=3;
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -1204,20 +1220,22 @@ class CollisionEnemy extends Enemy{
   @Override
   void MyselfCollision(Myself m){
     if(!m.isDead&&qDist(m.pos,pos,(m.size+size)*0.5)){
-      float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
-      float d=(m.size+size)*0.5-dist(m.pos,pos);
-      vel=new PVector(-cos(r)*d,-sin(r)*d);
-      addtionalVel=new PVector(0,0);
-      pos.add(vel);
-      hit=true;
+      MyselfHit(m,true);
     }
   }
   
   @Override
-  void BulletCollision(Bullet b){
-    if(CircleCollision(pos,size,b.pos,b.vel)){
-      b.isDead=true;
-    }
+  void MyselfHit(Myself m,boolean b){
+    float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+    float d=(m.size+size)*0.5-dist(m.pos,pos);
+    vel=new PVector(-cos(r)*d,-sin(r)*d);
+    addtionalVel=new PVector(0,0);
+    pos.add(vel);
+    hit=true;
+  }
+  
+  @Override
+  void Hit(Weapon w){
   }
 }
 
@@ -1232,7 +1250,6 @@ class Decoy extends Enemy{
     setColor(new Color(205,200,255));
     maxSpeed=0;
     rotateSpeed=0;
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -1244,13 +1261,11 @@ class Decoy extends Enemy{
   }
   
   @Override
-  void BulletCollision(Bullet b){
-    if(CircleCollision(pos,size,b.pos,b.vel)){
-      if(stop)stop=false;
-      Hit(b.parent);
-      addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
-      b.isDead=true;
-    }
+  void BulletHit(Bullet b,boolean p){
+    if(stop)stop=false;
+    Hit(b.parent);
+    addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
+    b.isDead=true;
   }
 }
 
@@ -1265,7 +1280,6 @@ class Recover extends Enemy implements BossEnemy{
     setSize(40);
     setMass(35);
     setColor(new Color(255,150,225));
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -1282,6 +1296,11 @@ class Recover extends Enemy implements BossEnemy{
   @Override
   void BulletCollision(Bullet b){
     super.BulletCollision(b);
+    if(isDead)NextEntities.add(new RecoverItem(this));
+  }
+  
+  @Override
+  void BulletHit(Bullet b,boolean p){
     if(isDead)NextEntities.add(new RecoverItem(this));
   }
   
@@ -1328,13 +1347,18 @@ class AntiG_Shot extends Enemy{
     setSize(25);
     setMass(3);
     setColor(new Color(0,255,0));
-    co_type=CollisionType.Inside;
   }
   
   @Override
   void BulletCollision(Bullet b){
     if(b instanceof GravityBullet)return;
     super.BulletCollision(b);
+  }
+  
+  @Override
+  void BulletHit(Bullet b,boolean p){
+    if(b instanceof GravityBullet)return;
+    super.BulletHit(b,p);
   }
 }
 
@@ -1360,7 +1384,6 @@ class Barrier extends M_Boss_Y implements BossEnemy{
         boss.Dispose();
       };
     }
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -1414,14 +1437,17 @@ class Barrier extends M_Boss_Y implements BossEnemy{
   void BulletCollision(Bullet b){
     if(barrier){
       if(CircleCollision(pos,size,b.pos,b.vel)){
-        if(b instanceof GravityBullet){
-          Hit(b.parent);
-          addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
-        }
-        b.isDead=true;
+        b.EnemyHit(this,true);
       }
     }else{
       super.BulletCollision(b);
+    }
+  }
+  
+  @Override
+  void BulletHit(Bullet b,boolean p){
+    if(b instanceof GravityBullet){
+      addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
     }
   }
 }
@@ -1643,7 +1669,6 @@ class Sealed extends M_Boss_Y implements BossEnemy{
       setSize(16);
       setMass(1000);
       setColor(new Color(230,180,34));
-      co_type=CollisionType.Inside;
     }
     
     @Override

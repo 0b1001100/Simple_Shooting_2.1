@@ -758,7 +758,6 @@ class WallEntity extends Entity{
   
   {
     size=0;
-    co_type=CollisionType.Inside;
   }
   
   WallEntity(PVector pos,PVector dist){
@@ -789,20 +788,16 @@ class WallEntity extends Entity{
   
   @Override
   public void Collision(Entity e){
-    if(e.co_type==CollisionType.Inside){
-      e.WallCollision(this);
-    }else{
-      if(e instanceof Explosion){
-        ExplosionCollision((Explosion)e);
-      }else if(e instanceof Enemy){
-        EnemyCollision((Enemy)e);
-      }else if(e instanceof Bullet){
-        BulletCollision((Bullet)e);
-      }else if(e instanceof Myself){
-        MyselfCollision((Myself)e);
-      }else if(e instanceof WallEntity){
-        WallCollision((WallEntity)e);
-      }
+    if(e instanceof Explosion){
+      ExplosionCollision((Explosion)e);
+    }else if(e instanceof Enemy){
+      EnemyCollision((Enemy)e);
+    }else if(e instanceof Bullet){
+      BulletCollision((Bullet)e);
+    }else if(e instanceof Myself){
+      MyselfCollision((Myself)e);
+    }else if(e instanceof WallEntity){
+      WallCollision((WallEntity)e);
     }
     Process(e);
   }

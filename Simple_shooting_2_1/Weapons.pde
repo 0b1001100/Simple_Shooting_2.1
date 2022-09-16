@@ -659,6 +659,28 @@ class SatelliteWeapon extends SubWeapon{
   }
 }
 
+class HexiteWeapon extends SatelliteWeapon{
+  
+  HexiteWeapon(){
+    super();
+  }
+  
+  HexiteWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  public void update(){
+    if(child==null){
+      child=new Hexite(this);
+      NextEntities.add(child);
+    }else if(child!=null&&!NextEntities.contains(child)&&!EntitySet.contains(child)){
+      child=new Hexite(this);
+      NextEntities.add(child);
+    }
+  }
+}
+
 class itemWeapon extends SubWeapon{
   
   itemWeapon(){
