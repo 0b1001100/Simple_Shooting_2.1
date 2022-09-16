@@ -37,6 +37,7 @@ byte updateNumber=16;
 ArrayList<EntityDraw>DrawProcess=new ArrayList<EntityDraw>();
 byte drawNumber=4;
 
+float absoluteMagnification=1;
 float vectorMagnification=1;
 float pMagnification=1;
 
@@ -233,6 +234,7 @@ void setup(){
 }
 
  public void draw(){
+   vectorMagnification*=absoluteMagnification;
   switch(scene) {
     case 0:Menu();
     break;
@@ -415,6 +417,10 @@ String getLanguageText(String s){
   });
   TitleCanvas.addWindowResizeEvent(()->{
     preg=createGraphics(width,height,P2D);
+    for(int i=0;i<20;i++){
+      titleLight[i*2]=width*0.05*i+random(-5,5);
+      titleLight[i*2+1]=random(0,height);
+    }
   });
   ComponentSet titleSet=toSet(TitleCanvas,New);
   titleSet.addSelect();
@@ -442,6 +448,17 @@ String getLanguageText(String s){
   });
   //---
     Y_AxisLayout confLayout=new Y_AxisLayout(250,160,120,25,15);
+    MenuCheckBox AbsMag=new MenuCheckBox(Language.getString("mag_set"),absoluteMagnification==1.5);
+    AbsMag.addListener(()->{
+      absoluteMagnification=AbsMag.value?1.5:1;
+    });
+    AbsMag.addFocusListener(new FocusEvent(){
+       public void getFocus(){
+        confBox.setText(Language.getString("ex_mag_set"));
+      }
+      
+       public void lostFocus(){}
+    });
     MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),colorInverse);
     Colorinv.addListener(()->{
       colorInverse=Colorinv.value;
@@ -613,7 +630,7 @@ String getLanguageText(String s){
   starts.addLayer("root",titleSet);
   starts.addChild("root","main",toSet(mainLayout,Select,Config,operationEx,credit));
   starts.addSubChild("main","stage",toSet(stageList));
-  starts.addSubChild("main","confMenu",toSet(confLayout,Colorinv,dispFPS,Quality,vsy,Lang,exit),toSet(confBox));
+  starts.addSubChild("main","confMenu",toSet(confLayout,AbsMag,Colorinv,dispFPS,Quality,vsy,Lang,exit),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
   starts.addChild("main","operation",toSet(back_op,op_canvas));
   starts.addChild("main","credit",toSet(back_cr,cr_canvas));
@@ -1215,6 +1232,21 @@ String getLanguageText(String s){
   return new Color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
 }
 
+public boolean isParent(Entity e,Entity f){
+  if(e instanceof Bullet||f instanceof Bullet){
+    if(f instanceof Bullet)return false;
+  }else if((e instanceof Enemy&&!(e instanceof Explosion))||(f instanceof Enemy&&!(f instanceof Explosion))){
+    if(f instanceof Enemy)return false;
+  }else if(e instanceof Myself||f instanceof Myself){
+    if(f instanceof Myself)return false;
+  }else if(e instanceof Explosion||f instanceof Explosion){
+    if(f instanceof Explosion)return false;
+  }else if(e instanceof WallEntity||f instanceof WallEntity){
+    if(f instanceof WallEntity)return false;
+  }
+  return true;
+}
+
  public void keyPressed(){
   keyPressTime=0;
   keyPress=true;
@@ -1240,7 +1272,6 @@ String getLanguageText(String s){
 }
 
 class Entity implements Egent, Cloneable {
-  CollisionType co_type=CollisionType.Independence;
   DeadEvent dead=(e)->{};
   float size=20;
   PVector pos;
@@ -1322,6 +1353,16 @@ class Entity implements Egent, Cloneable {
   public void MyselfCollision(Myself e){}  
   
   public void WallCollision(WallEntity w){}  
+  
+  public void ExplosionHit(Explosion e,boolean p){}
+  
+  public void EnemyHit(Enemy e,boolean p){}
+  
+  public void BulletHit(Bullet b,boolean p){}
+  
+  public void MyselfHit(Myself e,boolean p){}  
+  
+  public void WallHit(WallEntity w,boolean p){}  
   
   public void displayAABB(PGraphics g){
     g.rectMode(CENTER);
@@ -1418,12 +1459,6 @@ class Camera {
       resetMove();
     }
   }
-}
-
-enum CollisionType{
-  Inside,
-  Outside,
-  Independence
 }
 
 interface ExcludeGPGPU{

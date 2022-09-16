@@ -55,20 +55,16 @@ class Explosion extends Enemy{
   
   @Override
   public void Collision(Entity e){
-    if(e.co_type==CollisionType.Inside){
-      e.EnemyCollision(this);
-    }else{
-      if(e instanceof Explosion){
-        ExplosionCollision((Explosion)e);
-      }else if(e instanceof Enemy){
-        EnemyCollision((Enemy)e);
-      }else if(e instanceof Bullet){
-        BulletCollision((Bullet)e);
-      }else if(e instanceof Myself){
-        MyselfCollision((Myself)e);
-      }else if(e instanceof WallEntity){
-        WallCollision((WallEntity)e);
-      }
+    if(e instanceof Explosion){
+      ExplosionCollision((Explosion)e);
+    }else if(e instanceof Enemy){
+      EnemyCollision((Enemy)e);
+    }else if(e instanceof Bullet){
+      BulletCollision((Bullet)e);
+    }else if(e instanceof Myself){
+      MyselfCollision((Myself)e);
+    }else if(e instanceof WallEntity){
+      WallCollision((WallEntity)e);
     }
   }
   
@@ -77,31 +73,35 @@ class Explosion extends Enemy{
   
   @Override
   void EnemyCollision(Enemy e){
-    if(!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      EnemyHit(e,false);
+    }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    if(!HitEnemy.contains(e)){
       HitEnemy.add(e);
       if(inf){
         if(e instanceof BossEnemy){
-          e.Hit(power);
+          e.ExplosionHit(this,true);
           return;
         }
-        e.Down();
-        e.dead.deadEvent(e);
+        e.ExplosionHit(this,true);
       }else{
-        e.Hit(power);
+        e.ExplosionHit(this,true);
       }
-    }else if(e instanceof ExplosionEnemy){
-      e.ExplosionCollision(this);
     }
   }
   
   @Override
   void BulletCollision(Bullet b){
-    b.EnemyCollision(this);
+    b.ExplosionHit(this,true);
   }
   
   @Override
   void MyselfCollision(Myself m){
-    m.ExplosionCollision(this);
+    m.ExplosionHit(this,true);
   }
   
   @Override
@@ -125,11 +125,8 @@ class BulletExplosion extends Explosion{
   }
   
   @Override
-  void EnemyCollision(Enemy e){
-    if(!(e instanceof BlastResistant)&&!HitEnemy.contains(e)){
-      HitEnemy.add(e);
-      ((Enemy)e).Hit(parent);
-    }
+  void EnemyHit(Enemy e,boolean b){
+    ((Enemy)e).Hit(parent);
   }
 }
 

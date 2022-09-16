@@ -262,6 +262,31 @@
     "cooltime":200,
     "through":0,
     "nextWeapon":{
+      "name":"Hexite",
+      "need":[
+        {
+          "name":"Satellite",
+          "type":"use"
+        },
+        {
+          "name":"projectile",
+          "type":"exist"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Hexite",
+    "type":"next_weapon",
+    "weight":6,
+    "projectile":6,
+    "scale":6,
+    "power":12,
+    "velocity":7,
+    "duration":300,
+    "cooltime":60,
+    "through":0,
+    "nextWeapon":{
       "name":"undefined",
       "need":[]
     }

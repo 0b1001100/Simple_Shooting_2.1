@@ -56,7 +56,6 @@ class Myself extends Entity{
       HeapEntity.get(0).add(new Explosion(this,250,1).Infinity(true));
       NextEntities.add(new Particle(this,(int)(size*3),1));
     });
-    co_type=CollisionType.Inside;
   }
   
   @Override
@@ -260,26 +259,22 @@ class Myself extends Entity{
   
   @Override
   public void Collision(Entity e){
-    if(e.co_type==CollisionType.Inside){
-      e.MyselfCollision(this);
-    }else{
-      if(e instanceof Explosion){
-        ExplosionCollision((Explosion)e);
-      }else if(e instanceof Enemy){
-        EnemyCollision((Enemy)e);
-      }else if(e instanceof Bullet){
-        BulletCollision((Bullet)e);
-      }else if(e instanceof Myself){
-        MyselfCollision((Myself)e);
-      }else if(e instanceof WallEntity){
-        WallCollision((WallEntity)e);
-      }
+    if(e instanceof Explosion){
+      ExplosionCollision((Explosion)e);
+    }else if(e instanceof Enemy){
+      EnemyCollision((Enemy)e);
+    }else if(e instanceof Bullet){
+      BulletCollision((Bullet)e);
+    }else if(e instanceof Myself){
+      MyselfCollision((Myself)e);
+    }else if(e instanceof WallEntity){
+      WallCollision((WallEntity)e);
     }
   }
   
   @Override
-  void ExplosionCollision(Explosion e){
-    if(!e.myself&&qDist(pos,e.pos,(e.size+size)*0.5)){
+  void ExplosionHit(Explosion e,boolean b){
+    if(!e.myself){
       Hit(e.power);
     }
   }
@@ -339,6 +334,7 @@ class Satellite extends Entity{
   
   @Override
   void update(){
+    if(!player.subWeapons.contains(satellite))main.CommandQue.put(getClass().getName(),new Command(0,0,0,(e)->Entities.remove(this)));
     cooltime+=vectorMagnification;
     if(attack){
       attackTime+=vectorMagnification;
@@ -368,5 +364,34 @@ class Satellite extends Entity{
   void shot(){
     target=player.pos.copy().add(player.pos.copy().sub(pos));
     NextEntities.add(new SatelliteBullet(satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
+  }
+}
+
+class Hexite extends Satellite{
+  
+  Hexite(HexiteWeapon w){
+    super(w);
+  }
+  
+  void init(){
+    setColor(new Color(255,128,0));
+    setSize(15);
+  }
+  
+  @Override
+  void display(PGraphics g){
+    g.noFill();
+    g.stroke(toColor(c));
+    g.strokeWeight(1);
+    g.beginShape();
+    for(int i=0;i<6;i++){
+      g.vertex(pos.x+cos(rotate+TWO_PI*(i/6f))*size,pos.y+sin(rotate+TWO_PI*(i/6f))*size);
+    }
+    g.endShape(CLOSE);
+  }
+  
+  void shot(){
+    target=player.pos.copy().add(player.pos.copy().sub(pos));
+    NextEntities.add(new HexiteBullet((HexiteWeapon)satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
   }
 }
