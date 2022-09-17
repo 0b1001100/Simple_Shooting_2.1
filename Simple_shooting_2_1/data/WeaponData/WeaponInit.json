@@ -198,6 +198,31 @@
     "cooltime":150,
     "through":0,
     "nextWeapon":{
+      "name":"ShadowReflector",
+      "need":[
+        {
+          "name":"Reflector",
+          "type":"use"
+        },
+        {
+          "name":"power",
+          "type":"exist"
+        }
+      ]
+    }
+  },
+  {
+    "name":"ShadowReflector",
+    "type":"next_weapon",
+    "weight":7,
+    "projectile":4,
+    "scale":0,
+    "power":8,
+    "velocity":5,
+    "duration":170,
+    "cooltime":70,
+    "through":0,
+    "nextWeapon":{
       "name":"undefined",
       "need":[]
     }

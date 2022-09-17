@@ -561,6 +561,24 @@ class ReflectorWeapon extends SubWeapon{
   }
 }
 
+class ShadowReflectorWeapon extends ReflectorWeapon{
+  
+  ShadowReflectorWeapon(){
+    super();
+  }
+  
+  ShadowReflectorWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override 
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new ShadowReflectorBullet(this,i));
+    }
+  }
+}
+
 class AbsorptionWeapon extends SubWeapon{
   AbsorptionBullet bullet;
   

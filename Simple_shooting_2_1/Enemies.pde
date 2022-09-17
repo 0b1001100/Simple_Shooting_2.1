@@ -74,7 +74,6 @@ class Enemy extends Entity implements Cloneable{
         playerDistsq=sqDist(player.pos,pos);
       }
     }
-    super.update();
   }
   
   void Rotate(){
@@ -165,6 +164,7 @@ class Enemy extends Entity implements Cloneable{
     isDead=true;
     NextEntities.add(new Particle(this,(int)(size*3),1));
     NextEntities.add(new Exp(this,ceil(((float)maxHP)*expMag)));
+    dead.deadEvent(this);
   }
   
   @Override
@@ -192,7 +192,7 @@ class Enemy extends Entity implements Cloneable{
     if(e.inf){
       Down();
     }else{
-      e.EnemyHit(this,b);
+      Hit(e.power);
     }
   }
   
@@ -391,8 +391,7 @@ class ExplosionEnemy extends Enemy{
   
   @Override
   void ExplosionHit(Explosion e,boolean b){
-    isDead=true;
-    if(player.isDead)NextEntities.add(new Explosion(this,size*2,0.5,5));
+    Down();
   }
 }
 
@@ -480,6 +479,11 @@ class M_Boss_Y extends Enemy implements BossEnemy{
       boss.startDisplay();
     }
     return this;
+  }
+  
+  @Override
+  void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
   }
 }
 
@@ -1300,6 +1304,11 @@ class Recover extends Enemy implements BossEnemy{
   }
   
   @Override
+  void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
+  }
+  
+  @Override
   void BulletHit(Bullet b,boolean p){
     if(isDead)NextEntities.add(new RecoverItem(this));
   }
@@ -1490,6 +1499,11 @@ class GoldEnemy extends Enemy implements BossEnemy{
       NextEntities.add(new Particle(this,(int)(size*0.5),1));
     }
   }
+  
+  @Override
+  void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
+  }
 }
 
 class SnipeEnemy extends Turret_S implements BossEnemy{
@@ -1553,6 +1567,11 @@ class SnipeEnemy extends Turret_S implements BossEnemy{
     }
     g.rect(0,0,size*0.7071,size*0.7071);
     g.popMatrix();
+  }
+  
+  @Override
+  void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
   }
 }
 
@@ -1649,6 +1668,11 @@ class Sealed extends M_Boss_Y implements BossEnemy{
     }else if(damage>0){
       NextEntities.add(new Particle(this,(int)(size*0.5),1));
     }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    if(!(e instanceof SealedFrag))super.EnemyHit(e,b);
   }
   
   final private class SealedFrag extends Enemy implements BossEnemy{

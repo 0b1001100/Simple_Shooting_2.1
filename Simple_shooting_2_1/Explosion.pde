@@ -82,15 +82,7 @@ class Explosion extends Enemy{
   void EnemyHit(Enemy e,boolean b){
     if(!HitEnemy.contains(e)){
       HitEnemy.add(e);
-      if(inf){
-        if(e instanceof BossEnemy){
-          e.ExplosionHit(this,true);
-          return;
-        }
-        e.ExplosionHit(this,true);
-      }else{
-        e.ExplosionHit(this,true);
-      }
+      e.ExplosionHit(this,true);
     }
   }
   
