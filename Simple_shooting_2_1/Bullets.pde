@@ -853,6 +853,46 @@ class ReflectorBullet extends SubBullet{
   }
 }
 
+class ShadowReflectorBullet extends ReflectorBullet{
+  HashMap<Entity,Integer>reflectEntity=new HashMap<Entity,Integer>();
+  
+  ShadowReflectorBullet(SubWeapon w,int num){
+    super(w,num);
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+      reflectFromNormal(atan2(pos,e.pos));
+    if(!HitEnemy.contains(e)){
+      if(reflectEntity.containsKey(e)){
+        reflectEntity.replace(e,reflectEntity.get(e)-1);
+      }else{
+        reflectEntity.put(e,2);
+      }
+      if(reflectEntity.get(e)>=0){
+        ShadowReflectorBullet sr=new ShadowReflectorBullet((SubWeapon)parent,1);
+        sr.pos=pos.copy();
+        sr.setNear(1);
+        sr.HitEnemy=(HashSet<Entity>)HitEnemy.clone();
+        sr.nextHitEnemy=(HashSet<Entity>)nextHitEnemy.clone();
+        sr.reflectEntity=reflectEntity;
+        NextEntities.add(sr);
+      }
+      e.Hit(parent);
+      e.addtionalVel=e.vel.copy().mult(-(20f/e.Mass));
+      age-=30;
+    }
+  }
+  
+  @Override
+  void WallHit(WallEntity w,boolean b){
+    nextHitEnemy.add(w);
+    reflectFromNormal(w.norm);
+    NextEntities.add(new Particle(this,5));
+  }
+}
+
 class ThroughBullet extends Bullet{
   HashSet<Entity>HitEnemy;
   HashSet<Entity>nextHitEnemy;
