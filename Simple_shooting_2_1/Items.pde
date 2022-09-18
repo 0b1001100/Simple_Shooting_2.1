@@ -103,7 +103,7 @@ class Item{
    public void reset(){
     level=1;
     weight=initData.getInt("weight");
-    if(type.equals("weapon"))w.init(initData);
+    w.init(initData);
   }
   
    public JSONArray getUpgradeArray(){

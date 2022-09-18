@@ -288,6 +288,9 @@ class DummyEnemy extends Enemy implements BlastResistant{
     exp.setExp(10);
     return e;
   }
+  
+  @Override
+  void ExplosionHit(Explosion e,boolean b){}
 }
 
 class Turret extends Enemy{
@@ -1004,6 +1007,9 @@ class AntiExplosion extends Enemy implements BlastResistant{
     setColor(new Color(80,100,250));
     addMultiplyer(FireWeapon.class,0.7);
   }
+  
+  @Override
+  void ExplosionHit(Explosion e,boolean b){}
 }
 
 class AntiSkill extends Turret_S{

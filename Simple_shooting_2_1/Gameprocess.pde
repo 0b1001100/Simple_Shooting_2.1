@@ -153,6 +153,7 @@ class GameProcess{
       stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->{
         DummyEnemy e=new DummyEnemy();
         tu_attack.setTarget(e);
+        tu_exp.setTarget(e);
         if(dist(new PVector(0,0),player.pos)<100){
           stage.addSpown(player.pos.copy().add(0,200),e);
         }else{

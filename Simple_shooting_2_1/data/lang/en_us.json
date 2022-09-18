@@ -52,6 +52,7 @@
   "ex_Absorption":"Attack power increases according to the number of enemies within range",
   "ex_Satellite":"Spawns satellites that rotate around the player and automatically attack",
   "ex_Hexite":"Spawns satellites that rotate around the player and automatically attack in large quantities",
+  "ex_ShadowReflector":"Shoots bullets that reflect and division when they hit nearby enemies",
   "ex_Fire":"Shoots at nearby enemies, creating an area of fire damage on impact",
   "ex_Ice":"Shoots at nearby enemies, creating an area of slow down and ice damage on impact",
   "ex_MP5":"Continuously fire bullets at nearby enemies",
