@@ -1273,9 +1273,6 @@ class Decoy extends Enemy{
   @Override
   void BulletHit(Bullet b,boolean p){
     if(stop)stop=false;
-    Hit(b.parent);
-    addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
-    b.isDead=true;
   }
 }
 
@@ -1464,6 +1461,12 @@ class Barrier extends M_Boss_Y implements BossEnemy{
     if(b instanceof GravityBullet){
       addtionalVel=vel.copy().mult(-(b.vel.mag()/Mass));
     }
+  }
+  
+  @Override
+  void Hit(Weapon w){
+    if(barrier&&!(w instanceof G_ShotWeapon))return;
+    super.Hit(w);
   }
 }
 

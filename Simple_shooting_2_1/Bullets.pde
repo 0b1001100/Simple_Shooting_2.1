@@ -134,6 +134,7 @@ class Bullet extends Entity{
     e.Hit(parent);
     e.addtionalVel=e.vel.copy().mult(-(vel.mag()/e.Mass));
     isDead=true;
+    e.BulletHit(this,false);
   }
   
   @Override
@@ -1385,6 +1386,50 @@ class IceBullet extends SubBullet{
     stop=true;
     vel=new PVector(0,0);
     NextEntities.add(new Particle(this,5));
+  }
+}
+
+class InfernoBullet extends FireBullet{
+  
+  InfernoBullet(SubWeapon w,int num){
+    super(w,num);
+    bulletColor=new Color(255,0,0);
+  }
+  
+   public void display(PGraphics g){
+    if(Debug){
+      displayAABB(g);
+    }
+    g.strokeWeight(1);
+    if(stop){
+      g.stroke(255,0,0,100);
+      g.fill(255,0,65,50);
+      g.ellipse(pos.x,pos.y,scale,scale);
+    }else{
+      g.stroke(toColor(bulletColor));
+      g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    }
+  }
+  
+  @Override
+  void EnemyHit(Enemy e,boolean b){
+    if(stop){
+      outEntity.remove(e);
+      if(!cooltimes.containsKey(e)){
+        e.Hit(this.parent);
+        cooltimes.put(e,15f);
+      }else{
+        if(cooltimes.get(e)<=0){
+          e.Hit(this.parent);
+          cooltimes.replace(e,15f);
+        }
+      }
+    }else{
+      e.Hit(parent.power*3);
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
+    }
   }
 }
 

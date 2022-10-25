@@ -65,7 +65,7 @@ class Myself extends Entity{
     g.rotate(-rotate);
     g.strokeWeight(1);
     g.noFill();
-    g.stroke(c.getRed(),c.getGreen(),c.getBlue());
+    g.stroke(toColor(c));
     g.ellipse(0,0,size,size);
     g.strokeWeight(3);
     g.arc(0,0,size*1.5,size*1.5,

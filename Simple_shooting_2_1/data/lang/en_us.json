@@ -55,6 +55,7 @@
   "ex_ShadowReflector":"Shoots bullets that reflect and division when they hit nearby enemies",
   "ex_Fire":"Shoots at nearby enemies, creating an area of fire damage on impact",
   "ex_Ice":"Shoots at nearby enemies, creating an area of slow down and ice damage on impact",
+  "ex_Inferno":"Shoots at nearby enemies, burn up around on impact",
   "ex_MP5":"Continuously fire bullets at nearby enemies",
   "ex_Electron":"Continuously shoot penetrating bullets that reflect off the edge of the screen",
   "ex_InfinityShield":"Continuously spawns a shield that rotates around the player",

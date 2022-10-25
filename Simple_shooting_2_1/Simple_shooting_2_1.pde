@@ -16,6 +16,8 @@ import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.newt.opengl.*;
 import com.jogamp.newt.event.*;
 import com.jogamp.opengl.*;
+import com.jogamp.newt.*;
+import static com.jogamp.common.util.IOUtil.ClassResources;
 
 Simple_shooting_2_1 CopyApplet=this;
 
@@ -157,9 +159,15 @@ int FrameRateConfig=60;
 void settings(){
   size(1280,720,P2D);
   pixelDensity(displayDensity());
+  try{
+    Field icon=PJOGL.class.getDeclaredField("icons");
+    icon.setAccessible(true);
+    icon.set(surface,new String[]{ImagePath+"icon_16.png",ImagePath+"icon_48.png"});
+  }catch(Exception e){e.printStackTrace();}
 }
 
 void setup(){
+  NewtFactory.setWindowIcons(new ClassResources(new String[]{ImagePath+"icon_16.png",ImagePath+"icon_48.png"},this.getClass().getClassLoader(),this.getClass()));
   hint(DISABLE_OPENGL_ERRORS);
   ((GLWindow)surface.getNative()).addWindowListener(new com.jogamp.newt.event.WindowListener() {
     void windowDestroyed(com.jogamp.newt.event.WindowEvent e) {
@@ -243,7 +251,7 @@ public void draw(){
     noLoop();
     ((GLWindow)surface.getNative()).setFullscreen(fullscreen);
     if(!fullscreen){
-      surface.setLocation(0,0);
+      surface.setLocation(displayWidth/2-640,displayHeight/2-360);
     }
     loop();
   }
@@ -391,7 +399,7 @@ String getLanguageText(String s){
   TitleCanvas.setContent((g)->{
     try{
       if(HighQuality){
-        Title_HighShader.set("time",System.nanoTime()/10000000000f);
+        Title_HighShader.set("time",millis()/30000f);
         Title_HighShader.set("mouse",0,0);
         Title_HighShader.set("resolution",width,height);
         filter(Title_HighShader);
@@ -1324,6 +1332,7 @@ public boolean isParent(Entity e,Entity f){
 }
 
 class Entity implements Egent, Cloneable {
+  RigidBody r_body;
   DeadEvent dead=(e)->{};
   float size=20;
   PVector pos;
@@ -1423,6 +1432,66 @@ class Entity implements Egent, Cloneable {
     g.stroke(255);
     g.rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
   }
+}
+
+class RigidBody{
+  SolidType s_type;
+  MaterialType m_type;
+  PVector pos,vel;
+  float radius;
+  boolean substance=false;
+  
+  RigidBody(){
+    
+  }
+}
+
+enum SolidType{
+  Circle,
+  Capsule,
+  Rectangle
+}
+
+enum MaterialType{
+  Bullet,
+  MyBullet,
+  Mirror,
+  Explosion,
+  Solid,
+  Ghost
+}
+
+boolean isHit(MaterialType src,MaterialType t){
+  switch(src){
+    case Bullet:switch(t){
+                  case MyBullet:return true;
+                  case Mirror:return true;
+                  case Explosion:return true;
+                  case Solid:return true;
+                }break;
+    case MyBullet:switch(t){
+                  case Bullet:return true;
+                  case Explosion:return true;
+                  case Solid:return true;
+                }break;
+    case Mirror:switch(t){
+                  case Bullet:return true;
+                  case Solid:return true;
+                }break;
+    case Explosion:switch(t){
+                  case Bullet:return true;
+                  case MyBullet:return true;
+                  case Solid:return true;
+                }break;
+    case Solid:switch(t){
+                  case Bullet:return true;
+                  case MyBullet:return true;
+                  case Mirror:return true;
+                  case Explosion:return true;
+                  case Solid:return true;
+                }break;
+  }
+  return false;
 }
 
 class Camera {

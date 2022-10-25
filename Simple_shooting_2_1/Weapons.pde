@@ -647,6 +647,24 @@ class IceWeapon extends SubWeapon{
   }
 }
 
+class InfernoWeapon extends SubWeapon{
+  
+  InfernoWeapon(){
+    super();
+  }
+  
+  InfernoWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new InfernoBullet(this,i));
+    }
+  }
+}
+
 class SatelliteWeapon extends SubWeapon{
   Satellite child=null;
   

@@ -255,8 +255,17 @@
     "cooltime":240,
     "through":0,
     "nextWeapon":{
-      "name":"undefined",
-      "need":[]
+      "name":"Inferno",
+      "need":[
+        {
+          "name":"Fire",
+          "type":"use"
+        },
+        {
+          "name":"Ice",
+          "type":"use"
+        }
+      ]
     }
   },
   {
@@ -269,6 +278,31 @@
     "velocity":2,
     "duration":150,
     "cooltime":240,
+    "through":0,
+    "nextWeapon":{
+      "name":"Inferno",
+      "need":[
+        {
+          "name":"Fire",
+          "type":"use"
+        },
+        {
+          "name":"Ice",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Inferno",
+    "type":"next_weapon",
+    "weight":6,
+    "projectile":3,
+    "scale":200,
+    "power":3,
+    "velocity":4,
+    "duration":230,
+    "cooltime":160,
     "through":0,
     "nextWeapon":{
       "name":"undefined",
