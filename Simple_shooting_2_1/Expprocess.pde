@@ -1,5 +1,4 @@
 class Exp extends Entity{
-  boolean inScreen=true;
   float exp;
   
   Exp(){
@@ -19,7 +18,7 @@ class Exp extends Entity{
     setExp(exp);
   }
   
-  void setExp(float e){
+  public void setExp(float e){
     exp=e;
     if(exp<=4){
       c=new Color(0,150,255);
@@ -33,33 +32,43 @@ class Exp extends Entity{
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
+    if(Debug)displayAABB(g);
     g.fill(toColor(c));
     g.noStroke();
     g.rect(pos.x,pos.y,size,size);
   }
   
-  void update(){
-    if(inScreen&&qDist(player.pos,pos,player.magnetDist)&&player.canMagnet){
-      getProcess();
-      player.exp+=this.exp;
-      isDead=true;
-    }
+  public void update(){
+    Center=pos;
+    AxisSize=new PVector(size+player.magnetDist,size+player.magnetDist);
+    putAABB();
   }
   
-  void getProcess(){
+  public void getProcess(){
     
   }
   
-  void setPos(PVector p){
+  public void setPos(PVector p){
     pos=p;
   }
   
   @Override
-  void putAABB(){
-  }
-  
-  @Override
-  void Collision(Entity e){
+  public void Collision(Entity e){
+    if(isDead)return;
+    if(e instanceof Myself){
+      Myself m=(Myself)e;
+      if(qDist(m.pos,pos,m.magnetDist+1.5)&&m.canMagnet){
+        getProcess();
+        player.exp+=this.exp;
+        isDead=true;
+      }
+    }else if(e instanceof Exp){
+      if(e.isDead)return;
+      Exp ex=(Exp)e;
+      ex.setExp(ex.exp+exp);
+      ex.pos=pos.add(ex.pos).mult(0.5);
+      isDead=true;
+    }
   }
 }

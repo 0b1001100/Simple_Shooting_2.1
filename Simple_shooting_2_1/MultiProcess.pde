@@ -35,7 +35,7 @@ class EntityProcess implements Callable<String>{
     return "";
   }
   
-  void setData(int s,int l,byte num){
+  public void setData(int s,int l,byte num){
     this.s=s;
     this.l=l;
     number=num;
@@ -43,7 +43,6 @@ class EntityProcess implements Callable<String>{
 }
 
 class EntityCollision implements Callable<String>{
-  TreeMap<Float,Enemy>overEntity;
   float hue;
   byte number;
   int s;
@@ -68,7 +67,7 @@ class EntityCollision implements Callable<String>{
     return "";
   }
   
-  void Collision(Entity E,int i){
+  public void Collision(Entity E,int i){
     ++i;
     for(int j=i,s=EntityDataX.size();j<s;j++){
       Entity e=SortedDataX[j].getEntity();
@@ -82,7 +81,7 @@ class EntityCollision implements Callable<String>{
     }
   }
   
-  void setData(int s,int l,byte num){
+  public void setData(int s,int l,byte num){
     this.s=s;
     this.l=l;
     number=num;
@@ -112,7 +111,7 @@ class EntityDraw implements Callable<PGraphics>{
     return g;
   }
   
-  void setData(int s,int l){
+  public void setData(int s,int l){
     this.s=s;
     this.l=l;
   }
@@ -120,7 +119,7 @@ class EntityDraw implements Callable<PGraphics>{
 
 class saveConfig implements Runnable{
   
-  void run(){
+  public void run(){
     if(!StageFlag.contains("Game_Over")){
       conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
       saveJSONObject(conf,SavePath+"config.json");
@@ -145,7 +144,7 @@ class CollisionData{
     return number;
   }
   
-  void setEnd(byte b){
+  public void setEnd(byte b){
     end=b;
   }
   
@@ -154,7 +153,7 @@ class CollisionData{
   }
   
   @Override
-  String toString(){
+  public String toString(){
     return number+":"+e;
   }
 }

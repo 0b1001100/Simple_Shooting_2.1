@@ -23,27 +23,27 @@ class Stage{
     name=StageName;
   }
   
-  void addProcess(String name,TimeSchedule... t){
+  public void addProcess(String name,TimeSchedule... t){
     if(this.t.get(name)==null)this.t.put(name,new ArrayList<TimeSchedule>());
     if(t.length==0)return;
     this.t.get(name).addAll(Arrays.asList(t));
     Collections.sort(this.t.get(name),t[0].c);
   }
   
-  void addSchedule(String name,TimeSchedule... t){
+  public void addSchedule(String name,TimeSchedule... t){
     if(this.t.containsKey(name))this.t.get(name).addAll(Arrays.asList(t));
     Collections.sort(this.t.get(name),t[0].c);
   }
   
-  void addSpown(PVector pos,Enemy e){
+  public void addSpown(PVector pos,Enemy e){
     spown.add(new SpownPoint(pos,e));
   }
   
-  void addSpown(EnemySpown s,float offset,Enemy e){
+  public void addSpown(EnemySpown s,float offset,Enemy e){
     addSpown(s,offset,120,e);
   }
   
-  void addSpown(EnemySpown s,float offset,float t,Enemy e){
+  public void addSpown(EnemySpown s,float offset,float t,Enemy e){
     int number=0;
     switch(s){
       case Single:spown.add(new SpownPoint(player.pos.copy(),t,e));return;
@@ -65,11 +65,11 @@ class Stage{
     }catch(CloneNotSupportedException f){}
   }
   
-  void addSpown(int n,float dist,float offset,Enemy e){
+  public void addSpown(int n,float dist,float offset,Enemy e){
     addSpown(n,dist,offset,120,e);
   }
   
-  void addSpown(int n,float dist,float offset,float t,Enemy e){
+  public void addSpown(int n,float dist,float offset,float t,Enemy e){
     float r=TWO_PI/n;
     try{
       for(int i=0;i<n;i++){
@@ -78,21 +78,21 @@ class Stage{
     }catch(CloneNotSupportedException f){}
   }
   
-  void autoSpown(boolean b,float freq,HashMap<Enemy,Float> map){
+  public void autoSpown(boolean b,float freq,HashMap<Enemy,Float> map){
     this.freq=freq;
     displaySpown=b;
     autoEnemy=map;
   }
   
-  void clearSpown(){
+  public void clearSpown(){
     spown.clear();
   }
   
-  void display(){
+  public void display(){
     spown.forEach(s->{s.display();});
   }
   
-  void update(){
+  public void update(){
     spownEnemy();
     scheduleUpdate();
     ArrayList<SpownPoint>nextSpown=new ArrayList<SpownPoint>(spown.size());
@@ -104,7 +104,7 @@ class Stage{
     time+=vectorMagnification;
   }
   
-  void spownEnemy(){
+  public void spownEnemy(){
     if(freq!=0&&random(0,1)<freq*vectorMagnification){
       float r=TWO_PI*random(0,1);
       PVector[] v={new PVector(cos(r)*(width+height),sin(r)*(width+height))};
@@ -140,7 +140,7 @@ class Stage{
     }
   }
   
-  void scheduleUpdate(){
+  public void scheduleUpdate(){
     while(time>t.get(name).get(frag).getTime()*60){
       TimeSchedule T=t.get(name).get(frag);
       if(time>T.getTime()*60){
@@ -170,7 +170,7 @@ class SpownPoint{
     this.e=e;
   }
   
-  void display(){
+  public void display(){
     if(!inScreen)return;
     float t=time%25/25;
     noFill();
@@ -179,7 +179,7 @@ class SpownPoint{
     ellipse(pos.x,pos.y,e.size*t*0.7,e.size*t*0.7);
   }
   
-  void update(){
+  public void update(){
     time-=vectorMagnification;
     if(time<0){
       isDead=true;
@@ -220,6 +220,105 @@ class TimeSchedule{
   }
 }
 
+abstract class GameHUD{
+  GameProcess parent;
+  
+  GameHUD(GameProcess parent){
+    this.parent=parent;
+  }
+  
+  abstract void display();
+}
+
+class SurvivorHUD extends GameHUD{
+  private ComponentSet PauseSet;
+  
+  SurvivorHUD(GameProcess parent){
+    super(parent);
+    initPause();
+  }
+  
+  private void initPause(){
+    PauseSet=new ComponentSet();
+    SkeletonButton back=new SkeletonButton(getLanguageText("me_back"));
+    back.setBounds(width*0.5-90,height*0.5-36,180,37);
+    back.addWindowResizeEvent(()->{
+      back.setBounds(width*0.5-90,height*0.5-36,180,37);
+    });
+    back.addListener(()->{
+      parent.menu=false;
+      pause=false;
+    });
+    SkeletonButton menu=new SkeletonButton(getLanguageText("me_menu"));
+    menu.setBounds(width*0.5-90,height*0.5+36,180,37);
+    menu.addWindowResizeEvent(()->{
+      menu.setBounds(width*0.5-90,height*0.5+36,180,37);
+    });
+    menu.addListener(()->{
+      parent.done=true;
+      scene=0;
+    });
+    PauseSet.addAll(back,menu);
+  }
+  
+  void display(){
+    stage.display();
+    if(!player.isDead)player.display(g);
+    if(LensData.size()>0){
+      loadPixels();
+      float[] centers=new float[20];
+      float[] rads=new float[10];
+      for(int i=0;i<10;i++){
+        if(i<LensData.size()){
+          centers[2*i]=LensData.get(i).screen.x;
+          centers[2*i+1]=LensData.get(i).screen.y;
+          rads[i]=LensData.get(i).scale*0.1f;
+        }else{
+          centers[2*i]=0;
+          centers[2*i+1]=0;
+          rads[i]=1;
+        }
+      }
+      GravityLens.set("center",centers,2);
+      GravityLens.set("g",rads);
+      GravityLens.set("len",LensData.size());
+      GravityLens.set("texture",g);
+      GravityLens.set("resolution",width,height);
+      applyShader(GravityLens);
+    }
+    LensData.clear();
+    displayHUD();
+  }
+  
+  private void displayHUD(){
+    push();
+    resetMatrix();
+    stageLayer.display();
+    if(parent.menu){
+      PauseSet.display();
+      PauseSet.update();
+    }else{
+      stageLayer.update();
+    }
+    rectMode(CORNER);
+    noFill();
+    stroke(255);
+    strokeWeight(1);
+    rect(200,30,width-230,30);
+    fill(255);
+    noStroke();
+    rect(202.5f,32.5f,(width-225)*player.exp/player.nextLevel,25);
+    textSize(20);
+    textFont(font_20);
+    textAlign(RIGHT);
+    text("LEVEL "+player.Level,190,52);
+    textFont(font_15);
+    textAlign(CENTER);
+    text("Time "+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5f,78);
+    text(Language.getString("ui_kill")+":"+killCount,width-200,78);
+    pop();
+  }
+}
 enum EnemySpown{
   Single,
   Double,
@@ -234,5 +333,5 @@ enum EnemySpown{
 }
 
 interface StageProcess{
-  void Process(Stage s);
+  public void Process(Stage s);
 }

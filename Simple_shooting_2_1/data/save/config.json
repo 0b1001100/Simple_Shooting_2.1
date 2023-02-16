@@ -1,5 +1,5 @@
 {
-  "HighQuality": true,
+  "HighQuality": false,
   "Language": "ja_jp",
   "Weapons": [
     "G_Shot",
@@ -21,17 +21,10 @@
     "duration",
     "cooltime"
   ],
-  "vsync": true,
-  "FPS": true,
-  "clear": true,
-  "Stage": [
-    "Tutorial",
-    "Stage1",
-    "Stage2",
-    "Stage3",
-    "Stage4",
-    "Stage5"
-  ],
+  "vsync": false,
+  "FPS": false,
+  "clear": false,
+  "Stage": ["Tutorial"],
   "Fullscreen": false,
   "GPGPU": false
 }

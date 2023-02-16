@@ -1,4 +1,4 @@
-class Explosion extends Enemy{
+class Explosion extends Entity{
   ExplosionParticle p;
   HashSet<Entity>HitEnemy;
   boolean myself=false;
@@ -39,18 +39,18 @@ class Explosion extends Enemy{
     return this;
   }
   
-  void display(PGraphics g){
+  public void display(PGraphics g){
     if(Debug){
       displayAABB(g);
     }
   }
   
-  void update(){
+  public void update(){
     size=p.nowSize;
     isDead=p.isDead;
     Center=pos;
     AxisSize=new PVector(size,size);
-    putAABB();
+    putOnlyAABB();
   }
   
   @Override
@@ -69,17 +69,17 @@ class Explosion extends Enemy{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
+  public void ExplosionCollision(Explosion e){}
   
   @Override
-  void EnemyCollision(Enemy e){
+  public void EnemyCollision(Enemy e){
     if(qDist(pos,e.pos,(size+e.size)*0.5)){
       EnemyHit(e,false);
     }
   }
   
   @Override
-  void EnemyHit(Enemy e,boolean b){
+  public void EnemyHit(Enemy e,boolean b){
     if(!HitEnemy.contains(e)){
       HitEnemy.add(e);
       e.ExplosionHit(this,true);
@@ -87,22 +87,20 @@ class Explosion extends Enemy{
   }
   
   @Override
-  void BulletCollision(Bullet b){
+  public void BulletCollision(Bullet b){
     b.ExplosionHit(this,true);
   }
   
   @Override
-  void MyselfCollision(Myself m){
+  public void MyselfCollision(Myself m){
     m.ExplosionHit(this,true);
   }
   
-  @Override
-  void Hit(Weapon w){
+  public void Hit(Weapon w){
     return;
   }
   
-  @Override
-  void Down(){
+  public void Down(){
     isDead=false;
   }
 }
@@ -117,7 +115,7 @@ class BulletExplosion extends Explosion{
   }
   
   @Override
-  void EnemyHit(Enemy e,boolean b){
+  public void EnemyHit(Enemy e,boolean b){
     ((Enemy)e).Hit(parent);
   }
 }

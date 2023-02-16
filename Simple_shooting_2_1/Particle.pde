@@ -63,17 +63,18 @@ class Particle extends Entity{
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     for(particleFragment p:particles){
       p.display(g);
     }
   }
   
-  void update(){
+  public void update(){
     ArrayList<particleFragment>nextParticles=new ArrayList<particleFragment>();
     for(particleFragment p:particles){
       if(p.isDead)continue;
       p.setAlpha(p.alpha-(p instanceof StringFragment?1000f/p.alpha:2)*vectorMagnification);
+      p.threadNum=threadNum;
       p.update();
       if(!p.isDead)nextParticles.add(p);
     }
@@ -85,7 +86,7 @@ class Particle extends Entity{
   }
   
   @Override
-  void putAABB(){
+  public void putAABB(){
   }
 }
 
@@ -111,7 +112,7 @@ class ExplosionParticle extends Particle{
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     nowSize=size*(time/maxTime)*2;
     g.noFill();
     g.stroke(toColor(pColor));
@@ -119,7 +120,8 @@ class ExplosionParticle extends Particle{
     g.ellipse(pos.x,pos.y,nowSize,nowSize);
   }
   
-  void update(){
+  public void update(){
+    inScreen=-scroll.x<pos.x-size/2&&pos.x+size/2<-scroll.x+width&&-scroll.y<pos.y-size/2&&pos.y+size/2<-scroll.y+height;
     time+=0.016*vectorMagnification;
     if(time>=maxTime)isDead=true;
   }
@@ -136,12 +138,12 @@ class StringFragment extends particleFragment{
     setText(s);
   }
   
-  void setText(String s){
+  public void setText(String s){
     text=s;
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     g.blendMode(BLEND);
     g.textAlign(CENTER);
     g.textSize(size+1);
@@ -152,7 +154,7 @@ class StringFragment extends particleFragment{
     g.text(text,pos.x,pos.y);
   }
   
-  void update(){
+  public void update(){
     vel=vel.copy().div(1.1);
     super.update();
   }
@@ -165,7 +167,7 @@ class LineFragment extends particleFragment{
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     if(!inScreen)return;
     if(alpha<=0){
       isDead=true;
@@ -176,36 +178,21 @@ class LineFragment extends particleFragment{
     g.line(pos.x,pos.y,pos.x+vel.x*size*3,pos.y+vel.y*size*3);
   }
   
-  void update(){
+  public void update(){
     super.update();
   }
 }
 
-class particleFragment implements Egent{
-  PVector pos;
-  PVector vel;
-  boolean inScreen=true;
-  boolean isDead=false;
+class particleFragment extends Entity{
   Color pColor;
   float alpha;
-  float size;
   
   particleFragment(PVector pos,PVector vel,Color c,float size){
-    this.pos=new PVector(pos.x,pos.y);
-    this.vel=new PVector(vel.x,vel.y);
+    this.pos=pos.copy();
+    this.vel=vel.copy();
     this.pColor=new Color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
     alpha=c.getAlpha();
     this.size=size;
-  }
-  
-  particleFragment setSize(float f){
-    size=f;
-    return this;
-  }
-  
-  particleFragment setColor(Color c){
-    this.pColor=new Color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
-    return this;
   }
   
   particleFragment setAlpha(float a){
@@ -214,8 +201,7 @@ class particleFragment implements Egent{
     return this;
   }
   
-  void display(PGraphics g){
-    inScreen=-scroll.x<pos.x-size/2&&pos.x+size/2<-scroll.x+width&&-scroll.y<pos.y-size/2&&pos.y+size/2<-scroll.y+height;
+  public void display(PGraphics g){
     if(!inScreen)return;
     if(alpha<=0){
       isDead=true;
@@ -227,7 +213,8 @@ class particleFragment implements Egent{
     g.rect(pos.x,pos.y,size,size);
   }
   
-  void update(){
+  public void update(){
+    inScreen=-scroll.x<pos.x-size/2&&pos.x+size/2<-scroll.x+width&&-scroll.y<pos.y-size/2&&pos.y+size/2<-scroll.y+height;
     pos.add(vel.copy().mult(vectorMagnification));
   }
 }

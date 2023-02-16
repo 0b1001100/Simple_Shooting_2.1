@@ -13,6 +13,7 @@ class GameComponent{
   protected boolean focus=false;
   protected boolean pFocus=false;
   protected boolean canFocus=true;
+  protected boolean focussable=true;
   protected boolean FocusEvent=false;
   protected boolean keyMove=false;
   protected boolean onMouse=false;
@@ -25,7 +26,6 @@ class GameComponent{
   protected int resizeNumber=0;
   
   GameComponent(){
-    
   }
   
   GameComponent setBounds(float x,float y,float dx,float dy){
@@ -36,35 +36,35 @@ class GameComponent{
     return this;
   }
   
-  void setBackground(Color c){
+  public void setBackground(Color c){
     background=c;
   }
   
-  void setSelectBackground(Color c){
+  public void setSelectBackground(Color c){
     selectbackground=c;
   }
   
-  void setForeground(Color c){
+  public void setForeground(Color c){
     foreground=c;
   }
   
-  void setSelectForeground(Color c){
+  public void setSelectForeground(Color c){
     selectforeground=c;
   }
   
-  void setBorderColor(Color c){
+  public void setBorderColor(Color c){
     border=c;
   }
   
-  void setNonSelectBorderColor(Color c){
+  public void setNonSelectBorderColor(Color c){
     border=new Color(c.getRed(),c.getGreen(),c.getBlue());
   }
   
-  void display(){
+  public void display(){
     
   }
   
-  void update(){
+  public void update(){
     pFocus=focus;
     if(windowResized||resizeNumber!=resizedNumber){
       wre.Event();
@@ -72,31 +72,24 @@ class GameComponent{
     }
   }
   
-  void executeEvent(){
+  public void executeEvent(){
     
   }
   
-  void requestFocus(){
+  public void requestFocus(){
     focus=true;
   }
   
-  void removeFocus(){
+  public void removeFocus(){
     focus=false;
   }
   
-  void addFocusListener(FocusEvent e){
+  public void addFocusListener(FocusEvent e){
     Fe=e;
   }
   
-  void addWindowResizeEvent(WindowResizeEvent e){
+  public void addWindowResizeEvent(WindowResizeEvent e){
     wre=e;
-  }
-  
-  void back(){}
-  
-  @Override
-  String toString(){
-    return "[pos:"+pos+",dist:"+dist+"]";
   }
 }
 
@@ -105,7 +98,7 @@ class Canvas extends GameComponent{
   protected PGraphics pg;
   
   {
-    canFocus=false;
+    focussable=false;
     setBounds(0,0,0,0);
   }
   
@@ -113,12 +106,12 @@ class Canvas extends GameComponent{
     this.pg=pg;
   }
   
-  void setContent(CanvasContent c){
+  public void setContent(CanvasContent c){
     content=c;
   }
   
   @Override
-  void display(){
+  public void display(){
     content.display(pg);
   }
 }
@@ -135,7 +128,7 @@ class HUDText extends GameComponent{
   float easeTime=0;
   
   {
-    canFocus=false;
+    focussable=false;
     font=createFont("SansSerif.plain",15);
   }
   
@@ -145,12 +138,12 @@ class HUDText extends GameComponent{
     mainWidth=textWidth(text);
   }
   
-  void setTarget(Entity e){
+  public void setTarget(Entity e){
     target=e;
     pos=new PVector(0,0);
   }
   
-  void display(){
+  public void display(){
     if(easeTime==0)return;
     float w=((Sigmoid(easeTime/7)-0.5)/0.5f)*(offset+mainWidth);
     pushMatrix();
@@ -176,7 +169,7 @@ class HUDText extends GameComponent{
     popMatrix();
   }
   
-  void update(){
+  public void update(){
     if(type.equals("start")){
       easeTime+=vectorMagnification;
       if(easeTime>=45){
@@ -196,29 +189,29 @@ class HUDText extends GameComponent{
     super.update();
   }
   
-  void Dispose(){
+  public void Dispose(){
     type="";
     easeTime=0;
     de.event();
   }
   
-  void startDisplay(){
+  public void startDisplay(){
     type="start";
   }
   
-  void endDisplay(){
+  public void endDisplay(){
     type="end";
   }
   
-  void setFlag(boolean f){
+  public void setFlag(boolean f){
     flag=f;
   }
   
-  void addDisposeListener(disposeEvent de){
+  public void addDisposeListener(disposeEvent de){
     this.de=de;
   }
   
-  void setProcess(Process p){
+  public void setProcess(Process p){
     this.p=p;
   }
 }
@@ -237,11 +230,11 @@ class LineTextField extends GameComponent{
     text=new StringBuilder();
   }
   
-  void display(){
+  public void display(){
     
   }
   
-  void mousePress(){
+  public void mousePress(){
     onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
     if(onMouse){
       requestFocus();
@@ -252,7 +245,7 @@ class LineTextField extends GameComponent{
     super.update();
   }
   
-  void keyProcess(){
+  public void keyProcess(){
     pushStyle();
     textFont(font);
     if(focus&&(keyPress||(keyPressTime>0.5&&(keyPressTime-floor(keyPressTime))%0.1<0.05))){
@@ -299,15 +292,15 @@ class LineTextField extends GameComponent{
     popStyle();
   }
   
-  void upProcess(){
+  public void upProcess(){
     
   }
   
-  void downProcess(){
+  public void downProcess(){
     
   }
   
-  void clearText(){
+  public void clearText(){
     index=0;
     text.setLength(0);
   }
@@ -316,11 +309,11 @@ class LineTextField extends GameComponent{
     offset=textWidth(text.substring(0,index));
   }
   
-  void EnterEvent(){
+  public void EnterEvent(){
     e.Event(this);
   }
   
-  void addEnterListener(EnterEvent e){
+  public void addEnterListener(EnterEvent e){
     this.e=e;
   }
 }
@@ -345,11 +338,11 @@ class ButtonItem extends GameComponent{
     text=s;
   }
   
-  void addListener(SelectEvent e){
+  public void addListener(SelectEvent e){
     this.e=e;
   }
   
-  void mouseProcess(){
+  public void mouseProcess(){
     onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
     if(onMouse){
       setCursor=true;
@@ -365,7 +358,7 @@ class ButtonItem extends GameComponent{
     super.update();
   }
   
-  void executeEvent(){
+  public void executeEvent(){
     e.selectEvent();
   }
 }
@@ -387,16 +380,16 @@ class CheckBox extends GameComponent{
     this.value=value;
   }
   
-  void addListener(SelectEvent e){
+  public void addListener(SelectEvent e){
     this.e=e;
   }
   
-  void update(){
+  public void update(){
     mouseProcess();
     keyProcess();
   }
   
-  void mouseProcess(){
+  public void mouseProcess(){
     onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
     if(onMouse){
       setCursor=true;
@@ -413,13 +406,13 @@ class CheckBox extends GameComponent{
     super.update();
   }
   
-  void keyProcess(){
-    if(focus&&keyPress&&nowPressedKeyCode==ENTER){
+  public void keyProcess(){
+    if(focus&&getInputState("enter")){
       value=!value;
     }
   }
   
-  void executeEvent(){
+  public void executeEvent(){
     e.selectEvent();
   }
 }
@@ -450,11 +443,11 @@ class SliderItem extends GameComponent{
     setBorderColor(new Color(255,128,0));
   }
   
-  void setSmooth(boolean b){
+  public void setSmooth(boolean b){
     smooth=b;
   }
   
-  void display(){
+  public void display(){
     blendMode(BLEND);
     strokeWeight(1);
     fill(!focus?color(background.getRed(),background.getGreen(),background.getBlue(),background.getAlpha()):
@@ -468,13 +461,13 @@ class SliderItem extends GameComponent{
     rect(pos.x+Xdist,pos.y,dist.y/3,dist.y,dist.y/12);
   }
   
-  void update(){
+  public void update(){
     mouseProcess();
     keyProcess();
     pValue=Value;
   }
   
-  void mouseProcess(){
+  public void mouseProcess(){
     if(mousePress){
       if(pos.x+Xdist-dist.y/6<mouseX&mouseX<pos.x+Xdist+dist.y/6&
          pos.y-dist.y/2<mouseY&mouseY<pos.y+dist.y/2){
@@ -498,7 +491,7 @@ class SliderItem extends GameComponent{
     if(Value!=pValue)executeEvent();
   }
   
-  void keyProcess(){
+  public void keyProcess(){
     switch(nowPressedKeyCode){
       case RIGHT:Value=constrain(Value+1,1,elementNum);break;
       case LEFT:Value=constrain(Value-1,1,elementNum);break;
@@ -506,11 +499,11 @@ class SliderItem extends GameComponent{
     Xdist=(dist.x/elementNum)*(Value-1);
   }
   
-  void addListener(ChangeEvent e){
+  public void addListener(ChangeEvent e){
     this.e=e;
   }
   
-  void executeEvent(){
+  public void executeEvent(){
     e.changeEvent();
   }
   
@@ -519,7 +512,7 @@ class SliderItem extends GameComponent{
   }
   
   @Deprecated
-  void setValue(int v){
+  public void setValue(int v){
     Value=constrain(v,1,elementNum);
     Xdist=(dist.x/elementNum)*Value;
   }
@@ -546,7 +539,7 @@ class TextBox extends GameComponent{
     title=t;
   }
   
-  void setText(String t){
+  public void setText(String t){
     Parsed=false;
     Parse(t);
   }
@@ -570,7 +563,7 @@ class TextBox extends GameComponent{
     }
   }
   
-  void update(){
+  public void update(){
     super.update();
     if(!Parsed)Parse(text);
   }
@@ -595,11 +588,11 @@ class MultiButton extends GameComponent{
     setBorderColor(new Color(255,128,0));
   }
   
-  void add(NormalButton b){
+  public void add(NormalButton b){
     Buttons.add(b);
   }
   
-  void display(){
+  public void display(){
     if(resize){
       for(int i=0;i<Buttons.size();i++){
         Buttons.get(i).setBounds(pos.x+i*(dist.x/Buttons.size()),pos.y,dist.x/Buttons.size(),dist.y);
@@ -618,7 +611,7 @@ class MultiButton extends GameComponent{
     rect(pos.x,pos.y,dist.x,dist.y,dist.y/4);
   }
   
-  void update(){
+  public void update(){
     mouseProcess();
     for(NormalButton b:Buttons){
       b.update();
@@ -626,7 +619,7 @@ class MultiButton extends GameComponent{
     pFocusIndex=focusIndex;
   }
   
-  void mouseProcess(){
+  public void mouseProcess(){
     onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
     if(onMouse){
       requestFocus();
@@ -645,7 +638,7 @@ class MultiButton extends GameComponent{
     super.update();
   }
   
-  void reloadIndex(){
+  public void reloadIndex(){
     for(NormalButton b:Buttons){
       b.removeFocus();
     }
@@ -654,7 +647,7 @@ class MultiButton extends GameComponent{
     }
   }
   
-  void requestFocus(){
+  public void requestFocus(){
     super.requestFocus();
     for(NormalButton b:Buttons){
       b.removeFocus();
@@ -662,7 +655,7 @@ class MultiButton extends GameComponent{
     Buttons.get(focusIndex).requestFocus();
   }
   
-  void removeFocus(){
+  public void removeFocus(){
     super.removeFocus();
     for(NormalButton b:Buttons){
       b.removeFocus();
@@ -705,7 +698,7 @@ class ItemList extends GameComponent{
     keyMove=true;
   }
   
-  void addContent(String... s){
+  public void addContent(String... s){
     Contents.addAll(Arrays.asList(s));
     selectedNumber=0;
     changeEvent();
@@ -719,7 +712,7 @@ class ItemList extends GameComponent{
     return Contents.contains(s);
   }
   
-  void addExplanation(String s,String e){
+  public void addExplanation(String s,String e){
     Explanation.put(s,e);
   }
   
@@ -737,11 +730,11 @@ class ItemList extends GameComponent{
     return this;
   }
   
-  void setSub(boolean b){
+  public void setSub(boolean b){
     showSub=b;
   }
   
-  void display(){
+  public void display(){
     blendMode(BLEND);
     int num=0;
     pg.beginDraw();
@@ -768,7 +761,7 @@ class ItemList extends GameComponent{
     if(showSub&selectedItem!=null)subDraw();
   }
   
-  void sideBar(){
+  public void sideBar(){
     if(dist.y<Height*Contents.size()){
       float len=Height*Contents.size();
       float mag=pg.height/len;
@@ -780,7 +773,7 @@ class ItemList extends GameComponent{
     }
   }
   
-  void subDraw(){
+  public void subDraw(){
     pushStyle();
     blendMode(BLEND);
     rectMode(CORNER);
@@ -800,7 +793,7 @@ class ItemList extends GameComponent{
     popStyle();
   }
   
-  void update(){
+  public void update(){
     if(focus&&Contents.size()!=0){
       onMouse=canFocus&&onMouse(pos.x,pos.y,dist.x,min(Height*Contents.size(),dist.y));
       mouseProcess();
@@ -811,7 +804,7 @@ class ItemList extends GameComponent{
     super.update();
   }
   
-  void mouseProcess(){
+  public void mouseProcess(){
     float len=Height*Contents.size();
     float mag=pg.height/len;
     if(dist.y<len&&onMouse(pos.x+pg.width-10,pos.y+pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag)&&mousePress){
@@ -837,17 +830,16 @@ class ItemList extends GameComponent{
     }
   }
   
-  void keyProcess(){
-    if(keyPress){
-      e.keyEvent(nowPressedKeyCode);
-      switch(nowPressedKeyCode){
-        case UP:subSelect();changeEvent();break;
-        case DOWN:addSelect();changeEvent();break;
+  public void keyProcess(){
+    if(isInput()){
+      switch(getInputState()){
+        case "up":subSelect();break;
+        case "down":addSelect();break;
       }
       scroll();
-      if(nowPressedKeyCode==ENTER|nowPressedKeyCode==RIGHT)Select();
     }
-    if(!moving&keyPressed&(nowPressedKeyCode==UP|nowPressedKeyCode==DOWN)){
+    if(getInputState("enter")||getInputState("right"))Select();
+    if(!moving&&(getInputState().equals("up")||getInputState().equals("down"))){
       keyTime+=vectorMagnification;
     }
     if(!moving&keyTime>=30){
@@ -857,20 +849,21 @@ class ItemList extends GameComponent{
     if(moving){
       keyTime+=vectorMagnification;
     }
-    if(moving&keyTime>=15){
-      switch(nowPressedKeyCode){
-        case UP:subSelect();break;
-        case DOWN:addSelect();break;
+    if(moving&&keyTime>=5){
+      switch(getInputState()){
+        case "up":subSelect();break;
+        case "down":addSelect();break;
       }
+      keyTime=0;
       scroll();
     }
-    if(!keyPressed){
+    if(!(getInputState().equals("up")||getInputState().equals("down"))){
       moving=false;
       keyTime=0;
     }
   }
   
-  void changeEvent(){
+  public void changeEvent(){
     if(Contents.size()>0){
       int i=0;
       for(String s:Contents){
@@ -883,21 +876,21 @@ class ItemList extends GameComponent{
     }
   }
   
-  void addSelect(){
+  public void addSelect(){
     selectedNumber=selectedNumber<Contents.size()-1?selectedNumber+1:0;
     changeEvent();
   }
   
-  void subSelect(){
+  public void subSelect(){
     selectedNumber=selectedNumber>0?selectedNumber-1:Contents.size()-1;
     changeEvent();
   }
   
-  void resetSelect(){
+  public void resetSelect(){
     selectedNumber=constrain(selectedNumber,0,Contents.size()-1);
   }
   
-  void scroll(){
+  public void scroll(){
     if(dist.y<Height*Contents.size()){
       if(selectedNumber==0)scroll=0;else
       if(selectedNumber==Contents.size()-1)scroll=Contents.size()*Height-dist.y;
@@ -906,15 +899,15 @@ class ItemList extends GameComponent{
     }
   }
   
-  void Select(){
+  public void Select(){
     s.itemSelect(selectedItem);
   }
   
-  void addListener(KeyEvent e){
+  public void addListener(KeyEvent e){
     this.e=e;
   }
   
-  void addSelectListener(ItemSelect s){
+  public void addSelectListener(ItemSelect s){
     this.s=s;
   }
 }
@@ -938,11 +931,11 @@ class ListTemplate extends GameComponent{
     name=s;
   }
   
-  void addSeparator(int index){
+  public void addSeparator(int index){
     if(!separators.contains(index))separators.add(index);
   }
   
-  void display(){
+  public void display(){
     float offset=0;
     blendMode(BLEND);
     noStroke();
@@ -966,7 +959,7 @@ class ListTemplate extends GameComponent{
     }
   }
   
-  void addContent(ListDisp l){
+  public void addContent(ListDisp l){
     contents.add(l);
   }
 }
@@ -982,11 +975,11 @@ class ProgressBar extends GameComponent{
     keyMove=true;
   }
   
-  void isUnknown(boolean b){
+  public void isUnknown(boolean b){
     unknown=b;
   }
   
-  void display(){
+  public void display(){
     blendMode(BLEND);
     if(unknown){
       noFill();
@@ -1013,7 +1006,7 @@ class ProgressBar extends GameComponent{
     }
   }
   
-  void setProgress(Number n){
+  public void setProgress(Number n){
     progress=n;
   }
 }
@@ -1065,11 +1058,11 @@ class StatusList extends ListTemplate{
     addSeparator(3);
   }
   
-  void display(){
+  public void display(){
     super.display();
   }
   
-  void setAddHP(float d){
+  public void setAddHP(float d){
     addHP=d;
   }
 }
@@ -1113,11 +1106,11 @@ class WeaponList extends ListTemplate{
     addSeparator(3);
   }
   
-  void display(){
+  public void display(){
     super.display();
   }
   
-  void setAddHP(float d){
+  public void setAddHP(float d){
     addHP=d;
   }
 }
@@ -1132,7 +1125,7 @@ class TextButton extends ButtonItem{
     super(s);
   }
   
-  void display(){
+  public void display(){
     blendMode(BLEND);
     strokeWeight(1);
     fill(!focus?toColor(background):toColor(selectbackground));
@@ -1146,7 +1139,7 @@ class TextButton extends ButtonItem{
     blendMode(ADD);
   }
   
-  void update(){
+  public void update(){
     mouseProcess();
     super.update();
   }
@@ -1176,7 +1169,7 @@ class NormalButton extends TextButton{
     setBorderColor(new Color(255,128,0));
   }
   
-  void display(){
+  public void display(){
     blendMode(BLEND);
     strokeWeight(2);
     fill(!focus?toColor(background):toColor(selectbackground));
@@ -1190,20 +1183,13 @@ class NormalButton extends TextButton{
     blendMode(ADD);
   }
   
-  void update(){
+  public void update(){
     super.update();
-  }
-  
-  TextButton setText(String s){
-    return super.setText(s);
   }
 }
 
 class MenuButton extends TextButton{
-  MenuTextBox box=new MenuTextBox();
   Color sideLineColor=new Color(toColor(menuRightColor));
-  boolean displayBox=false;
-  PFont font;
   
   MenuButton(){
     setBackground(new Color(220,220,220));
@@ -1222,15 +1208,7 @@ class MenuButton extends TextButton{
     setBorderColor(new Color(0,0,0,0));
   }
   
-  void setTextBoxBounds(float x,float y,float dx,float dy){
-    box.setBounds(x,y,dx,dy);
-  }
-  
-  void setExplanation(String s){
-    box.setText(s);
-  }
-  
-  void display(){
+  public void display(){
     pushStyle();
     if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
     textFont(font);
@@ -1246,42 +1224,7 @@ class MenuButton extends TextButton{
     textAlign(CENTER);
     textSize(dist.y*0.5);
     text(text,center.x,center.y+dist.y*0.2);
-    if(displayBox)box.display();
     popStyle();
-  }
-  
-  void update(){
-    super.update();
-    if(displayBox)box.update();
-  }
-  
-  TextButton setText(String s){
-    return super.setText(s);
-  }
-  
-  void displayBox(boolean b){
-    displayBox=b;
-  }
-}
-
-class MenuButton_B extends MenuButton{
-  
-  MenuButton_B(){
-    init();
-  }
-  
-  MenuButton_B(String s){
-    super(s);
-    init();
-  }
-  
-  void init(){
-    setBackground(new Color(35,35,35));
-    setForeground(new Color(255,255,255));
-    setSelectBackground(new Color(55,55,55));
-    setSelectForeground(new Color(215,215,215));
-    sideLineColor=new Color(255,105,0);
-    setBorderColor(new Color(0,0,0,0));
   }
 }
 
@@ -1296,7 +1239,7 @@ class SkeletonButton extends MenuButton{
     init();
   }
   
-  void init(){
+  public void init(){
     setBackground(new Color(35,35,35,40));
     setForeground(new Color(255,255,255));
     setSelectBackground(new Color(35,35,35,40));
@@ -1305,7 +1248,7 @@ class SkeletonButton extends MenuButton{
     setBorderColor(new Color(0,150,255));
   }
   
-  void display(){
+  public void display(){
     pushStyle();
     if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
     textFont(font);
@@ -1348,7 +1291,7 @@ class UpgradeButton extends MenuButton{
     init();
   }
   
-  void init(){
+  public void init(){
     setBackground(new Color(35,35,35,40));
     setForeground(new Color(255,255,255));
     setSelectBackground(new Color(35,35,35,40));
@@ -1357,7 +1300,7 @@ class UpgradeButton extends MenuButton{
     setBorderColor(new Color(0,150,255));
   }
   
-  void display(){
+  public void display(){
     pushStyle();
     if(font==null)font=createFont("SansSerif.plain",dist.y*0.2);
     textFont(font);
@@ -1386,12 +1329,11 @@ class UpgradeButton extends MenuButton{
     popStyle();
   }
   
-  @Override
-  void setExplanation(String s){
+  public void setExplanation(String s){
     expText=s;
   }
   
-  void setType(String s){
+  public void setType(String s){
     String res=s.toUpperCase().substring(0,1);
     res+=s.substring(1,s.length());
     type=res;
@@ -1408,7 +1350,7 @@ class MenuTextBox extends TextBox{
     super(t);
   }
   
-  void display(){
+  public void display(){
     blendMode(BLEND);
     rectMode(CORNER);
     noStroke();
@@ -1426,7 +1368,7 @@ class MenuTextBox extends TextBox{
     text(text,pos.x+5,pos.y+45);
   }
   
-  void update(){
+  public void update(){
     super.update();
   }
 }
@@ -1447,15 +1389,15 @@ class MenuCheckBox extends CheckBox{
     setBorderColor(new Color(0,0,0,0));
   }
   
-  void setTextBoxBounds(float x,float y,float dx,float dy){
+  public void setTextBoxBounds(float x,float y,float dx,float dy){
     box.setBounds(x,y,dx,dy);
   }
   
-  void setExplanation(String s){
+  public void setExplanation(String s){
     box.setText(s);
   }
   
-  void display(){
+  public void display(){
     pushStyle();
     blendMode(BLEND);
     strokeWeight(1);
@@ -1474,16 +1416,16 @@ class MenuCheckBox extends CheckBox{
     popStyle();
   }
   
-  void update(){
+  public void update(){
     super.update();
     if(displayBox)box.update();
   }
   
-  void displayBox(boolean b){
+  public void displayBox(boolean b){
     displayBox=b;
   }
   
-  void setCustomizeText(String t,String f){
+  public void setCustomizeText(String t,String f){
     cust_true=t;
     cust_false=f;
   }
@@ -1514,36 +1456,50 @@ class ComponentSet{
     return this;
   }
   
-  void add(GameComponent val){
+  public void add(GameComponent val){
     if(layout!=null)layout.alignment(val);
     components.add(val);
     if(components.size()==1){
-      if(Focus){
+      if(val.canFocus&&Focus){
         val.requestFocus();
+        selectedIndex=0;
       }else{
         val.removeFocus();
+      }
+    }else if(!components.get(min(selectedIndex,components.size()-2)).canFocus){
+      if(val.canFocus){
+        val.requestFocus();
+        selectedIndex=components.size()-1;
       }
     }
   }
   
-  void addAll(GameComponent... val){
+  public void addAll(GameComponent... val){
     if(layout!=null)layout.alignment(val);
     for(GameComponent c:val){
       add(c);
     }
+    if(components.get(selectedIndex).canFocus){
+      for(int i=0;i<components.size();i++){
+        if(components.get(i).canFocus){
+          components.get(i).requestFocus();
+          selectedIndex=i;
+        }
+      }
+    }
   }
   
-  void remove(GameComponent val){
+  public void remove(GameComponent val){
     if(layout!=null)layout.remove(val);
     components.remove(val);
   }
   
-  void removeAll(){
+  public void removeAll(){
     if(layout!=null)layout.reset();
     components.clear();
   }
   
-  void removeFocus(){
+  public void removeFocus(){
     Focus=false;
     if(components.size()>0){
       for(GameComponent c:components){
@@ -1554,7 +1510,7 @@ class ComponentSet{
     }
   }
   
-  void requestFocus(){
+  public void requestFocus(){
     Focus=true;
     if(components.size()>0){
       for(GameComponent c:components){
@@ -1566,14 +1522,14 @@ class ComponentSet{
     }
   }
   
-  void display(){
+  public void display(){
     if(components.size()==0)return;
     for(GameComponent c:components){
       c.display();
     }
   }
   
-  void update(){
+  public void update(){
     if(components.size()==0)return;
     for(GameComponent c:components){
       c.update();
@@ -1585,7 +1541,7 @@ class ComponentSet{
       }
       if(c.focus)selectedIndex=components.indexOf(c);
     }
-    keyEvent();
+    if(Focus)keyEvent();
     if(pSelectedIndex!=selectedIndex){
       if(pSelectedIndex!=-1&&!(pSelectedIndex>=components.size()))components.get(pSelectedIndex).Fe.lostFocus();
       if(selectedIndex!=-1&&!(selectedIndex>=components.size()))components.get(selectedIndex).Fe.getFocus();
@@ -1594,7 +1550,7 @@ class ComponentSet{
     pSelectedIndex=selectedIndex;
   }
   
-  void updateExcludingKey(){
+  public void updateExcludingKey(){
     for(GameComponent c:components){
       c.update();
       if(c.FocusEvent){
@@ -1612,11 +1568,11 @@ class ComponentSet{
     pSelectedIndex=selectedIndex;
   }
   
-  void setSubSelectButton(int b){
+  public void setSubSelectButton(int b){
     subSelectButton=b;
   }
   
-  void setIndex(int i){
+  public void setIndex(int i){
     if(selectedIndex!=-1)memoryIndex=selectedIndex;
     selectedIndex=i;
   }
@@ -1628,44 +1584,46 @@ class ComponentSet{
     return false;
   }
   
-  void keyEvent(){
-    if(selectedIndex!=-1&&keyPress&!components.get(selectedIndex).keyMove){
-      if(!onMouse()){
-        if(type==0|type==1){
-          switch(nowPressedKeyCode){
-            case DOWN:if(type==0)addSelect();else subSelect();break;
-            case UP:if(type==0)subSelect();else addSelect();break;
-          }
-        }else if(type==2|type==3){
-          switch(nowPressedKeyCode){
-            case RIGHT:break;
-            case LEFT:break;
-          }
+  public void keyEvent(){
+    if(selectedIndex!=-1&&!components.get(selectedIndex).keyMove&&isInput()){
+      if(type==0|type==1){
+        switch(getInputState()){
+          case "down":if(type==0)addSelect();else subSelect();break;
+          case "up":if(type==0)subSelect();else addSelect();break;
+        }
+      }else if(type==2|type==3){
+        switch(getInputState()){
+          case "right":break;
+          case "left":break;
         }
       }
-      if(nowPressedKeyCode==ENTER|keyCode==subSelectButton){
+      if(getInputState("enter")){
         components.get(selectedIndex).executeEvent();
       }
     }
   }
   
-  void addSelect(){
+  public void addSelect(){
     if(components.size()==1)return;
     for(GameComponent c:components){
       c.removeFocus();
     }
     selectedIndex=selectedIndex>=components.size()-1?0:selectedIndex+1;
-    if(!components.get(selectedIndex).canFocus)addSelect();
+    if(!components.get(selectedIndex).focussable){
+      addSelect();
+    }
     components.get(selectedIndex).requestFocus();
   }
   
-  void subSelect(){
+  public void subSelect(){
     if(components.size()==1)return;
     for(GameComponent c:components){
       c.removeFocus();
     }
     selectedIndex=selectedIndex<=0?components.size()-1:selectedIndex-1;
-    if(!components.get(selectedIndex).canFocus)subSelect();
+    if(!components.get(selectedIndex).focussable){
+      subSelect();
+    }
     components.get(selectedIndex).requestFocus();
   }
   
@@ -1673,7 +1631,7 @@ class ComponentSet{
     return components.get(selectedIndex);
   }
   
-  void resized(){
+  public void resized(){
     if(windowResized||resizeNumber!=resizedNumber){
       if(layout!=null)layout.resized();else components.forEach(c->c.wre.Event());
       resizeNumber=resizedNumber;
@@ -1707,34 +1665,34 @@ class Layout{
     Space=space;
   }
   
-  void setBounds(float x,float y,float dx,float dy,float space){
+  public void setBounds(float x,float y,float dx,float dy,float space){
     pos=new PVector(x,y);
     dist=new PVector(dx,dy);
     nextPos=new PVector(x,y);
     Space=space;
   }
   
-  void reset(){
+  public void reset(){
     list.clear();
     nextPos=pos.copy();
   }
   
-  void remove(GameComponent c){
+  public void remove(GameComponent c){
     list.remove(c);
     resized();
   }
   
-  void setWindowResizedListener(WindowResizeEvent e){
+  public void setWindowResizedListener(WindowResizeEvent e){
     this.e=e;
   }
   
-  void alignment(GameComponent c){
+  public void alignment(GameComponent c){
   }
   
-  void alignment(GameComponent[] c){
+  public void alignment(GameComponent[] c){
   }
   
-  void resized(){
+  public void resized(){
   }
 }
 
@@ -1749,7 +1707,7 @@ class Y_AxisLayout extends Layout{
   }
   
   @Override
-  void alignment(GameComponent c){
+  public void alignment(GameComponent c){
     if(!list.contains(c)){
       c.setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
       nextPos.add(0,dist.y+Space);
@@ -1758,7 +1716,7 @@ class Y_AxisLayout extends Layout{
   }
   
   @Override
-  void alignment(GameComponent[] c){
+  public void alignment(GameComponent[] c){
     for(int i=0;i<c.length;i++){
       if(!list.contains(c[i])){
         c[i].setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
@@ -1769,7 +1727,7 @@ class Y_AxisLayout extends Layout{
   }
   
   @Override
-  void resized(){
+  public void resized(){
     e.Event();
     nextPos=pos.copy();
     for(int i=0;i<list.size();i++){
@@ -1805,7 +1763,7 @@ class ComponentSetLayer{
     returnKey.add((float)SHIFT);
   }
   
-  void addLayer(String name,ComponentSet... c){
+  public void addLayer(String name,ComponentSet... c){
     if(Layers.containsKey(name)){
       throw new Error("The layer"+" \""+name+"\" +"+"is already added");
     }else{
@@ -1828,11 +1786,11 @@ class ComponentSetLayer{
     }
   }
   
-  void addContent(String name,ComponentSet... c){
+  public void addContent(String name,ComponentSet... c){
     Layers.get(name).addComponent(c);
   }
   
-  void addChild(String parent,String name,ComponentSet... c){
+  public void addChild(String parent,String name,ComponentSet... c){
     if(Lines.containsKey(parent)&!Layers.containsKey(name)){
       Layers.put(name,new Layer(Layers.get(parent).getDepth()+1,c));
       Lines.get(parent).addChild(name);
@@ -1844,7 +1802,7 @@ class ComponentSetLayer{
     }
   }
   
-  void addSubChild(String parent,String name,ComponentSet... c){
+  public void addSubChild(String parent,String name,ComponentSet... c){
     if(Lines.containsKey(parent)&!Layers.containsKey(name)){
       Layers.put(name,new Layer(Layers.get(parent).getDepth()+1,true,c));
       Lines.get(parent).addChild(name);
@@ -1856,7 +1814,7 @@ class ComponentSetLayer{
     }
   }
   
-  void toChild(String name){
+  public void toChild(String name){
     layerChanged=true;
     if(Lines.get(nowLayer).getChild().contains(name)){
       Layers.get(nowLayer).getSelectedComponent().removeFocus();
@@ -1869,7 +1827,7 @@ class ComponentSetLayer{
     }
   }
   
-  void toParent(){
+  public void toParent(){
     if(Parents.get(nowLayer)==null)return;
     if(nowLayer.equals(nowParent)){
       Layers.get(nowLayer).getSelectedComponent().removeFocus();
@@ -1889,7 +1847,7 @@ class ComponentSetLayer{
     return Layers.get(nowLayer).getDepth();
   }
   
-  void display(){
+  public void display(){
     if(nowLayer==null||Layers.get(nowLayer).getComponents().size()==0){
       return;
     }else{
@@ -1913,7 +1871,7 @@ class ComponentSetLayer{
     }
   }
   
-  void update(){
+  public void update(){
     if(nowLayer==null){
       return;
     }else{
@@ -1935,27 +1893,29 @@ class ComponentSetLayer{
     keyProcess();
   }
   
-  void keyProcess(){
-    if(keyPress&&returnKey.contains((float)nowPressedKeyCode))toParent();
+  public void keyProcess(){
+    if(getInputState("back")){
+      toParent();
+    }
   }
   
-  void addReturnKey(int keycode){
+  public void addReturnKey(int keycode){
     returnKey.add((float)keycode);
   }
   
-  void removeReturnKey(int keycode){
+  public void removeReturnKey(int keycode){
     returnKey.remove((float)keycode);
   }
   
-  void clearReturnKey(){
+  public void clearReturnKey(){
     returnKey.clear();
   }
   
-  void setIndex(int i){
+  public void setIndex(int i){
     Layers.get(nowLayer).setIndex(i);
   }
   
-  void toLayer(String name){
+  public void toLayer(String name){
     if(Lines.get(nowLayer).getChild().contains(name)){
       nowLayer=name;
     }else{
@@ -1967,7 +1927,7 @@ class ComponentSetLayer{
     return new String(nowLayer);
   }
   
-  void setSubChildDisplayType(int t){
+  public void setSubChildDisplayType(int t){
     SubChildshowType=t;
   }
   
@@ -2047,7 +2007,7 @@ class ComponentSetLayer{
       this.child.addAll(Arrays.asList(child));
     }
     
-    void addChild(C... child){
+    public void addChild(C... child){
       this.child.addAll(Arrays.asList(child));
     }
     
@@ -2081,21 +2041,21 @@ class ComponentSetLayer{
       Components=new ArrayList<ComponentSet>(Arrays.asList(c));
     }
     
-    void display(){
+    public void display(){
       for(ComponentSet c:Components){
         c.display();
       }
     }
     
-    void update(){
+    public void update(){
       Components.get(index).update();
     }
     
-    void addComponent(ComponentSet... c){
+    public void addComponent(ComponentSet... c){
       Components.addAll(Arrays.asList(c));
     }
     
-    void setIndex(int i){
+    public void setIndex(int i){
       index=constrain(i,0,Components.size()-1);
     }
     
@@ -2135,51 +2095,51 @@ ComponentSet toSet(Layout l,GameComponent... c){
 }
 
 interface FocusEvent{
-  void getFocus();
+  public void getFocus();
   
-  void lostFocus();
+  public void lostFocus();
 }
 
 interface ResizeEvent{
-  void resized(PVector p,PVector d);
+  public void resized(PVector p,PVector d);
 }
 
 interface SelectEvent{
-  void selectEvent();
+  public void selectEvent();
 }
 
 interface ChangeEvent{
-  void changeEvent();
+  public void changeEvent();
 }
 
 interface KeyEvent{
-  void keyEvent(int Key);
+  public void keyEvent(int Key);
 }
 
 interface ItemSelect{
-  void itemSelect(String s);
+  public void itemSelect(String s);
 }
 
 interface ListDisp{
-  void display(PVector pos,PVector dist);
+  public void display(PVector pos,PVector dist);
 }
 
 interface EnterEvent{
-  void Event(LineTextField l);
+  public void Event(LineTextField l);
 }
 
 interface WindowResizeEvent{
-  void Event();
+  public void Event();
 }
 
 interface CanvasContent{
-  void display(PGraphics pg);
+  public void display(PGraphics pg);
 }
 
 interface Process{
-  void execute();
+  public void execute();
 }
 
 interface disposeEvent{
-  void event();
+  public void event();
 }

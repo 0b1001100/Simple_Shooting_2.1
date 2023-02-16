@@ -59,13 +59,13 @@ class Myself extends Entity{
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     g.pushMatrix();
     g.translate(pos.x,pos.y);
     g.rotate(-rotate);
     g.strokeWeight(1);
     g.noFill();
-    g.stroke(c.getRed(),c.getGreen(),c.getBlue());
+    g.stroke(toColor(c));
     g.ellipse(0,0,size,size);
     g.strokeWeight(3);
     g.arc(0,0,size*1.5,size*1.5,
@@ -76,17 +76,17 @@ class Myself extends Entity{
     }
   }
   
-  void drawUI(){
+  public void drawUI(){
     
   }
   
-  void update(){
+  public void update(){
     super.update();
     if(isDead)return;
     while(exp>=nextLevel){
       exp-=nextLevel;
       ++Level;
-      nextLevel=10+(Level-1)*10*ceil(Level/10f);
+      nextLevel=10+(Level-1)*5*ceil(Level/10f);
       levelup=true;
       ++levelupNumber;
     }
@@ -98,7 +98,7 @@ class Myself extends Entity{
       }
       if(HP.get().floatValue()<=0){
         isDead=true;
-        main.EventSet.put("player_dead","");
+        main_game.EventSet.put("player_dead","");
         return;
       }
       keyEvent();
@@ -116,29 +116,29 @@ class Myself extends Entity{
     setAABB();
   }
   
-  void setAABB(){
+  public void setAABB(){
     Center=pos;
     AxisSize=new PVector(size,size);
     putAABB();
   }
   
   @Deprecated
-  void setpos(PVector pos){
+  public void setpos(PVector pos){
     vel=new PVector(pos.x,pos.y).sub(this.pos);
     this.pos=pos;
   }
   
   @Deprecated
-  void setpos(float x,float y){
+  public void setpos(float x,float y){
     vel=new PVector(x,y).sub(this.pos);
     pos=new PVector(x,y);
   }
   
-  void addWeapon(Weapon w){
+  public void addWeapon(Weapon w){
     weapons.add(w);
   }
   
-  void changeWeapon(){
+  public void changeWeapon(){
     selectedIndex++;
     if(selectedIndex>=weapons.size()){
       selectedIndex=0;
@@ -147,51 +147,64 @@ class Myself extends Entity{
     setParameta();
   }
   
-  void resetWeapon(){
+  public void resetWeapon(){
     selectedIndex=0;
     selectedWeapon=weapons.get(selectedIndex);
     setParameta();
   }
   
-  void setParameta(){
+  public void setParameta(){
     diffuse=selectedWeapon.diffuse;
     autoShot=selectedWeapon.autoShot;
     weaponChangeTime=0;
   }
   
-  void Rotate(){
+  public void Rotate(){
     float rad=0;
     float r=0;
     float i=0;
-    if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
-      ++i;
-    }
-    if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
-      --i;
-    }
-    if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
-      ++r;
-    }
-    if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
-      --r;
+    if(useController){
+      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue()*-1:0;
+      r=abs(ctrl_sliders.get(3).getValue())>0.1?ctrl_sliders.get(3).getValue():0;
+    }else{
+      if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
+        ++i;
+      }
+      if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
+        --i;
+      }
+      if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
+        ++r;
+      }
+      if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
+        --r;
+      }
     }
     move=abs(i)+abs(r)!=0;
     rad=move?atan2(-r,i):rotate;
     if(Float.isNaN(rad))rad=0;
     float nRad=0<rotate?rad+TWO_PI:rad-TWO_PI;
     rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
-    rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,radians(rotateSpeed)*vectorMagnification);
+    rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,radians(rotateSpeed*(useController?dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue()):1))*vectorMagnification);
     protate=rotate;
     rotate+=rad;
     rotate=rotate%TWO_PI;
   }
   
-  void move(){
+  public void move(){
     rotate(rotate);
     if(Float.isNaN(Speed)){
       Speed=0;
     }
-    if(keyPressed&&move&&containsList(moveKeyCode,PressedKeyCode)){
+    if(useController){
+      float mag=dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue());
+      if(mag>0.1&&Speed/maxSpeed<mag){
+        addVel(accelSpeed*mag,false);
+      }else{
+        Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):
+        Speed-max(Speed,-accelSpeed*2*vectorMagnification);
+      }
+    }else if(keyPressed&&move&&containsList(moveKeyCode,PressedKeyCode)){
       addVel(accelSpeed,false);
     }else{
       Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):
@@ -203,7 +216,7 @@ class Myself extends Entity{
     pos.add(vel.mult(vectorMagnification));
   }
   
-  void move(PVector v){
+  public void move(PVector v){
     vel.add(v);
     pos.add(v.mult(vectorMagnification));
     camera.reset();
@@ -227,9 +240,9 @@ class Myself extends Entity{
     }
   }
   
-  void shot(){
-    if(coolingTime>selectedWeapon.coolTime&&((mousePressed&&autoShot)||(mousePress&&!autoShot))&&mouseButton==LEFT
-      &&!selectedWeapon.empty){
+  public void shot(){
+    if(coolingTime>selectedWeapon.coolTime&&((((mousePressed&&autoShot)||(mousePress&&!autoShot))&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue())>0.1)
+      )&&!selectedWeapon.empty){
       selectedWeapon.shot();
       coolingTime=0;
     }else if(selectedWeapon.empty){
@@ -238,8 +251,8 @@ class Myself extends Entity{
     coolingTime+=vectorMagnification;
   }
   
-  void keyEvent(){
-    if(keyPress&&ModifierKey==TAB){
+  public void keyEvent(){
+    if(getInputState("change")){
       changeWeapon();
     }
   }
@@ -252,7 +265,7 @@ class Myself extends Entity{
     }
   }
   
-  void resetSpeed(){
+  public void resetSpeed(){
     Speed=dist(0,0,vel.x,vel.y)*sign(Speed);
     Speed=min(abs(Speed),maxSpeed*speedMag)/vectorMagnification*sign(Speed);
   }
@@ -269,28 +282,30 @@ class Myself extends Entity{
       MyselfCollision((Myself)e);
     }else if(e instanceof WallEntity){
       WallCollision((WallEntity)e);
+    }else if(e instanceof Exp){
+      ((Exp)e).Collision(this);
     }
   }
   
   @Override
-  void ExplosionHit(Explosion e,boolean b){
+  public void ExplosionHit(Explosion e,boolean b){
     if(!e.myself){
       Hit(e.power);
     }
   }
   
   @Override
-  void EnemyCollision(Enemy e){
+  public void EnemyCollision(Enemy e){
     e.MyselfCollision(this);
   }
   
   @Override
-  void BulletCollision(Bullet b){
+  public void BulletCollision(Bullet b){
     if(!b.isMine)b.MyselfCollision(this);
   }
   
   @Override
-  void WallCollision(WallEntity w){
+  public void WallCollision(WallEntity w){
     w.MyselfCollision(this);
   }
   
@@ -319,13 +334,13 @@ class Satellite extends Entity{
     init();
   }
   
-  void init(){
+  public void init(){
     setColor(new Color(0,255,150));
     setSize(15);
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     g.noFill();
     g.stroke(toColor(c));
     g.strokeWeight(1);
@@ -333,8 +348,8 @@ class Satellite extends Entity{
   }
   
   @Override
-  void update(){
-    if(!player.subWeapons.contains(satellite))main.CommandQue.put(getClass().getName(),new Command(0,0,0,(e)->Entities.remove(this)));
+  public void update(){
+    if(!player.subWeapons.contains(satellite))main_game.CommandQue.put(getClass().getName(),new Command(0,0,0,(e)->Entities.remove(this)));
     cooltime+=vectorMagnification;
     if(attack){
       attackTime+=vectorMagnification;
@@ -359,9 +374,12 @@ class Satellite extends Entity{
     vel.add(new PVector(0.01*(dist(pos,player.pos)-140),0).rotate(-rad-HALF_PI));
     vel.normalize().mult(max(1.7,dist(pos,player.pos)/70));
     pos.add(vel);
+    Center=pos;
+    AxisSize=new PVector(size*2,size*2);
+    putAABB();
   }
   
-  void shot(){
+  public void shot(){
     target=player.pos.copy().add(player.pos.copy().sub(pos));
     NextEntities.add(new SatelliteBullet(satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
   }
@@ -373,13 +391,13 @@ class Hexite extends Satellite{
     super(w);
   }
   
-  void init(){
+  public void init(){
     setColor(new Color(255,128,0));
     setSize(15);
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     g.noFill();
     g.stroke(toColor(c));
     g.strokeWeight(1);
@@ -390,7 +408,7 @@ class Hexite extends Satellite{
     g.endShape(CLOSE);
   }
   
-  void shot(){
+  public void shot(){
     target=player.pos.copy().add(player.pos.copy().sub(pos));
     NextEntities.add(new HexiteBullet((HexiteWeapon)satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
   }

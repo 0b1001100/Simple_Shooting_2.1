@@ -87,11 +87,11 @@ class CommandField extends LineTextField{
       text=new StringBuilder();
       index=0;
       if(parser.getNumberOfSyntaxErrors()>0)return;
-      main.commandProcess(tokens.getTokens());
+      main_game.commandProcess(tokens.getTokens());
     };
   }
   
-  void display(){
+  public void display(){
     push();
     if(font==null)font=createFont("SansSerif.plain",dist.y*0.8);
     textHeight=pos.y+dist.y*0.75;
@@ -113,19 +113,19 @@ class CommandField extends LineTextField{
     pop();
   }
   
-  void update(){
+  public void update(){
     if(mousePress)mousePress();
     keyProcess();
     if(keyPress&&!nowPressedKey.equals(str((char)-1)))memoryOffset=0;
     super.update();
   }
   
-  void drawText(float offset){
+  public void drawText(float offset){
     text(text.toString(),offset+textWidth(text.toString())*0.5,textHeight);
   }
   
   @Override
-  void upProcess(){
+  public void upProcess(){
     if(memoryOffset<EnteredCommand.size()){
       if(memoryOffset==0)nowInput=text.toString();
       ++memoryOffset;
@@ -135,7 +135,7 @@ class CommandField extends LineTextField{
   }
   
   @Override
-  void downProcess(){
+  public void downProcess(){
     if(memoryOffset>0){
       --memoryOffset;
       text=memoryOffset==0?new StringBuilder(nowInput):new StringBuilder(EnteredCommand.get(EnteredCommand.size()-memoryOffset));

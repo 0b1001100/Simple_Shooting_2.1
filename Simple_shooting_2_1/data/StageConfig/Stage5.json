@@ -494,7 +494,7 @@
       "number":20,
       "dist":4,
       "offset":0,
-      "name":"Ghoast"
+      "name":"Ghost"
     }
   },
   {
@@ -519,7 +519,7 @@
           "freq":0.5
         },
         {
-          "name":"Ghoast",
+          "name":"Ghost",
           "freq":0.25
         },
         {
@@ -593,7 +593,7 @@
       "freq":0.02,
       "data":[
         {
-          "name":"Ghoast",
+          "name":"Ghost",
           "freq":0.6
         },
         {

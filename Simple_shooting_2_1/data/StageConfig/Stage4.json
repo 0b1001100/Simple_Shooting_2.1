@@ -417,7 +417,7 @@
           "freq":0.4
         },
         {
-          "name":"Ghoast",
+          "name":"Ghost",
           "freq":0.4
         },
         {
@@ -452,7 +452,7 @@
       "number":20,
       "dist":4,
       "offset":0,
-      "name":"Ghoast"
+      "name":"Ghost"
     }
   },
   {

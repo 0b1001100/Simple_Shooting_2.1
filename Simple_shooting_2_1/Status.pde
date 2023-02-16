@@ -24,63 +24,63 @@ class Status{
     resetStatus=isMin(isMax(resetStatus));
   }
   
-  void add(double s){
+  public void add(double s){
     status=status.add(new BigDecimal(s));
     status=isMin(isMax(status));
   }
   
-  void addMax(double s){
+  public void addMax(double s){
     maxStatus=maxStatus.add(new BigDecimal(s));
     maxStatus=isMin(maxStatus);
   }
   
-  void addReset(double s){
+  public void addReset(double s){
     resetStatus=resetStatus.add(new BigDecimal(s));
     resetStatus=isMin(isMax(resetStatus));
   }
   
-  void addMin(double s){
+  public void addMin(double s){
     minStatus=minStatus.add(new BigDecimal(s));
     minStatus=isMax(minStatus);
   }
   
-  void sub(double s){
+  public void sub(double s){
     status=status.subtract(new BigDecimal(s));
     status=isMin(isMax(status));
   }
   
-  void subMax(double s){
+  public void subMax(double s){
     maxStatus=maxStatus.subtract(new BigDecimal(s));
     maxStatus=isMin(maxStatus);
     status=isMax(status);
   }
   
-  void subReset(double s){
+  public void subReset(double s){
     resetStatus=resetStatus.subtract(new BigDecimal(s));
     resetStatus=isMin(isMax(resetStatus));
   }
   
-  void subMin(double s){
+  public void subMin(double s){
     minStatus=minStatus.subtract(new BigDecimal(s));
     minStatus=isMax(minStatus);
   }
   
-  void set(double s){
+  public void set(double s){
     status=new BigDecimal(s);
     status=isMin(isMax(status));
   }
   
-  void setMax(double s){
+  public void setMax(double s){
     maxStatus=new BigDecimal(s);
     maxStatus=isMin(maxStatus);
   }
   
-  void setReset(double s){
+  public void setReset(double s){
     resetStatus=new BigDecimal(s);
     resetStatus=isMin(isMax(resetStatus));
   }
   
-  void setMin(double s){
+  public void setMin(double s){
     minStatus=new BigDecimal(s);
     minStatus=isMax(minStatus);
   }
@@ -117,7 +117,7 @@ class Status{
     return !status.equals(new BigDecimal(0)) ? status.divide(maxStatus,6,RoundingMode.FLOOR).floatValue():0;
   }
   
-  void reset(){
+  public void reset(){
     status=new BigDecimal(resetStatus.toString());
   }
   
@@ -202,7 +202,7 @@ class StatusManage{
     return time;
   }
   
-  void update(){
+  public void update(){
     if(time>0){
       time-=vectorMagnification/60;
     }
@@ -212,7 +212,7 @@ class StatusManage{
     }
   }
   
-  void removeEffect(){
+  public void removeEffect(){
     m.HP.subMax(addDefence);
     m.HP.subMax(addAttak);
     m.HP.subMax(addHP);

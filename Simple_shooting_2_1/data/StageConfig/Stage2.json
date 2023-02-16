@@ -332,7 +332,7 @@
       "number":20,
       "dist":4,
       "offset":0,
-      "name":"Ghoast"
+      "name":"Ghost"
     }
   },
   {
@@ -343,7 +343,7 @@
       "freq":0.03,
       "data":[
         {
-          "name":"Ghoast",
+          "name":"Ghost",
           "freq":1
         }
       ]
@@ -361,7 +361,7 @@
           "freq":0.65
         },
         {
-          "name":"Ghoast",
+          "name":"Ghost",
           "freq":0.35
         }
       ]
@@ -374,7 +374,7 @@
       "number":40,
       "dist":6,
       "offset":0,
-      "name":"Ghoast"
+      "name":"Ghost"
     }
   },
   {
@@ -407,7 +407,7 @@
           "freq":0.65
         },
         {
-          "name":"Ghoast",
+          "name":"Ghost",
           "freq":0.35
         }
       ]
