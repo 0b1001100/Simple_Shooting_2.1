@@ -1,12 +1,11 @@
 class GameProcess{
+  private GameHUD mainHUD;
   HashMap<String,String>EventSet;
   HashMap<String,Command>CommandQue=new HashMap<String,Command>();
   ComponentSet HUDSet;
   ComponentSet UpgradeSet;
-  ComponentSet PauseSet;
-  WallEntity[] wall=null;
+  ArrayList<WallEntity>wall;
   Color menuColor=new Color(230,230,230);
-  PVector FieldSize=null;
   float UItime=0;
   boolean gameOver=false;
   boolean animation=false;
@@ -14,8 +13,6 @@ class GameProcess{
   boolean done=false;
   boolean menu=false;
   float deadTimer=0;
-  int ssbo;
-  int[] vbo=new int[1];
   int x=16;
   int y=9;
   
@@ -30,22 +27,22 @@ class GameProcess{
   }
   
    public void init(){
-     FieldSize=null;
      EventSet=new HashMap<String,String>();
      HUDSet=new ComponentSet();
      UpgradeSet=new ComponentSet();
-     PauseSet=new ComponentSet();
-     initPause();
      stageLayer=new ComponentSetLayer();
      stageLayer.addLayer("root",UpgradeSet);
      stageLayer.addSubChild("root","HUD",HUDSet);
+     mainHUD=new SurvivorHUD(this);
      initStatus();
      Entities=new ArrayList<Entity>();
+    wall=new ArrayList<>();
      nearEnemy.clear();
      player=new Myself();
      stage=new Stage();
      StageFlag.clear();
-     pause=false;
+    gameOver=animation=upgrade=done=menu=pause=false;
+    killCount.set(0);
      sumLevel=0;
      addtionalProjectile=0;
      addtionalScale=1;
@@ -71,7 +68,7 @@ class GameProcess{
                      player.subWeapons.add(masterTable.get("Reflector").getWeapon());
                      break;
        case "Stage3":player.subWeapons.add(masterTable.get("Turret").getWeapon());
-                     player.subWeapons.add(masterTable.get("Satellite").getWeapon());
+                    player.subWeapons.add(masterTable.get("Absorption").getWeapon());
                      break;
        case "Stage4":player.subWeapons.add(masterTable.get("G_Shot").getWeapon());
                      player.subWeapons.add(masterTable.get("Grenade").getWeapon());
@@ -80,28 +77,6 @@ class GameProcess{
                      player.subWeapons.add(masterTable.get("Lightning").getWeapon());
                      break;
      }
-  }
-  
-  private void initPause(){
-    SkeletonButton back=new SkeletonButton(getLanguageText("me_back"));
-    back.setBounds(width*0.5-90,height*0.5-36,180,37);
-    back.addWindowResizeEvent(()->{
-      back.setBounds(width*0.5-90,height*0.5-36,180,37);
-    });
-    back.addListener(()->{
-      menu=false;
-      pause=false;
-    });
-    SkeletonButton menu=new SkeletonButton(getLanguageText("me_menu"));
-    menu.setBounds(width*0.5-90,height*0.5+36,180,37);
-    menu.addWindowResizeEvent(()->{
-      menu.setBounds(width*0.5-90,height*0.5+36,180,37);
-    });
-    menu.addListener(()->{
-      done=true;
-      scene=0;
-    });
-    PauseSet.addAll(back,menu);
   }
   
   private void initTutorial(){
@@ -213,15 +188,14 @@ class GameProcess{
     }
     Debug();
     updateShape();
-    keyProcess();
-    EventProcess();
-    EventSet.clear();
+    if(player!=null){
+      player.camera.update();
+    }
     done=true;
   }
 
   public void updateShape(){
     if(!pause){
-      EntitySet=new HashSet(Entities);
       for(int i=0;i<nearEnemy.size();i++){
         Enemy e=nearEnemy.get(i);
         if(e!=null&&(e.isDead||!e.inScreen)){
@@ -236,7 +210,6 @@ class GameProcess{
         }
       });
       applyStaus();
-      player.update();
       stage.update();
     }else{
       EntityTime=0;
@@ -264,7 +237,6 @@ class GameProcess{
             player.rotate=0;
           }
         }
-        player.update();
       }
     }
     if(menu){
@@ -277,6 +249,19 @@ class GameProcess{
       popMatrix();
     }
     if(!(upgrade||menu)){
+      player.update();
+      EntityUpdateAndCollision(()->{},()->{keyProcess();EventProcess();EventSet.clear();});
+    }
+    HashMap<String,Command>nextQue=new HashMap<String,Command>();
+    CommandQue.forEach((k,v)->{
+      v.update();
+      if(!v.isDead())nextQue.put(k,v);
+    });
+    CommandQue=nextQue;
+  }
+  
+  public void EntityUpdateAndCollision(Runnable whileUpdate,Runnable whileCollision){
+    EntitySet=new HashSet(Entities);
       byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
       float block=Entities.size()/(float)ThreadNumber;
       for(byte b=0;b<ThreadNumber;b++){
@@ -289,10 +274,7 @@ class GameProcess{
         }
       }catch(Exception e){println(e);
       }
-      if(doGPGPU){
-      //getPixelData();
-      //updatePixels();
-      }
+      whileUpdate.run();
       for(Future<?> f:entityFuture){
         try {
           f.get();
@@ -325,13 +307,30 @@ class GameProcess{
           return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
         }
       });
+    ThreadNumber=(byte)min(floor(EntityDataX.size()/(float)minDataNumber),(int)collisionNumber);
+    if(pEntityNum!=EntityDataX.size()){
+      block=EntityDataX.size()/(float)ThreadNumber;
+      for(byte b=0;b<ThreadNumber;b++){
+        CollisionProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
+      }
     }
-    HashMap<String,Command>nextQue=new HashMap<String,Command>();
-    CommandQue.forEach((k,v)->{
-      v.update();
-      if(!v.isDead())nextQue.put(k,v);
-    });
-    CommandQue=nextQue;
+    CollisionFuture.clear();
+    for(int i=0;i<ThreadNumber;i++){
+      CollisionFuture.add(exec.submit(CollisionProcess.get(i)));
+    }
+    whileCollision.run();
+    for(Future<?> f:CollisionFuture){
+      try {
+        f.get();
+      }
+      catch(ConcurrentModificationException e) {
+        e.printStackTrace();
+      }
+      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+      }
+      catch(NullPointerException g) {
+      }
+    }
   }
   
   public void drawShape(){
@@ -339,100 +338,23 @@ class GameProcess{
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
-    stage.display();
-    if(doGPGPU){
-      loadPixels();
-      byte ThreadNumber=(byte)min(Entities.size(),(int)drawNumber);
-      float block=Entities.size()/(float)ThreadNumber;
-      for(byte b=0;b<ThreadNumber-1;b++){
-        DrawProcess.get(b).setData(round(block*b),round(block*(b+1)));
-      }
-      try{
-        drawFuture.clear();
-        for(int i=0;i<ThreadNumber-1;i++){
-          drawFuture.add(exec.submit(DrawProcess.get(i)));
-        }
-      }catch(Exception e){println(e);
-      }
-      for(int i=round(block*(ThreadNumber-1));i<round(block*ThreadNumber);i++){
-        Entities.get(i).display(g);
-      }
-      for(Future<PGraphics> f:drawFuture){
-        try{
-          image(f.get(),-scroll.x,-scroll.y);
-        }
-        catch(ConcurrentModificationException e) {
-          e.printStackTrace();
-        }
-        catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
-        }
-        catch(NullPointerException g) {
-        }
-      }
-    }else{
-      Entities.forEach(e->{e.display(g);});
-    }
-    if(!player.isDead)player.display(g);
-    if(LensData.size()>0){
-      loadPixels();
-      float[] centers=new float[20];
-      float[] rads=new float[10];
-      for(int i=0;i<10;i++){
-        if(i<LensData.size()){
-          centers[2*i]=LensData.get(i).screen.x;
-          centers[2*i+1]=LensData.get(i).screen.y;
-          rads[i]=LensData.get(i).scale*0.1f;
-        }else{
-          centers[2*i]=0;
-          centers[2*i+1]=0;
-          rads[i]=1;
-        }
-      }
-      GravityLens.set("center",centers,2);
-      GravityLens.set("g",rads);
-      GravityLens.set("len",LensData.size());
-      GravityLens.set("texture",g);
-      GravityLens.set("resolution",width,height);
-      applyShader(GravityLens);
-    }
-    LensData.clear();
-    displayHUD();
+    Entities.forEach(e->{e.display(g);});
+    mainHUD.display();
     popMatrix();
     DrawTime=(System.nanoTime()-pTime)/1000000f;
   }
   
-  public void displayHUD(){
-    push();
-    resetMatrix();
-    stageLayer.display();
-    if(menu){
-      PauseSet.display();
-      PauseSet.update();
-    }else{
-      stageLayer.update();
-    }
-    rectMode(CORNER);
-    noFill();
-    stroke(200);
-    strokeWeight(1);
-    rect(200,30,width-230,30);
-    fill(255);
-    noStroke();
-    rect(202.5f,32.5f,(width-225)*player.exp/player.nextLevel,25);
-    textSize(20);
-    textFont(font_20);
-    textAlign(RIGHT);
-    text("LEVEL "+player.Level,190,52);
-    textFont(font_15);
-    textAlign(CENTER);
-    text("Time "+nf(floor(stage.time/3600),2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5f,78);
-    pop();
-  }
-  
    public void keyProcess(){
-    if(keyPress&&keyCode==CONTROL){
-      menu=!menu;
-      if(!upgrade)pause=menu;
+    if(useController){
+      if(ctrl_button_press&&controllerBinding.getControllerState("menu")){
+        menu=!menu;
+        if(!upgrade)pause=menu;
+      }
+    }else{
+      if(keyPress&&keyCode==CONTROL){
+        menu=!menu;
+        if(!upgrade)pause=menu;
+      }
     }
   }
   
@@ -464,6 +386,10 @@ class GameProcess{
         playerTable.addTable(i,i.weight);
       }
     }
+  }
+  
+  ComponentSet getHUDComponentSet(){
+    return HUDSet;
   }
   
    public void upgrade(){
@@ -540,23 +466,14 @@ class GameProcess{
       }));
       UpgradeSet.add(c);
       UpgradeSet.addAll(buttons);
-      if(UpgradeSet.selectedIndex<=0)UpgradeSet.addSelect();
-      UpgradeSet.addSelect();
-      UpgradeSet.subSelect();
       player.levelup=false;
     }
   }
   
-   public void setWall(){
-    if(FieldSize==null)return;
-    if(wall==null){
-      wall=new WallEntity[4];
-      wall[0]=new WallEntity(FieldSize.copy().mult(-0.5f),new PVector(FieldSize.x,0));
-      wall[1]=new WallEntity(new PVector(FieldSize.x*-0.5f,FieldSize.y*0.5f),new PVector(FieldSize.x,0));
-      wall[2]=new WallEntity(new PVector(FieldSize.x*0.5f,FieldSize.y*-0.5f),new PVector(0,FieldSize.y));
-      wall[3]=new WallEntity(FieldSize.copy().mult(-0.5f),new PVector(0,FieldSize.y));
-      Entities.addAll(Arrays.asList(wall));
-    }
+  void addWall(float x,float y,float dx,float dy){
+    WallEntity w=new WallEntity(new PVector(x,y),new PVector(dx,dy));
+    wall.add(w);
+    Entities.add(w);
   }
   
    public void commandProcess(java.util.List<Token>tokens){
@@ -590,7 +507,7 @@ class GameProcess{
       }else{
         player.Level=targetLevel;
       }
-      player.nextLevel=10+(player.Level-1)*10*ceil(player.Level/10f);
+      player.nextLevel=10+(player.Level-1)*5*ceil(player.Level/10f);
     }else{
       Item i=masterTable.get(tokens.get(1).getText().replace("\"",""));
       SubWeapon w=i.getWeapon();
@@ -669,7 +586,7 @@ class GameProcess{
         parser.addErrorListener(ThrowingErrorListener.INSTANCE.setWarningMap(DebugWarning));
         parser.command();
         if(parser.getNumberOfSyntaxErrors()>0)continue;
-        main.commandProcess(command_tokens.getTokens());
+        commandProcess(command_tokens.getTokens());
       }
     }catch(NullPointerException e){
       addWarning("No such file");
@@ -720,7 +637,7 @@ class Command{
     num=i;
   }
   
-  void update(){
+  public void update(){
     if(isDead)return;
     time+=vectorMagnification;
     if(!exec&&offset<time){
@@ -750,6 +667,164 @@ class Command{
   }
 }
 
+class KeyBinding{
+  private HashMap<Integer,String>list;
+  private int type=0;
+  
+  public final int KEY=0;
+  public final int CONTROLLER=1;
+  
+  KeyBinding(){
+    initKey();
+    type=0;
+  }
+  
+  KeyBinding(int type){
+    switch(type){
+      case 0:initKey();break;
+      case 1:initController();break;
+    }
+    this.type=type;
+  }
+  
+  void initKey(){
+    list=new HashMap<>();
+    addBinding((int)ENTER,"enter");
+    addBinding((int)SHIFT,"back");
+    addBinding((int)CONTROL,"menu");
+    addBinding((int)TAB,"change");
+    addBinding((int)UP,"up");
+    addBinding((int)LEFT,"left");
+    addBinding((int)RIGHT,"right");
+    addBinding((int)DOWN,"down");
+  }
+  
+  void initController(){
+    list=new HashMap<>();
+    addBinding(2,"enter");
+    addBinding(1,"back");
+    addBinding(3,"menu");
+    addBinding(0,"change");
+    addBinding(-3,"up");
+    addBinding(-9,"left");
+    addBinding(-5,"right");
+    addBinding(-7,"down");
+  }
+  
+  int getType(){
+    return type;
+  }
+  
+  void addBinding(int i,String s){
+    list.put(i,s);
+  }
+  
+  void replaceBinding(int i,String s,int next){
+    list.remove(i);
+    list.put(next,s);
+  }
+  
+  HashMap<Integer,String> getDefaultBindings(){
+    return getBindings("enter","back","menu","change");
+  }
+  
+  HashMap<Integer,String> getBindings(String... name){
+    HashSet<String>names=new HashSet<>(Arrays.asList(name));
+    HashMap<Integer,String>ret=new HashMap<>();
+    list.forEach((k,v)->{
+      if(names.contains(v))ret.put(k,v);
+    });
+    return ret;
+  }
+  
+  ArrayList<String> getState(){
+    ArrayList<String>ret=new ArrayList<>();
+    if(type==1){
+      for(int i:list.keySet()){
+        if(ctrl_buttons.get(i).pressed())ret.add(list.get(i));
+      }
+      if(list.containsKey(-(int)ctrl_hat.getValue()-1))ret.add(list.get(-(int)ctrl_hat.getValue()-1));
+    }else{
+      for(String s:PressedKeyCode){
+        ret.add(list.get(Integer.parseInt(s)));
+      }
+    }
+    return ret;
+  }
+  
+  String getKeyState(int i){
+    return list.get(i);
+  }
+  
+  String getButtonState(int i){
+    return list.get(i);
+  }
+  
+  boolean getControllerState(String s){
+    int binding=getButtonBinding(s);
+    if(type==1&&list.containsValue(s)){
+      if(binding>=0){
+        return ctrl_buttons.get(binding).pressed();
+      }else{
+        return ctrl_hat.getValue()==-binding-1;
+      }
+    }
+    return false;
+  }
+  
+  boolean getKeyInputState(String s){
+    int binding=getButtonBinding(s);
+    if(type==0&&list.containsValue(s)){
+      return PressedKeyCode.contains(str(binding));
+    }
+    return false;
+  }
+  
+  int getButtonBinding(String s){
+    for(int i:list.keySet()){
+      if(s.equals(list.get(i))){
+        return i;
+      }
+    }
+    return -1024;
+  }
+  
+  String getButtonState(){
+    if(type==0)return null;
+    for(int i=0;i<ctrl_buttons.size();i++){
+      if(ctrl_buttons.get(i).pressed()&&list.get(i)!=null)return list.get(i);
+    }
+    return null;
+  }
+  
+  String getHatState(){
+    return type==1?list.get(-(int)ctrl_hat.getValue()-1):null;
+  }
+  
+  String getKeyState(){
+    return type==0?(keyPressed?list.get(nowPressedKeyCode):null):null;
+  }
+}
+
+boolean getInputState(String s){
+  return (keyPress&&keyboardBinding.getKeyInputState(s))||(useController&&(ctrl_button_press||ctrl_hat_press)&&controllerBinding.getControllerState(s));
+}
+
+boolean isInput(){
+  return keyPress||ctrl_button_press||ctrl_hat_press;
+}
+
+String getInputState(){
+  if(useController){
+    String btn=controllerBinding.getButtonState();
+    if(btn!=null)return btn;
+    String hat=controllerBinding.getHatState();
+    if(hat!=null)return hat;
+  }
+  String Key=keyboardBinding.getKeyState();
+  return Key==null?"":Key;
+}
+
 class WallEntity extends Entity{
   PVector dist;
   PVector norm;
@@ -768,7 +843,7 @@ class WallEntity extends Entity{
   }
   
   @Override
-  void display(PGraphics g){
+  public void display(PGraphics g){
     if(Debug)displayAABB(g);
     g.strokeWeight(2);
     g.stroke(255);
@@ -776,14 +851,14 @@ class WallEntity extends Entity{
   }
   
   @Override
-  void update(){
+  public void update(){
     Center=new PVector(pos.x+dist.x*0.5,pos.y+dist.y*0.5);
-    AxisSize=new PVector(dist.x==0?1:dist.x,dist.y==0?1:dist.y);
+    AxisSize=new PVector(max(1,abs(dist.x)),max(1,abs(dist.y)));
     putAABB();
     super.update();
   }
   
-  void Process(Entity e){
+  public void Process(Entity e){
     
   }
   
@@ -804,22 +879,22 @@ class WallEntity extends Entity{
   }
   
   @Override
-  void ExplosionCollision(Explosion e){}
+  public void ExplosionCollision(Explosion e){}
   
   @Override
-  void EnemyCollision(Enemy e){
+  public void EnemyCollision(Enemy e){
     PVector copy=e.pos.copy();
     e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
     e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
   }
   
   @Override
-  void BulletCollision(Bullet b){
+  public void BulletCollision(Bullet b){
     b.WallCollision(this);
   }
   
   @Override
-  void MyselfCollision(Myself m){
+  public void MyselfCollision(Myself m){
     PVector copy=m.pos.copy();
     m.pos=CircleMovePosition(m.pos,m.size,pos,dist);
     m.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
@@ -840,5 +915,5 @@ class DynamicWall extends WallEntity{
 }
 
 interface Executable{
-  void exec(String s);
+  public void exec(String s);
 }

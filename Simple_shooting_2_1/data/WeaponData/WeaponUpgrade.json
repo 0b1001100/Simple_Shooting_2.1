@@ -452,6 +452,50 @@
       "weight":0
     }
   ],
+  "BLAS":[
+    {
+      "name":["power","projectile","scale"],
+      "power":1,
+      "projectile":1,
+      "scale":20
+    },
+    {
+      "name":["velocity","cooltime","scale"],
+      "velocity":2,
+      "cooltime":20,
+      "scale":30
+    },
+    {
+      "name":["velocity","duration","weight"],
+      "velocity":1,
+      "duration":40,
+      "weight":15
+    },
+    {
+      "name":["cooltime","power","velocity"],
+      "velocity":1,
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["duration","cooltime","power"],
+      "duration":40,
+      "cooltime":10,
+      "power":2
+    },
+    {
+      "name":["cooltime","power","scale"],
+      "cooltime":20,
+      "power":2,
+      "scale":30
+    },
+    {
+      "name":["duration","projectile","weight"],
+      "duration":40,
+      "projectile":1,
+      "weight":0
+    }
+  ],
   "projectile":[
     {
       "name":["projectile","weight"],

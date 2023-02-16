@@ -12,12 +12,18 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.Map.Entry;
 
+import net.java.games.input.*;
+import org.gamecontrolplus.*;
+
 import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.newt.opengl.*;
 import com.jogamp.newt.event.*;
 import com.jogamp.opengl.*;
 import com.jogamp.newt.*;
+
 import static com.jogamp.common.util.IOUtil.ClassResources;
+
+import static com.jogamp.newt.event.KeyEvent.*;
 
 Simple_shooting_2_1 CopyApplet=this;
 
@@ -58,7 +64,21 @@ PShader titleShader;
 PShader Title_HighShader;
 java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
 
-GameProcess main;
+ControlIO control;
+ControlDevice controller;
+ArrayList<ControlSlider>ctrl_sliders=new ArrayList<>();
+ArrayList<ControlButton>ctrl_buttons=new ArrayList<>();
+ControlButton ctrl_hat;
+float pHat=0;
+boolean useController=false;
+boolean ctrl_button_press=false;
+boolean ctrl_hat_press=false;
+
+KeyBinding controllerBinding=new KeyBinding(1);
+KeyBinding keyboardBinding=new KeyBinding();
+
+AtomicInteger killCount=new AtomicInteger(0);
+GameProcess main_game;
 Stage stage;
 
 ComponentSetLayer stageLayer=new ComponentSetLayer();
@@ -78,6 +98,7 @@ JSONObject conf;
 
 PImage mouseImage;
 PFont font_70;
+PFont font_50;
 PFont font_30;
 PFont font_20;
 PFont font_15;
@@ -128,7 +149,7 @@ boolean colorInverse=false;
 boolean fullscreen=false;
 boolean FXAA=false;
 
-static final String VERSION="1.1.2";
+static final String VERSION="1.1.4";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
@@ -170,26 +191,26 @@ void setup(){
   NewtFactory.setWindowIcons(new ClassResources(new String[]{ImagePath+"icon_16.png",ImagePath+"icon_48.png"},this.getClass().getClassLoader(),this.getClass()));
   hint(DISABLE_OPENGL_ERRORS);
   ((GLWindow)surface.getNative()).addWindowListener(new com.jogamp.newt.event.WindowListener() {
-    void windowDestroyed(com.jogamp.newt.event.WindowEvent e) {
+    public void windowDestroyed(com.jogamp.newt.event.WindowEvent e) {
     }
 
-    void windowDestroyNotify(com.jogamp.newt.event.WindowEvent e) {
+    public void windowDestroyNotify(com.jogamp.newt.event.WindowEvent e) {
     }
 
-    void windowGainedFocus(com.jogamp.newt.event.WindowEvent e){
+    public void windowGainedFocus(com.jogamp.newt.event.WindowEvent e){
     }
 
-    void windowLostFocus(com.jogamp.newt.event.WindowEvent e){
+    public void windowLostFocus(com.jogamp.newt.event.WindowEvent e){
     }
 
-    void  windowMoved(com.jogamp.newt.event.WindowEvent e) {
+    public void  windowMoved(com.jogamp.newt.event.WindowEvent e) {
     }
 
-    void windowRepaint(WindowUpdateEvent e) {
+    public void windowRepaint(WindowUpdateEvent e) {
     }
 
     @Override
-      void windowResized(com.jogamp.newt.event.WindowEvent e) {
+      public void windowResized(com.jogamp.newt.event.WindowEvent e) {
       GLWindow w=(GLWindow)surface.getNative();
       pscreen.sub(w.getWidth(), w.getHeight()).div(2);
       scroll.sub(pscreen);
@@ -207,15 +228,41 @@ void setup(){
     RefleshRate=max(RefleshRate,s.getRefreshRate());
   }
   ((GLWindow)surface.getNative()).addKeyListener(new com.jogamp.newt.event.KeyListener() {
-    void keyPressed(com.jogamp.newt.event.KeyEvent e){
+    public void keyPressed(com.jogamp.newt.event.KeyEvent e){
     }
-    void keyReleased(com.jogamp.newt.event.KeyEvent e){
+    public void keyReleased(com.jogamp.newt.event.KeyEvent e){
     }
   });
+  //get controller
+  control = ControlIO.getInstance(this);
+  for(ControlDevice dev:control.getDevices()){
+    if(dev.getTypeName().equals(net.java.games.input.Controller.Type.GAMEPAD.toString())||
+       dev.getTypeName().equals(net.java.games.input.Controller.Type.STICK.toString())){
+      controller=dev;
+      break;
+    }  
+  }
+  if(controller!=null){
+    controller.open();
+    useController=true;
+    for(int i=0;i<controller.getNumberOfButtons();i++){
+      String className=controller.getButton(i).getClass().toString();
+      if(className.indexOf("Hat")>-1){
+        ctrl_hat=controller.getHat(i);
+      }else{
+        ctrl_buttons.add(controller.getButton(i));
+        controller.getButton(i).plug(this,"ctrl_button_pressed",ControlIO.ON_PRESS);
+      }
+    }
+    for(int i=0;i<controller.getNumberOfSliders();i++){
+      ctrl_sliders.add(controller.getSlider(i));
+    }
+  }
   mouseImage=loadImage(ImagePath+"mouse.png");
   font_15=createFont("SansSerif.plain",15);
   font_20=createFont("SansSerif.plain",20);
   font_30=createFont("SansSerif.plain",30);
+  font_50=createFont("SansSerif.plain",50);
   font_70=createFont("SansSerif.plain",70);
   textFont(font_15);
   FXAAShader=loadShader(ShaderPath+"FXAA.glsl");
@@ -244,9 +291,14 @@ void setup(){
   if(doGPGPU)try{initMergeGPGPU();}catch(Exception e){e.printStackTrace();}
   LoadData();
   initThread();
+  main_game=new GameProcess();
 }
 
 public void draw(){
+  if(useController){
+    mouseX=-1;
+    mouseY=-1;
+  }
   if(frameCount==2){
     noLoop();
     ((GLWindow)surface.getNative()).setFullscreen(fullscreen);
@@ -266,34 +318,6 @@ public void draw(){
     case 3:Result();
   }
   eventProcess();
-  if(scene==2){
-    byte ThreadNumber=(byte)min(floor(EntityDataX.size()/(float)minDataNumber),(int)collisionNumber);
-    if(pEntityNum!=EntityDataX.size()){
-      float block=EntityDataX.size()/(float)ThreadNumber;
-      for(byte b=0;b<ThreadNumber;b++){
-        CollisionProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
-      }
-    }
-    CollisionFuture.clear();
-    for(int i=0;i<ThreadNumber;i++){
-      CollisionFuture.add(exec.submit(CollisionProcess.get(i)));
-    }
-    for(Future<?> f:CollisionFuture){
-      try {
-        f.get();
-      }
-      catch(ConcurrentModificationException e) {
-        e.printStackTrace();
-      }
-      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
-      }
-      catch(NullPointerException g) {
-      }
-    }
-    if(player!=null){
-      player.camera.update();
-    }
-  }
   Shader();
   if(displayFPS)printFPS();
   updatePreValue();
@@ -385,322 +409,6 @@ String getLanguageText(String s){
   }
 }
 
- public void initMenu(){
-  starts=new ComponentSetLayer();
-  NormalButton New=new NormalButton(Language.getString("start_game"));
-  New.setBounds(width*0.5-60,height-80,120,30);
-  New.addListener(()-> {
-    starts.toChild("main");
-  });
-  New.addWindowResizeEvent(()->{
-    New.setBounds(width*0.5-60,height-80,120,30);
-  });
-  Canvas TitleCanvas=new Canvas(g);
-  TitleCanvas.setContent((g)->{
-    try{
-      if(HighQuality){
-        Title_HighShader.set("time",millis()/30000f);
-        Title_HighShader.set("mouse",0,0);
-        Title_HighShader.set("resolution",width,height);
-        filter(Title_HighShader);
-      }else{
-        for(int i=0;i<20;i++){
-          titleLight[i*2+1]-=titleLightSpeed[i];
-          if(titleLight[i*2+1]<0)titleLight[i*2+1]=height;
-        }
-        if(frameCount==1){
-          preg.beginDraw();
-          preg.background(0);
-          preg.endDraw();
-          preg.loadPixels();
-          g.loadPixels();
-          titleShader.set("tex",g);
-          titleShader.set("position",titleLight,2);
-          titleShader.set("resolution",width,height);
-          preg.filter(titleShader);
-          g.filter(titleShader);
-        }else{
-          preg.loadPixels();
-          g.loadPixels();
-          titleShader.set("tex",preg);
-          titleShader.set("position",titleLight,2);
-          titleShader.set("resolution",width,height);
-          preg.filter(titleShader);
-          g.filter(titleShader);
-        }
-      }
-    }catch(Exception e){}
-    g.fill(255);
-    g.textFont(font_70);
-    g.textAlign(CENTER);
-    g.textSize(70);
-    g.text("Simple_shooting_2.1",width*0.5,130);
-    g.fill(200);
-    g.textFont(font_15);
-    g.textAlign(LEFT);
-    g.textSize(15);
-    g.text("["+VERSION+"]  Developed by 0x4C",10,height-10);
-  });
-  TitleCanvas.addWindowResizeEvent(()->{
-    preg=createGraphics(width,height,P2D);
-    for(int i=0;i<20;i++){
-      titleLight[i*2]=width*0.05*i+random(-5,5);
-      titleLight[i*2+1]=random(0,height);
-    }
-  });
-  ComponentSet titleSet=toSet(TitleCanvas,New);
-  titleSet.addSelect();
-  Y_AxisLayout mainLayout=new Y_AxisLayout(100,120,120,25,15);
-  MenuButton Select=new MenuButton(Language.getString("stage_select"));
-  Select.addListener(()->{
-    starts.toChild("stage");
-  });
-  //--
-    stageList.setBounds(250,100,300,500);
-    stageList.showSub=false;
-    stageList.addSelectListener((s)->{
-      scene=1;
-      StageName=s;
-    });
-  //--
-  MenuButton Config=new MenuButton(Language.getString("config"));
-  Config.addListener(()->{
-    starts.toChild("confMenu");
-  });
-  MenuTextBox confBox=new MenuTextBox(Language.getString("ex"));
-  confBox.setBounds(width-320,100,300,500);
-  confBox.addWindowResizeEvent(()->{
-    confBox.setBounds(width-320,100,300,500);
-  });
-  //---
-    Y_AxisLayout confLayout=new Y_AxisLayout(250,160,120,25,15);
-    MenuCheckBox AbsMag=new MenuCheckBox(Language.getString("mag_set"),absoluteMagnification==1.5);
-    AbsMag.addListener(()->{
-      absoluteMagnification=AbsMag.value?1.5:1;
-    });
-    AbsMag.addFocusListener(new FocusEvent(){
-       public void getFocus(){
-        confBox.setText(Language.getString("ex_mag_set"));
-      }
-      
-       public void lostFocus(){}
-    });
-    MenuButton Display=new MenuButton(Language.getString("display"));
-    Display.addListener(()->{
-      starts.toChild("dispMenu");
-    });
-    Display.addFocusListener(new FocusEvent(){
-       public void getFocus(){
-        confBox.setText(Language.getString("ex_display"));
-      }
-      
-       public void lostFocus(){}
-    });
-    //--
-      Y_AxisLayout dispLayout=new Y_AxisLayout(400,200,120,25,15);
-      MenuCheckBox Colorinv=new MenuCheckBox(Language.getString("color_inverse"),colorInverse);
-      Colorinv.addListener(()->{
-        colorInverse=Colorinv.value;
-      });
-      Colorinv.addFocusListener(new FocusEvent(){
-         public void getFocus(){
-          confBox.setText(Language.getString("ex_color_inverse"));
-        }
-        
-         public void lostFocus(){}
-      });
-      MenuCheckBox dispFPS=new MenuCheckBox(Language.getString("disp_FPS"),displayFPS);
-      dispFPS.addListener(()->{
-        displayFPS=dispFPS.value;
-        conf.setBoolean("FPS",displayFPS);
-        exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
-      });
-      dispFPS.addFocusListener(new FocusEvent(){
-         public void getFocus(){
-          confBox.setText(Language.getString("ex_disp_FPS"));
-        }
-        
-         public void lostFocus(){}
-      });
-      MenuCheckBox Quality=new MenuCheckBox(Language.getString("Quality"),HighQuality);
-      Quality.setCustomizeText(getLanguageText("ex_qu_high"),getLanguageText("ex_qu_low"));
-      Quality.addListener(()->{
-        HighQuality=Quality.value;
-        conf.setBoolean("HighQuality",HighQuality);
-        exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
-      });
-      Quality.addFocusListener(new FocusEvent(){
-         public void getFocus(){
-          confBox.setText(Language.getString("ex_Quality"));
-        }
-        
-         public void lostFocus(){}
-      });
-      MenuCheckBox vsy=new MenuCheckBox(Language.getString("VSync"),vsync);
-      vsy.addListener(()->{
-        vsync=vsy.value;
-        FrameRateConfig=vsync?RefleshRate:60;
-        frameRate(FrameRateConfig);
-        conf.setBoolean("vsync",vsync);
-        exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
-      });
-      vsy.addFocusListener(new FocusEvent(){
-         public void getFocus(){
-          confBox.setText(Language.getString("ex_VSync"));
-        }
-        
-         public void lostFocus(){}
-      });
-      MenuCheckBox fullsc=new MenuCheckBox(Language.getString("fullscreen"),fullscreen);
-      fullsc.addListener(()->{
-        fullscreen=fullsc.value;
-        noLoop();
-        ((GLWindow)surface.getNative()).setFullscreen(fullscreen);
-        if(!fullscreen){
-          surface.setLocation(0,0);
-        }
-        loop();
-        conf.setBoolean("Fullscreen",fullscreen);
-        exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
-      });
-      fullsc.addFocusListener(new FocusEvent(){
-         public void getFocus(){
-          confBox.setText(Language.getString("ex_fullscreen"));
-        }
-        
-         public void lostFocus(){}
-      });
-      //--
-    MenuButton Lang=new MenuButton(Language.getString("language"));
-    Lang.addListener(()->{
-      starts.toChild("Language");
-    });
-    Lang.addFocusListener(new FocusEvent(){
-       public void getFocus(){
-        confBox.setText(Language.getString("ex_language"));
-      }
-      
-       public void lostFocus(){}
-    });
-    //--
-      ItemList LangList=new ItemList();
-      LangList.setBounds(400,100,300,500);
-      LangList.showSub=false;
-      for(int i=0;i<LanguageData.getJSONArray("Language").size();i++){
-        LangList.addContent(LanguageData.getJSONArray("Language").getJSONObject(i).getString("name"));
-      }
-      LangList.addSelectListener((s)->{
-        if(conf.getString("Language").equals(LanguageData.getString(s))){
-          starts.toParent();
-          return;
-        }
-        conf.setString("Language",LanguageData.getString(s));
-        exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
-        LoadLanguage();
-        initMenu();
-        starts.toParent();
-      });
-    //--
-    MenuButton exit=new MenuButton(Language.getString("exit"));
-    exit.addListener(()->{
-      exit();
-    });
-    exit.addFocusListener(new FocusEvent(){
-       public void getFocus(){
-        confBox.setText(Language.getString("ex_exit"));
-      }
-      
-       public void lostFocus(){}
-    });
-  //---
-  MenuButton operationEx=new MenuButton(Language.getString("operation_ex"));
-  operationEx.addListener(()->{
-    starts.toChild("operation");
-  });
-  //--
-    MenuButton back_op=new MenuButton(Language.getString("back"));
-    back_op.setBounds(width*0.5f-60,height*0.9f,120,25);
-    back_op.addListener(()->{
-      starts.toParent();
-    });
-    back_op.addWindowResizeEvent(()->{
-      back_op.setBounds(width*0.5f-60,height*0.9f,120,25);
-    });
-    Canvas op_canvas=new Canvas(g);
-    op_canvas.setContent((pg)->{
-      pg.beginDraw();
-      pg.blendMode(BLEND);
-      pg.rectMode(CENTER);
-      pg.fill(20);
-      pg.noStroke();
-      for(int i=0;i<4;i++)pg.rect(87.5f+45*i,70,35,35,3);
-      pg.textSize(30);
-      pg.textFont(font_30);
-      pg.textAlign(CENTER);
-      pg.fill(255);
-      for(int i=0;i<4;i++)pg.text(i==0?"W":i==1?"A":i==2?"S":i==3?"D":"",87.5f+45*i,82.5f);
-      pg.fill(0);
-      pg.textAlign(LEFT);
-      text(": "+Language.getString("move"),245,82.5f);
-      image(mouseImage,70,85);
-      text(": "+Language.getString("shot"),150,130);
-      pg.endDraw();
-    });
-  //--
-  MenuButton credit=new MenuButton(Language.getString("credit"));
-  credit.addListener(()->{
-    starts.toChild("credit");
-  });
-  //--
-    MenuButton back_cr=new MenuButton(Language.getString("back"));
-    back_cr.setBounds(width*0.5f-60,height*0.9f,120,25);
-    back_cr.addListener(()->{
-      starts.toParent();
-    });
-    back_cr.addWindowResizeEvent(()->{
-      back_cr.setBounds(width*0.5f-60,height*0.9f,120,25);
-    });
-    PFont[] f={createFont("SansSerif.plain",height*0.03)};
-    boolean[] cr_res={true};
-    Canvas cr_canvas=new Canvas(g);
-    cr_canvas.addWindowResizeEvent(()->{
-      cr_res[0]=true;
-    });
-    cr_canvas.setContent((pg)->{
-      pg.beginDraw();
-      if(cr_res[0]){
-        f[0]=createFont("SansSerif.plain",height*0.03);
-        cr_res[0]=false;
-      }
-      pg.fill(0);
-      pg.rectMode(CORNER);
-      pg.textAlign(CENTER,TOP);
-      pg.textLeading(30);
-      pg.textSize(height*0.03);
-      pg.textFont(f[0]);
-      pg.text(getLanguageText("credit_co"),0,30,width,height*0.9-30);
-      pg.textAlign(CENTER,BOTTOM);
-      pg.textLeading(30);
-      if(conf.getBoolean("clear"))pg.text(getLanguageText("credit_co_2"),0,0,width,height*0.9-30);
-      pg.endDraw();
-    });
-  //--
-  starts.setSubChildDisplayType(1);
-  starts.addLayer("root",titleSet);
-  starts.addChild("root","main",toSet(mainLayout,Select,Config,operationEx,credit));
-  starts.addSubChild("main","stage",toSet(stageList));
-  starts.addSubChild("main","confMenu",toSet(confLayout,AbsMag,Display,Lang,exit),toSet(confBox));
-  starts.addSubChild("confMenu","dispMenu",toSet(dispLayout,Colorinv,dispFPS,Quality,vsy,fullsc),toSet(confBox));
-  starts.addSubChild("confMenu","Language",toSet(LangList));
-  starts.addChild("main","operation",toSet(back_op,op_canvas));
-  starts.addChild("main","credit",toSet(back_cr,cr_canvas));
-  if(launched){
-    starts.toChild("main");
-  }else{
-    launched=true;
-  }
-}
-
  public void Load(){
   background(0);
   scene=2;
@@ -729,14 +437,14 @@ String getLanguageText(String s){
     float normUItime=resultTime/30;
     background(320*normUItime);
     blendMode(BLEND);
-    float Width=width/main.x;
-    float Height=height/main.y;
-    for(int i=0;i<main.y;i++){
-      for(int j=0;j<main.x;j++){
+    float Width=width/main_game.x;
+    float Height=height/main_game.y;
+    for(int i=0;i<main_game.y;i++){
+      for(int j=0;j<main_game.x;j++){
         fill(230);
         noStroke();
         rectMode(CENTER);
-        float scale=min(max(resultTime*(main.y/9)-(j+i),0),1);
+        float scale=min(max(resultTime*(main_game.y/9)-(j+i),0),1);
         rect(Width*j+Width/2,Height*i+Height/2,Width*scale,Height*scale);
       }
     }
@@ -746,13 +454,18 @@ String getLanguageText(String s){
   textAlign(CENTER);
   fill(0);
   textSize(50);
-  textFont(font_30);
+  textFont(font_50);
   text(StageFlag.contains("Game_Over")?"Game over":"Stage clear",width*0.5f,height*0.2f);
+  textAlign(LEFT);
+  textSize(20);
+  textFont(font_20);
+  text(Language.getString("ui_kill")+":"+killCount+"\n"+
+       "Time:"+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+floor((stage.time/60)%60),width*0.5-150,height*0.2+100);
   resultSet.display();
   resultSet.update();
   if(resultAnimation){
     menuShader.set("time",resultTime);
-    menuShader.set("xy",(float)main.x,(float)main.y);
+    menuShader.set("xy",(float)main_game.x,(float)main_game.y);
     menuShader.set("resolution",(float)width,(float)height);
     menuShader.set("menuColor",230f/255f,230f/255f,230f/255f,1.0f);
     menuShader.set("tex",g);
@@ -776,9 +489,8 @@ String getLanguageText(String s){
 
  public void Field() {
   if (changeScene){
-    main=new GameProcess();
-    main.FieldSize=null;
     stage.name=StageName;
+    main_game.init();
     JSONArray data=loadJSONArray(StageConfPath+StageName+".json");
     for(int i=0;i<data.size();i++){
       JSONObject config=data.getJSONObject(i);
@@ -805,15 +517,16 @@ String getLanguageText(String s){
           }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
         }));
       }else if(config.getString("type").equals("setting")){
-        main.FieldSize=new PVector(config.getJSONArray("size").getIntArray()[0],config.getJSONArray("size").getIntArray()[1]);
-        main.setWall();
-      }else if(config.getString("type").equals("wall")){
-        //wall process
+        JSONArray walls=config.getJSONArray("wall");
+        for(int j=0;j<walls.size();j++){
+          JSONArray wall=walls.getJSONArray(j);
+          main_game.addWall(wall.getFloat(0),wall.getFloat(1),wall.getFloat(2),wall.getFloat(3));
+        }
       }
     }
-    stage.addProcess(StageName,new TimeSchedule(2000,s->{s.endSchedule=true;}));
+    stage.addProcess(StageName,new TimeSchedule(Float.MAX_VALUE,s->{s.endSchedule=true;}));
   }
-  main.process();
+  main_game.process();
 }
 
  public void eventProcess() {
@@ -846,11 +559,23 @@ String getLanguageText(String s){
   vectorMagnification=60f/(1000f/Times.get(Times.size()-1));
 }
 
+@Override
+public void exit(){
+  exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
+  exec.shutdown();
+  super.exit();
+}
+
  public void updatePreValue() {
   pMagnification=vectorMagnification;
   windowResized=false;
   keyRelease=false;
   keyPress=false;
+  if(useController){
+    ctrl_button_press=false;
+    ctrl_hat_press=(ctrl_hat.getValue()>0&&pHat==0);
+    pHat=ctrl_hat.getValue();
+  }
   mouseWheel=false;
   mouseWheelCount=0;
   pmousePress=mousePressed;
@@ -861,8 +586,6 @@ String getLanguageText(String s){
 }
 
  public void Shader(){
-  if (player!=null) {
-  }
   if(FXAA){
     FXAAShader.set("resolution",width,height);
     FXAAShader.set("input_texture",g);
@@ -1292,6 +1015,18 @@ String getLanguageText(String s){
   return new Color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
 }
 
+public int getMax(Color c){
+  return max(c.getRed(),c.getGreen(),c.getBlue());
+}
+
+public float mix(float x,float y,float a){
+  return x*(1-a)+y*a;
+}
+
+public Color mixColor(Color x,Color y,float a){
+  return new Color((int)mix(x.getRed(),y.getRed(),a),(int)mix(x.getGreen(),y.getGreen(),a),(int)mix(x.getBlue(),y.getBlue(),a),(int)mix(x.getAlpha(),y.getAlpha(),a));
+}
+
 public boolean isParent(Entity e,Entity f){
   if(e instanceof Bullet||f instanceof Bullet){
     if(f instanceof Bullet)return false;
@@ -1305,6 +1040,10 @@ public boolean isParent(Entity e,Entity f){
     if(f instanceof WallEntity)return false;
   }
   return true;
+}
+
+public void ctrl_button_pressed(){
+  ctrl_button_press=true;
 }
 
  public void keyPressed(){
@@ -1331,7 +1070,8 @@ public boolean isParent(Entity e,Entity f){
   mouseWheelCount+=e.getCount();
 }
 
-class Entity implements Egent, Cloneable {
+class Entity implements Egent,Cloneable{
+  private Controller control;
   RigidBody r_body;
   DeadEvent dead=(e)->{};
   float size=20;
@@ -1349,14 +1089,27 @@ class Entity implements Egent, Cloneable {
   int threadNum=0;
   boolean isDead=false;
   boolean pDead=false;
+  boolean inScreen=true;
 
   Entity() {
+  }
+  
+  void setController(Controller c){
+    control=c;
+  }
+  
+  Controller getController(){
+    if(control==null){
+      control=new VoidController();
+    }
+    return control;
   }
 
    public void display(PGraphics g){
   }
 
    public void update(){
+    getController().update(this);
     if(isDead&&!pDead){
       dead.deadEvent(this);
       pDead=isDead;
@@ -1379,7 +1132,7 @@ class Entity implements Egent, Cloneable {
     Mass=m;
   }
   
-  void setSize(float s){
+  public void setSize(float s){
     size=s;
   }
 
@@ -1396,6 +1149,15 @@ class Entity implements Egent, Cloneable {
   }
   
   protected void putAABB(){
+    inScreen=-scroll.x<Center.x+AxisSize.x/2&&Center.x-AxisSize.x/2<-scroll.x+width&&-scroll.y<Center.y+AxisSize.y/2&&Center.y-AxisSize.y/2<-scroll.y+height;
+    float x=AxisSize.x*0.5f;
+    float min=Center.x-x;
+    float max=Center.x+x;
+    HeapEntityDataX.get(threadNum).add(new AABBData(min,"s",this));
+    HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
+  }
+  
+  protected void putOnlyAABB(){
     float x=AxisSize.x*0.5f;
     float min=Center.x-x;
     float max=Center.x+x;
@@ -1437,12 +1199,18 @@ class Entity implements Egent, Cloneable {
 class RigidBody{
   SolidType s_type;
   MaterialType m_type;
-  PVector pos,vel;
+  PVector pos,dist;
   float radius;
+  float rotate;
   boolean substance=false;
   
-  RigidBody(){
-    
+  RigidBody(SolidType s_t,MaterialType m_t,PVector pos,PVector dist,float ra,float ro){
+    this.s_type=s_t;
+    this.m_type=m_t;
+    this.pos=pos;
+    this.dist=dist;
+    this.radius=ra;
+    this.rotate=ro;
   }
 }
 
@@ -1468,20 +1236,24 @@ boolean isHit(MaterialType src,MaterialType t){
                   case Mirror:return true;
                   case Explosion:return true;
                   case Solid:return true;
+                  default:break;
                 }break;
     case MyBullet:switch(t){
                   case Bullet:return true;
                   case Explosion:return true;
                   case Solid:return true;
+                  default:break;
                 }break;
     case Mirror:switch(t){
                   case Bullet:return true;
                   case Solid:return true;
+                  default:break;
                 }break;
     case Explosion:switch(t){
                   case Bullet:return true;
                   case MyBullet:return true;
                   case Solid:return true;
+                  default:break;
                 }break;
     case Solid:switch(t){
                   case Bullet:return true;
@@ -1489,7 +1261,9 @@ boolean isHit(MaterialType src,MaterialType t){
                   case Mirror:return true;
                   case Explosion:return true;
                   case Solid:return true;
+                  default:break;
                 }break;
+    default:break;
   }
   return false;
 }
@@ -1586,11 +1360,11 @@ interface ExcludeGPGPU{
 }
 
 interface Egent {
-  void display(PGraphics g);
+  public void display(PGraphics g);
 
-  void update();
+  public void update();
 }
 
 interface DeadEvent{
-  void deadEvent(Entity e);
+  public void deadEvent(Entity e);
 }

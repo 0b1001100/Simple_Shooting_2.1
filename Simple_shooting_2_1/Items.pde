@@ -49,10 +49,10 @@ class Item{
   
    public void update() throws NullPointerException{
     if(type.equals("next_weapon")&&!player.subWeapons.contains(this.w)){
-      if(main.EventSet.containsKey("getNextWeapon")){
-        main.EventSet.replace("getNextWeapon",main.EventSet.get("getNextWeapon")+"_"+name);
+      if(main_game.EventSet.containsKey("getNextWeapon")){
+        main_game.EventSet.replace("getNextWeapon",main_game.EventSet.get("getNextWeapon")+"_"+name);
       }else{
-        main.EventSet.put("getNextWeapon",name);
+        main_game.EventSet.put("getNextWeapon",name);
       }
       if(upgradeData==null){
         weight=0;
@@ -92,10 +92,10 @@ class Item{
           case "next_weapon":if(!player.subWeapons.contains(it.w))return;break;
         }
       }
-      if(main.EventSet.containsKey("addNextWeapon")){
-        main.EventSet.replace("addNemtWeapon",main.EventSet.get("addNextWeapon")+"_"+nextName);
+      if(main_game.EventSet.containsKey("addNextWeapon")){
+        main_game.EventSet.replace("addNemtWeapon",main_game.EventSet.get("addNextWeapon")+"_"+nextName);
       }else{
-        main.EventSet.put("addNextWeapon",nextName);
+        main_game.EventSet.put("addNextWeapon",nextName);
       }
     }
   }
@@ -288,5 +288,5 @@ class ItemTable implements Cloneable{
 }
 
 interface ItemUseEvent{
-  void ItemUse(Myself m);
+  public void ItemUse(Myself m);
 }
