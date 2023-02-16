@@ -24,9 +24,7 @@
   "vsync": false,
   "FPS": false,
   "clear": false,
-  "Stage": [
-    "Tutorial"
-  ],
+  "Stage": ["Tutorial"],
   "Fullscreen": false,
   "GPGPU": false
 }

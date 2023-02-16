@@ -13,6 +13,7 @@ class GameComponent{
   protected boolean focus=false;
   protected boolean pFocus=false;
   protected boolean canFocus=true;
+  protected boolean focussable=true;
   protected boolean FocusEvent=false;
   protected boolean keyMove=false;
   protected boolean onMouse=false;
@@ -97,7 +98,7 @@ class Canvas extends GameComponent{
   protected PGraphics pg;
   
   {
-    canFocus=false;
+    focussable=false;
     setBounds(0,0,0,0);
   }
   
@@ -127,7 +128,7 @@ class HUDText extends GameComponent{
   float easeTime=0;
   
   {
-    canFocus=false;
+    focussable=false;
     font=createFont("SansSerif.plain",15);
   }
   
@@ -1608,7 +1609,7 @@ class ComponentSet{
       c.removeFocus();
     }
     selectedIndex=selectedIndex>=components.size()-1?0:selectedIndex+1;
-    if(!components.get(selectedIndex).canFocus){
+    if(!components.get(selectedIndex).focussable){
       addSelect();
     }
     components.get(selectedIndex).requestFocus();
@@ -1620,7 +1621,7 @@ class ComponentSet{
       c.removeFocus();
     }
     selectedIndex=selectedIndex<=0?components.size()-1:selectedIndex-1;
-    if(!components.get(selectedIndex).canFocus){
+    if(!components.get(selectedIndex).focussable){
       subSelect();
     }
     components.get(selectedIndex).requestFocus();

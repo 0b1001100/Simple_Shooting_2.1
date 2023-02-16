@@ -304,7 +304,7 @@ public void initMenu(){
   starts.addSubChild("confMenu","dispMenu",toSet(dispLayout,Colorinv,dispFPS,Quality,vsy,fullsc),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
   //starts.addChild("main","archive",initArchive());
-  starts.addChild("main","operation",toSet(op_canvas,back_op));
+  starts.addChild("main","operation",toSet(back_op,op_canvas));
   starts.addChild("main","credit",toSet(back_cr,cr_canvas));
   if(launched){
     starts.toChild("main");
