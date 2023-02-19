@@ -6,12 +6,21 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
 LinkedHashMap<String,Float>DebugWarning=new LinkedHashMap<String,Float>();
+ArrayList<Float>updateStatistics=new ArrayList<>();
+ArrayList<Float>collisionStatistics=new ArrayList<>();
+ArrayList<Float>drawStatistics=new ArrayList<>();
+ArrayList<Float>runStatistics=new ArrayList<>();
 CommandField commandInput;
 boolean Debug=false;
 boolean Command=false;
 long RunTimeBuffer=0;
+float pProcessTime=0f;
 float EntityTime=0;
+float CollisionTime=0;
 float DrawTime=0;
+float RunTime=0f;
+float statisticsCooltime=0f;
+int statisticsFrame=0;
 
 void Debug(){
   if(keyPress&&(nowPressedKeyCode==99||PressedKeyCode.contains("99"))){
@@ -51,18 +60,70 @@ void Debug(){
     textAlign(LEFT);
     pushMatrix();
     resetMatrix();
+    RunTime=(System.nanoTime()-RunTimeBuffer)/1000000f;
     for(int i=0;i<5;i++){
       switch(i){
-        case 0:Text="RunTime(ms):"+(System.nanoTime()-RunTimeBuffer)/1000000f;break;
-        case 1:Text="EntityDraw(ms):"+DrawTime;break;
-        case 2:Text="EntityTime(ms):"+EntityTime;break;
-        case 3:Text="EntityNumber:"+Entities.size();break;
-        case 4:Text="Memory(MB)"+nf(((float)(Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()))/1048576f,0,3);break;
+        case 0:fill(0,128,255,200);Text="EntityTime(ms):"+EntityTime;break;
+        case 1:fill(0,255,0,200);Text="EntityCollision(ms):"+CollisionTime;break;
+        case 2:fill(255,255,0,200);Text="EntityDraw(ms):"+DrawTime;break;
+        case 3:fill(255,128,0,200);Text="RunTime(ms):"+RunTime;break;
+        case 4:fill(255,200);Text="EntityNumber:"+Entities.size();break;
+        case 5:fill(255,200);Text="Memory(MB)"+nf(((float)(Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory()))/1048576f,0,3);break;
       }
       text(Text,30,100+i*20);
     }
     RunTimeBuffer=System.nanoTime();
+    addStatistics();
+    strokeWeight(1);
+    stroke(255,200);
+    line(30,320,207,320);
+    float pUpdate=updateStatistics.get(0);
+    float pCollision=collisionStatistics.get(0);
+    float pDraw=drawStatistics.get(0);
+    float pRun=runStatistics.get(0);
+    for(int i=1;i<60;i++){
+      stroke(0,128,255,200);
+      line(30+(i-1)*3,320-min(100,pUpdate),30+i*3,320-min(100,updateStatistics.get(i)));
+      stroke(0,255,0,200);
+      line(30+(i-1)*3,320-min(100,pCollision),30+i*3,320-min(100,collisionStatistics.get(i)));
+      stroke(255,255,0,200);
+      line(30+(i-1)*3,320-min(100,pDraw),30+i*3,320-min(100,drawStatistics.get(i)));
+      stroke(255,128,0,200);
+      line(30+(i-1)*3,320-min(100,pRun),30+i*3,320-min(100,runStatistics.get(i)));
+      pUpdate=updateStatistics.get(i);
+      pCollision=collisionStatistics.get(i);
+      pDraw=drawStatistics.get(i);
+      pRun=runStatistics.get(i);
+    }
     popMatrix();
+  }
+}
+
+void addStatistics(){
+  if(statisticsCooltime==0){
+    updateStatistics.add(0f);
+    collisionStatistics.add(0f);
+    drawStatistics.add(0f);
+    runStatistics.add(0f);
+  }
+  statisticsCooltime+=RunTime;
+  ++statisticsFrame;
+  if(statisticsCooltime>=1000f){
+    updateStatistics.set(60,(updateStatistics.get(60)+EntityTime)/statisticsFrame);
+    updateStatistics.remove(0);
+    collisionStatistics.set(60,(collisionStatistics.get(60)+CollisionTime)/statisticsFrame);
+    collisionStatistics.remove(0);
+    drawStatistics.set(60,(drawStatistics.get(60)+DrawTime)/statisticsFrame);
+    drawStatistics.remove(0);
+    runStatistics.set(60,(runStatistics.get(60)+RunTime)/statisticsFrame);
+    runStatistics.remove(0);
+    statisticsFrame=0;
+    statisticsCooltime=0;
+  }else{
+    updateStatistics.set(60,updateStatistics.get(60)+EntityTime);
+    collisionStatistics.set(60,collisionStatistics.get(60)+CollisionTime);
+    drawStatistics.set(60,drawStatistics.get(60)+DrawTime);
+    runStatistics.set(60,runStatistics.get(60)+RunTime);
   }
 }
 

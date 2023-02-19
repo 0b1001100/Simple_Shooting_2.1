@@ -1,7 +1,7 @@
 import java.util.concurrent.atomic.AtomicInteger;
 
 class EntityProcess implements Callable<String>{
-  long pTime=0;
+  long pProcessTime;
   byte number;
   int s;
   int l;
@@ -13,7 +13,7 @@ class EntityProcess implements Callable<String>{
   }
   
   String call(){
-    pTime=System.nanoTime();
+    pProcessTime=System.nanoTime();
     ArrayList<Entity>next=HeapEntity.get(number);
     for(int i=s;i<l;i++){
       Entity e=Entities.get(i);
@@ -31,7 +31,7 @@ class EntityProcess implements Callable<String>{
         next.add(e);
       }
     }
-    EntityTime=(System.nanoTime()-pTime)/1000000f;
+    EntityTime=(System.nanoTime()-pProcessTime)/1000000f;
     return "";
   }
   
@@ -43,6 +43,7 @@ class EntityProcess implements Callable<String>{
 }
 
 class EntityCollision implements Callable<String>{
+  long pProcessTime;
   float hue;
   byte number;
   int s;
@@ -56,6 +57,7 @@ class EntityCollision implements Callable<String>{
   }
   
   String call(){
+    pProcessTime=System.nanoTime();
     for(int i=s;i<l;i++){
       Entity E=SortedDataX[i].getEntity();
       if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
@@ -64,6 +66,7 @@ class EntityCollision implements Callable<String>{
         case "e":break;
       }
     }
+    CollisionTime=(System.nanoTime()-pProcessTime)/1000000f;
     return "";
   }
   

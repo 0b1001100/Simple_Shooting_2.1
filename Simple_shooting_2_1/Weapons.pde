@@ -1,10 +1,4 @@
 HashMap<String,Constructor>WeaponConstructor=new HashMap<String,Constructor>();
-int addtionalProjectile=0;
-float addtionalScale=1;
-float addtionalPower=1;
-float addtionalSpeed=1;
-float addtionalDuration=1;
-float reductionCoolTime=1;
 
 HashMap<String,HashMap<String,Float>>StatusList;
 HashMap<String,Float>AddtionalStatus;
@@ -762,7 +756,7 @@ class TLASWeapon extends SubWeapon{
   @Override
   public void shot(){
     for(int i=0;i<this.bulletNumber;i++){
-        //NextEntities.add(new TLASBullet(this,i));
+      NextEntities.add(new TLASBullet(this,i));
     }
   }
 }

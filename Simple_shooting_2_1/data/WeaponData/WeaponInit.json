@@ -136,7 +136,7 @@
     "projectile":1,
     "scale":0,
     "power":2,
-    "velocity":4,
+    "velocity":6,
     "duration":240,
     "cooltime":150,
     "through":0,
@@ -161,7 +161,7 @@
     "projectile":7,
     "scale":0,
     "power":10,
-    "velocity":7,
+    "velocity":9,
     "duration":2000,
     "cooltime":1500,
     "through":0,
@@ -360,6 +360,31 @@
     "velocity":2,
     "duration":120,
     "cooltime":150,
+    "through":0,
+    "nextWeapon":{
+      "name":"ShadowReflector",
+      "need":[
+        {
+          "name":"Reflector",
+          "type":"use"
+        },
+        {
+          "name":"power",
+          "type":"exist"
+        }
+      ]
+    }
+  },
+  {
+    "name":"TLAS",
+    "type":"weapon",
+    "weight":18,
+    "projectile":1,
+    "scale":0,
+    "power":2,
+    "velocity":3.5,
+    "duration":150,
+    "cooltime":130,
     "through":0,
     "nextWeapon":{
       "name":"ShadowReflector",

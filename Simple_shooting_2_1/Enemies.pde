@@ -63,7 +63,7 @@ class Enemy extends Entity implements Cloneable{
     g.popMatrix();
   }
   
-  public void update(){
+  public final void update(){
     Process();
     getController().update(this);
     if(!(HP<=0)&&damage>0){
@@ -73,15 +73,16 @@ class Enemy extends Entity implements Cloneable{
   }
   
   private void addVel(float accel,boolean force){
+    Speed*=0.95f;
+    vel.mult(0.95f);
     if(!force){
       Speed+=accel*vectorMagnification;
       Speed=min(maxSpeed,Speed);
     }else{
       Speed+=accel*vectorMagnification;
     }
-    vel.mult(0.95);
-    vel.x=abs(cos(-rotate-HALF_PI)*Speed)<abs(vel.x)?vel.x:cos(-rotate-HALF_PI)*Speed;
-    vel.y=abs(sin(-rotate-HALF_PI)*Speed)<abs(vel.y)?vel.y:sin(-rotate-HALF_PI)*Speed;
+    vel.x=abs(cos(rotate)*Speed)>abs(vel.x)?cos(rotate)*Speed:vel.x;
+    vel.y=abs(-sin(rotate)*Speed)>abs(vel.y)?-sin(rotate)*Speed:vel.y;
   }
   
   public void addMultiplyer(Class<? extends Weapon> c,float f){
@@ -178,7 +179,7 @@ class Enemy extends Entity implements Cloneable{
   @Override
   public void EnemyHit(Enemy e,boolean b){
     PVector c=pos.copy().sub(e.pos).normalize();
-    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos,e.pos));
     vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
     e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
     pos.sub(d);
@@ -198,7 +199,7 @@ class Enemy extends Entity implements Cloneable{
   
   @Override
   public void MyselfHit(Myself m,boolean b){
-    float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+    float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
     pos.add(new PVector(-cos(r)*d,-sin(r)*d));
     m.Hit(1);
@@ -212,6 +213,7 @@ class Enemy extends Entity implements Cloneable{
   Enemy clone()throws CloneNotSupportedException{
     Enemy clone=(Enemy)super.clone();
     clone.dropTable=dropTable==null?null:dropTable.clone();
+    clone.setController(new SurvivorEnemyController());
     return clone;
   }
   
@@ -395,7 +397,7 @@ class Slow_G extends Enemy{
   @Override
   public void Process(){
     if(inScreen){
-      if(abs(player.rotate-atan2(pos,player.pos))<radians(50)||abs(player.rotate+TWO_PI-atan2(pos,player.pos))<radians(50)||abs(player.rotate-TWO_PI-atan2(pos,player.pos))<radians(50)){
+      if(abs(player.rotate-atan2(player.pos,pos))<radians(50)||abs(player.rotate+TWO_PI-atan2(player.pos,pos))<radians(50)||abs(player.rotate-TWO_PI-atan2(player.pos,pos))<radians(50)){
         maxSpeed=1;
       }else{
         maxSpeed=3;
@@ -637,7 +639,7 @@ class Duplication extends Enemy{
   }
   
   @Override
-  public void update(){
+  public void Process(){
     time+=vectorMagnification;
     if(time>600){
       time=0;
@@ -647,7 +649,6 @@ class Duplication extends Enemy{
       NextEntities.add(new Duplication((float)HP,size).setPos(pos.copy().add(cos(-rotate+PI)*size*0.5,sin(-rotate+PI)*size*0.5)));
       }
     }
-    super.update();
   }
 }
 
@@ -1028,7 +1029,7 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
       if(EntitySet.contains(f))nextChild.add(f);
     }
     child=nextChild;
-    int i=0;//println(child);
+    int i=0;
     for(EnemyShield_Child c:child){
       c.setPos(pos.copy().add(new PVector(80,0).rotate(rad+TWO_PI*((i%12)/12f))));
       c.rotate=atan2(c.pos,pos);
@@ -1188,7 +1189,7 @@ class CollisionEnemy extends Enemy{
   
   @Override
   public void MyselfHit(Myself m,boolean b){
-    float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+    float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
     pos.add(new PVector(-cos(r)*d,-sin(r)*d));
     hit=true;

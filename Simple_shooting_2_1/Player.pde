@@ -69,7 +69,7 @@ class Myself extends Entity{
     g.ellipse(0,0,size,size);
     g.strokeWeight(3);
     g.arc(0,0,size*1.5,size*1.5,
-        radians(-5)-PI/2-selectedWeapon.diffuse/2,radians(5)-PI/2+selectedWeapon.diffuse/2);
+        radians(-5)-selectedWeapon.diffuse/2,radians(5)+selectedWeapon.diffuse/2);
     g.popMatrix();
     if(!camera.moveEvent){
       drawUI();
@@ -163,25 +163,24 @@ class Myself extends Entity{
     float rad=0;
     float r=0;
     float i=0;
+    if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
+      ++i;
+    }
+    if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
+      --i;
+    }
+    if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
+      ++r;
+    }
+    if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
+      --r;
+    }
     if(useController){
-      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue()*-1:0;
+      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue():0;
       r=abs(ctrl_sliders.get(3).getValue())>0.1?ctrl_sliders.get(3).getValue():0;
-    }else{
-      if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
-        ++i;
-      }
-      if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
-        --i;
-      }
-      if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
-        ++r;
-      }
-      if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
-        --r;
-      }
     }
     move=abs(i)+abs(r)!=0;
-    rad=move?atan2(-r,i):rotate;
+    rad=move?atan2(i,r):rotate;
     if(Float.isNaN(rad))rad=0;
     float nRad=0<rotate?rad+TWO_PI:rad-TWO_PI;
     rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
@@ -192,7 +191,6 @@ class Myself extends Entity{
   }
   
   public void move(){
-    rotate(rotate);
     if(Float.isNaN(Speed)){
       Speed=0;
     }
@@ -201,18 +199,13 @@ class Myself extends Entity{
       if(mag>0.1&&Speed/maxSpeed<mag){
         addVel(accelSpeed*mag,false);
       }else{
-        Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):
-        Speed-max(Speed,-accelSpeed*2*vectorMagnification);
+        addVel(0,false);
       }
     }else if(keyPressed&&move&&containsList(moveKeyCode,PressedKeyCode)){
       addVel(accelSpeed,false);
     }else{
-      Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):
-      Speed-max(Speed,-accelSpeed*2*vectorMagnification);
+      addVel(0,false);
     }
-    vel=new PVector(0,0);
-    vel.y=-Speed;
-    vel=unProject(vel.x,vel.y);
     pos.add(vel.mult(vectorMagnification));
   }
   
@@ -223,21 +216,29 @@ class Myself extends Entity{
   }
   
   private void addVel(float accel,boolean force){
+    Speed*=0.9f;
+    vel.mult(0.9f);
     if(!force){
       Speed+=accel*vectorMagnification;
       Speed=min(maxSpeed*speedMag,Speed);
     }else{
       Speed+=accel*vectorMagnification;
     }
+    vel.x=abs(cos(rotate)*Speed)>abs(vel.x)?cos(rotate)*Speed:vel.x;
+    vel.y=abs(-sin(rotate)*Speed)>abs(vel.y)?-sin(rotate)*Speed:vel.y;
   }
   
   private void subVel(float accel,boolean force){
+    Speed*=0.9f;
+    vel.mult(0.9f);
     if(!force){
       Speed-=accel*vectorMagnification;
       Speed=max(-maxSpeed,Speed);
     }else{
       Speed-=accel*vectorMagnification;
     }
+    vel.x=abs(cos(rotate)*Speed)>abs(vel.x)?cos(rotate)*Speed:vel.x;
+    vel.y=abs(-sin(rotate)*Speed)>abs(vel.y)?-sin(rotate)*Speed:vel.y;
   }
   
   public void shot(){
@@ -369,10 +370,11 @@ class Satellite extends Entity{
     }
     rotate+=radians(vectorMagnification)*2;
     rotate%=TWO_PI;
-    rad=atan2(player.pos,pos);
-    vel=new PVector(2,0).rotate(-rad);
-    vel.add(new PVector(0.01*(dist(pos,player.pos)-140),0).rotate(-rad-HALF_PI));
-    vel.normalize().mult(max(1.7,dist(pos,player.pos)/70));
+    rad=atan2(pos,player.pos);
+    vel.set(cos(rad-HALF_PI),-sin(rad-HALF_PI));
+    float dist=0.01*(dist(pos,player.pos)-140);
+    vel.add(dist*cos(rad),-dist*sin(rad));
+    vel.normalize().mult(max(0.9,dist(pos,player.pos)/140)*vectorMagnification);
     pos.add(vel);
     Center=pos;
     AxisSize=new PVector(size*2,size*2);

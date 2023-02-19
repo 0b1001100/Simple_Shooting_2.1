@@ -59,7 +59,7 @@ class Item{
       }
     }
     if(upgradeData!=null&&level>1&&level-1<=upgradeData.size()){
-      if(!type.equals("next_weapon")){//println(name,upgradeData);
+      if(!type.equals("next_weapon")){
         w.upgrade(upgradeData,level);
         JSONObject add=upgradeData.getJSONObject(level-2);
         HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));

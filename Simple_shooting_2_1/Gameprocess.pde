@@ -44,12 +44,6 @@ class GameProcess{
     gameOver=animation=upgrade=done=menu=pause=false;
     killCount.set(0);
      sumLevel=0;
-     addtionalProjectile=0;
-     addtionalScale=1;
-     addtionalPower=1;
-     addtionalSpeed=1;
-     addtionalDuration=1;
-     reductionCoolTime=1;
      playerTable.clear();
      Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{
        playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());
@@ -119,7 +113,7 @@ class GameProcess{
     HUDText tu_shot_2=new HUDText(Language.getString("tu_shot_2"));
     tu_shot_2.setTarget(player);
     tu_shot_2.setProcess(()->{
-      if(mousePressed&&mouseButton==LEFT){
+      if((mousePressed&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue())>0.1f)){
         stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot_2.endDisplay()));
         tu_shot_2.setFlag(false);
       }
@@ -140,7 +134,7 @@ class GameProcess{
     HUDText tu_shot=new HUDText(Language.getString("tu_shot"));
     tu_shot.setTarget(player);
     tu_shot.setProcess(()->{
-      if(mousePressed&&mouseButton==LEFT){
+      if((mousePressed&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue())>0.1f)){
         stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot.endDisplay()));
         tu_shot.setFlag(false);
       }
@@ -209,10 +203,9 @@ class GameProcess{
           return Float.compare(e1.playerDistsq,e2.playerDistsq);
         }
       });
-      applyStaus();
+      applyStatus();
       stage.update();
     }else{
-      EntityTime=0;
       if(player.levelup||upgrade){
         if(player.levelupNumber>0){
           upgrade();
@@ -262,51 +255,51 @@ class GameProcess{
   
   public void EntityUpdateAndCollision(Runnable whileUpdate,Runnable whileCollision){
     EntitySet=new HashSet(Entities);
-      byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
-      float block=Entities.size()/(float)ThreadNumber;
-      for(byte b=0;b<ThreadNumber;b++){
-        UpdateProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
+    byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
+    float block=Entities.size()/(float)ThreadNumber;
+    for(byte b=0;b<ThreadNumber;b++){
+      UpdateProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
+    }
+    try{
+      entityFuture.clear();
+      for(int i=0;i<ThreadNumber;i++){
+        entityFuture.add(exec.submit(UpdateProcess.get(i)));
       }
-      try{
-        entityFuture.clear();
-        for(int i=0;i<ThreadNumber;i++){
-          entityFuture.add(exec.submit(UpdateProcess.get(i)));
-        }
-      }catch(Exception e){println(e);
+    }catch(Exception e){println(e);
+    }
+    whileUpdate.run();
+    for(Future<?> f:entityFuture){
+      try {
+        f.get();
       }
-      whileUpdate.run();
-      for(Future<?> f:entityFuture){
-        try {
-          f.get();
-        }
-        catch(ConcurrentModificationException e) {
-          e.printStackTrace();
-        }
-        catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
-        }
-        catch(NullPointerException g) {
-        }
+      catch(ConcurrentModificationException e) {
+        e.printStackTrace();
       }
-      Entities.clear();
-      HeapEntity.forEach(l->{
-        Entities.addAll(l);
-        l.clear();
+      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+      }
+      catch(NullPointerException g) {
+      }
+    }
+    Entities.clear();
+    HeapEntity.forEach(l->{
+      Entities.addAll(l);
+      l.clear();
+    });
+    Entities.addAll(NextEntities);
+    NextEntities.clear();
+    HeapEntityDataX.forEach(m->{
+      m.forEach(d->{
+        EntityDataX.add(d);
       });
-      Entities.addAll(NextEntities);
-      NextEntities.clear();
-      HeapEntityDataX.forEach(m->{
-        m.forEach(d->{
-          EntityDataX.add(d);
-        });
-        m.clear();
-      });
-      SortedDataX=EntityDataX.toArray(new AABBData[0]);
-      Arrays.parallelSort(SortedDataX,new Comparator<AABBData>(){
-        @Override
-        public int compare(AABBData d1, AABBData d2) {
-          return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
-        }
-      });
+      m.clear();
+    });
+    SortedDataX=EntityDataX.toArray(new AABBData[0]);
+    Arrays.parallelSort(SortedDataX,new Comparator<AABBData>(){
+      @Override
+      public int compare(AABBData d1, AABBData d2) {
+        return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
+      }
+    });
     ThreadNumber=(byte)min(floor(EntityDataX.size()/(float)minDataNumber),(int)collisionNumber);
     if(pEntityNum!=EntityDataX.size()){
       block=EntityDataX.size()/(float)ThreadNumber;
@@ -334,14 +327,14 @@ class GameProcess{
   }
   
   public void drawShape(){
-    long pTime=System.nanoTime();
+    pProcessTime=System.nanoTime();
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
     Entities.forEach(e->{e.display(g);});
     mainHUD.display();
     popMatrix();
-    DrawTime=(System.nanoTime()-pTime)/1000000f;
+    DrawTime=(System.nanoTime()-pProcessTime)/1000000f;
   }
   
    public void keyProcess(){
@@ -448,7 +441,7 @@ class GameProcess{
             item.update();
             player.subWeapons.add(item.getWeapon());
           }
-          applyStaus();
+          applyStatus();
           --player.levelupNumber;
           playerTable.table.forEach((k,v)->{
             v.checkNext();
@@ -483,9 +476,11 @@ class GameProcess{
     });
     switch(ex_space_tokens.get(0).getText()){
       case "time":command_time(ex_space_tokens);break;
+      case "timescale":command_timescale(ex_space_tokens);break;
       case "level":command_level(ex_space_tokens);break;
       case "give":command_give(ex_space_tokens);break;
       case "kill":command_kill(ex_space_tokens);break;
+      case "parameter":command_parameter(ex_space_tokens);break;
       case "function":command_function(ex_space_tokens);break;
       case "exit":command_exit();break;
     }
@@ -495,6 +490,10 @@ class GameProcess{
     stage.time=max(0,setParameter(stage.time,tokens.get(1).getText(),PApplet.parseFloat(tokens.get(2).getText())*60));
     stage.scheduleUpdate();
     stage.clearSpown();
+  }
+  
+   public void command_timescale(java.util.List<Token>tokens){
+    absoluteMagnification=max(0,PApplet.parseFloat(tokens.get(2).getText()));
   }
   
    public void command_level(java.util.List<Token>tokens){
@@ -533,7 +532,7 @@ class GameProcess{
         }catch(NullPointerException e){
         }finally{
           i.level=constrain(i.level,1,i.upgradeData.size()+1);
-          applyStaus();
+          applyStatus();
         }
       }
     }
@@ -546,7 +545,7 @@ class GameProcess{
       if(!player.subWeapons.contains(w)){
         player.subWeapons.add(w);
         if(masterTable.get(src.replace("\"","")).getType().equals("item"))w.update();
-        applyStaus();
+        applyStatus();
       }else{
         addWarning("You already have "+src);
       }
@@ -572,6 +571,20 @@ class GameProcess{
         addWarning("Class "+tokens.get(1).getText()+" doesn't exist");
       }
     }
+  }
+  
+  public void command_parameter(java.util.List<Token>tokens){
+    itemWeapon w=(itemWeapon)masterTable.get(tokens.get(1).getText()).getWeapon();
+    switch(tokens.get(1).getText()){
+      case "projectile":w.bulletNumber=(int)setParameter(w.bulletNumber,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "scale":w.scale=(int)setParameter(w.scale,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "power":w.power=(int)setParameter(w.power,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "speed":w.speed=(int)setParameter(w.speed,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "duration":w.duration=(int)setParameter(w.duration,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "cooltime":w.coolTime=(int)setParameter(w.coolTime,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+    }
+    w.update();
+    applyStatus();
   }
   
    public void command_function(java.util.List<Token>tokens){
@@ -664,6 +677,52 @@ class Command{
   
   boolean isDead(){
     return isDead;
+  }
+}
+
+class StatusParameter{
+  private String name;
+  private float value=0f;
+  private float duration;
+  private Predicate<StatusParameter>predicate;
+  private boolean apply=true;
+  private boolean end=false;
+  
+  StatusParameter(float v,float d,String n,Predicate<StatusParameter>p){
+    value=v;
+    duration=d;
+    name=n;
+    predicate=p;
+  }
+  
+  void update(){
+    if(end)return;
+    if(duration<=0){
+      end=true;
+    }else{
+      apply=predicate.test(this);
+    }
+    duration-=16f*vectorMagnification;
+  }
+  
+  boolean isEnd(){
+    return end;
+  }
+  
+  boolean isApply(){
+    return apply;
+  }
+  
+  float getDuration(){
+    return duration;
+  }
+  
+  float getValue(){
+    return (end||!apply)?0f:value;
+  }
+  
+  String getName(){
+    return name;
   }
 }
 

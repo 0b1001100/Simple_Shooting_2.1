@@ -1,5 +1,5 @@
 {
-  "HighQuality": false,
+  "HighQuality": true,
   "Language": "ja_jp",
   "Weapons": [
     "G_Shot",
@@ -11,6 +11,8 @@
     "Lightning",
     "Reflector",
     "Absorption",
+    "BLAS",
+    "TLAS",
     "Fire",
     "Ice",
     "Satellite",
@@ -21,10 +23,17 @@
     "duration",
     "cooltime"
   ],
-  "vsync": false,
-  "FPS": false,
+  "vsync": true,
+  "FPS": true,
   "clear": false,
-  "Stage": ["Tutorial"],
+  "Stage": [
+    "Tutorial",
+    "Stage1",
+    "Stage2",
+    "Stage3",
+    "Stage4",
+    "Stage5"
+  ],
   "Fullscreen": false,
   "GPGPU": false
 }

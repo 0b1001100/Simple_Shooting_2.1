@@ -496,7 +496,55 @@
       "weight":0
     }
   ],
+  "TLAS":[
+    {
+      "name":["power","projectile","velocity"],
+      "power":2,
+      "projectile":1,
+      "velocity":1
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["velocity","duration","weight"],
+      "velocity":1,
+      "duration":30,
+      "weight":15
+    },
+    {
+      "name":["cooltime","power","velocity"],
+      "velocity":1,
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["projectile","cooltime","power"],
+      "projectile":1,
+      "cooltime":10,
+      "power":2
+    },
+    {
+      "name":["cooltime","power","scale"],
+      "cooltime":20,
+      "power":2,
+      "scale":30
+    },
+    {
+      "name":["duration","projectile","weight"],
+      "duration":40,
+      "projectile":1,
+      "weight":0
+    }
+  ],
   "projectile":[
+    {
+      "name":["projectile","weight"],
+      "projectile":1,
+      "weight":1
+    },
     {
       "name":["projectile","weight"],
       "projectile":1,
