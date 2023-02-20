@@ -11,8 +11,17 @@
     "cooltime":210,
     "through":0,
     "nextWeapon":{
-      "name":"undefined",
-      "need":[]
+      "name":"Void",
+      "need":[
+        {
+          "name":"G_Shot",
+          "type":"use"
+        },
+        {
+          "name":"BLAS",
+          "type":"use"
+        }
+      ]
     }
   },
   {
@@ -355,24 +364,40 @@
     "type":"weapon",
     "weight":18,
     "projectile":1,
-    "scale":30,
+    "scale":100,
     "power":1,
     "velocity":2,
-    "duration":120,
+    "duration":180,
     "cooltime":150,
     "through":0,
     "nextWeapon":{
-      "name":"ShadowReflector",
+      "name":"Void",
       "need":[
         {
-          "name":"Reflector",
+          "name":"G_Shot",
           "type":"use"
         },
         {
-          "name":"power",
-          "type":"exist"
+          "name":"BLAS",
+          "type":"use"
         }
       ]
+    }
+  },
+  {
+    "name":"Void",
+    "type":"next_weapon",
+    "weight":3,
+    "projectile":1,
+    "scale":300,
+    "power":150,
+    "velocity":3,
+    "duration":120,
+    "cooltime":1800,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
     }
   },
   {

@@ -201,7 +201,7 @@ class Enemy extends Entity implements Cloneable{
   public void MyselfHit(Myself m,boolean b){
     float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
-    pos.add(new PVector(-cos(r)*d,-sin(r)*d));
+    pos.add(new PVector(cos(r)*d,-sin(r)*d));
     m.Hit(1);
   }
   
@@ -1191,7 +1191,7 @@ class CollisionEnemy extends Enemy{
   public void MyselfHit(Myself m,boolean b){
     float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
-    pos.add(new PVector(-cos(r)*d,-sin(r)*d));
+    pos.add(new PVector(-cos(r)*d,sin(r)*d));
     hit=true;
   }
   

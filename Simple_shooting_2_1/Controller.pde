@@ -72,6 +72,9 @@ class SurvivorEnemyController extends Controller{
     }
     float s=applyStatus("Speed",e.accelSpeed);
     e.addVel(s,false);
-    e.pos.add(e.vel.copy().mult(vectorMagnification));
+    e.vel.x=abs(e.vel.x)<0.01?0f:e.vel.x;
+    e.vel.y=abs(e.vel.y)<0.01?0f:e.vel.y;
+    e.Speed=abs(e.Speed)<0.01?0f:e.Speed;
+    e.pos.add(e.vel.x*vectorMagnification,e.vel.y*vectorMagnification);
   }
 }

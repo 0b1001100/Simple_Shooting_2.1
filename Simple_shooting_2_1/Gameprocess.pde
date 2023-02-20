@@ -241,9 +241,10 @@ class GameProcess{
       rect(0,0,width,height);
       popMatrix();
     }
+    if(!upgrade)keyProcess();
     if(!(upgrade||menu)){
       player.update();
-      EntityUpdateAndCollision(()->{},()->{keyProcess();EventProcess();EventSet.clear();});
+      EntityUpdateAndCollision(()->{},()->{EventProcess();EventSet.clear();});
     }
     HashMap<String,Command>nextQue=new HashMap<String,Command>();
     CommandQue.forEach((k,v)->{
@@ -389,6 +390,7 @@ class GameProcess{
     if(player.levelup){
       EventSet.put("start_upgrade","");
       upgrade=true;
+      menu=false;
       int num=min(playerTable.probSize(),round(random(3,3.55)));
       Item[]list=new Item[num];
       ItemTable copy=playerTable.clone();
@@ -944,7 +946,6 @@ class WallEntity extends Entity{
   public void EnemyCollision(Enemy e){
     PVector copy=e.pos.copy();
     e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
-    e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
   }
   
   @Override
@@ -956,7 +957,6 @@ class WallEntity extends Entity{
   public void MyselfCollision(Myself m){
     PVector copy=m.pos.copy();
     m.pos=CircleMovePosition(m.pos,m.size,pos,dist);
-    m.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
   }
 }
 

@@ -1435,6 +1435,7 @@ class ComponentSet{
   Layout layout;
   ArrayList<GameComponent>components=new ArrayList<GameComponent>();
   boolean keyMove=true;
+  boolean Active=true;
   boolean Focus=true;
   int subSelectButton=-0xFFFFFF;
   int pSelectedIndex=0;
@@ -1530,6 +1531,7 @@ class ComponentSet{
   }
   
   public void update(){
+    if(!Active)return;
     if(components.size()==0)return;
     for(GameComponent c:components){
       c.update();
@@ -1551,6 +1553,7 @@ class ComponentSet{
   }
   
   public void updateExcludingKey(){
+    if(!Active)return;
     for(GameComponent c:components){
       c.update();
       if(c.FocusEvent){

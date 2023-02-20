@@ -64,7 +64,7 @@
   "ex_Fire":"Shoots at nearby enemies, creating an area of fire damage on impact",
   "ex_Ice":"Shoots at nearby enemies, creating an area of slow down and ice damage on impact",
   "ex_TLAS":"Shoots at random enemies and track them",
-  "ex_BLAS":"Shoots at random enemies, damage multiple times",
+  "ex_BLAS":"Shoot at random enemies to stop them from moving",
   "ex_Inferno":"Shoots at nearby enemies, burn up around on impact",
   "ex_MP5":"Continuously fire bullets at random enemies",
   "ex_Electron":"Continuously shoot penetrating bullets that reflect off the edge of the screen",

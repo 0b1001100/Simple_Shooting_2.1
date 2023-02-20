@@ -1471,40 +1471,28 @@ class HexiteBullet extends SatelliteBullet{
   }
 }
 
-class BLASBullet extends SubBullet{
-  HashMap<Entity,Float>cooltimes;
-  HashSet<Entity>outEntity;
-  float radius=0;
-  float noiseX=0;
-  float noiseY=0;
-  float seed=random(0,100);
+class BLASBullet extends FireBullet{
   
   BLASBullet(SubWeapon w,int num){
-    super(w);
-    setNear(floor(random(0,nearEnemy.size())));
-    bulletColor=new Color(35,70,255,70);
-    cooltimes=new HashMap<Entity,Float>();
-    outEntity=new HashSet<Entity>();
+    super(w,num);
+    bulletColor=new Color(100,100,255);
   }
   
   @Override
   public void display(PGraphics g){
     if(Debug)displayAABB(g);
-    g.fill(toColor(bulletColor));
-    g.stroke(toColor(bulletColor));
     g.strokeWeight(1);
-    g.ellipse(pos.x,pos.y,radius+noiseX,radius+noiseY);
+    if(stop){
+      g.fill(100,100,255,50);
+      g.stroke(100,100,255,100);
+      g.ellipse(pos.x,pos.y,scale,scale);
+    }else{
+      g.stroke(toColor(bulletColor));
+      g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    }
   }
   
   public void update(){
-    if(age>duration){
-      isDead=true;
-      return;
-    }
-    age+=vectorMagnification;
-    radius=radius<scale?radius+vectorMagnification/1.5*scale/30:scale;
-    noiseX=(noise(seed,millis()/1000f)-0.5)*radius*0.6;
-    noiseX=(noise(millis()/1000f,seed)-0.5)*radius*0.6;
     HashMap<Entity,Float>nextCooltimes=new HashMap<Entity,Float>();
     cooltimes.forEach((k,v)->{
       cooltimes.replace(k,v-vectorMagnification);
@@ -1514,30 +1502,45 @@ class BLASBullet extends SubBullet{
       }
     });
     cooltimes=nextCooltimes;
-    pos.add(vel.copy().mult(vectorMagnification)).add(noise(seed,millis()/1000f)*vectorMagnification,noise(millis()/1000f,seed)*vectorMagnification);
-    Center=pos;
-    AxisSize=new PVector(scale,scale);
-    putAABB();
-  }
-  
-  @Override
-  public void EnemyCollision(Enemy e){
-    if(qDist(pos,e.pos,(radius+e.size)*0.5f)){
-      EnemyHit(e,true);
+    pos.add(vel.copy().mult(vectorMagnification));
+    if(!stop&&age>150){
+      age=0;
+      stop=true;
+      vel.set(0,0);
     }
+    if(count>damageCoolTime){
+      count=0;
+    }
+    if(duration<0)isDead=true;
+    if(stop){
+      duration-=vectorMagnification;
+      count+=vectorMagnification;
+    }else{
+      age+=vectorMagnification;
+    }
+    screen=new PVector(pos.x-player.pos.x+width*0.5f,height-(pos.y-player.pos.y+height*0.5f));
+    setAABB();
   }
   
   @Override
   public void EnemyHit(Enemy e,boolean b){
-    outEntity.remove(e);
-    if(!cooltimes.containsKey(e)){
-      e.Hit(this.parent);
-      cooltimes.put(e,15f);
-    }else{
-      if(cooltimes.get(e)<=0){
+    if(stop){
+      outEntity.remove(e);
+      if(!cooltimes.containsKey(e)){
         e.Hit(this.parent);
-        cooltimes.replace(e,15f);
+        cooltimes.put(e,30f);
+      }else{
+        if(cooltimes.get(e)<=0){
+          e.Hit(this.parent);
+          cooltimes.replace(e,30f);
+        }
       }
+      e.getController().addStatus(this.toString(),new StatusParameter(-1f,0.1f,"Speed",p->{return true;}));
+    }else{
+      e.Hit(parent.power*3);
+      age=0;
+      stop=true;
+      vel=new PVector(0,0);
     }
   }
   

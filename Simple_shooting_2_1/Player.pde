@@ -176,7 +176,7 @@ class Myself extends Entity{
       --r;
     }
     if(useController){
-      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue():0;
+      i=abs(ctrl_sliders.get(2).getValue())>0.1?-ctrl_sliders.get(2).getValue():0;
       r=abs(ctrl_sliders.get(3).getValue())>0.1?ctrl_sliders.get(3).getValue():0;
     }
     move=abs(i)+abs(r)!=0;
@@ -206,7 +206,10 @@ class Myself extends Entity{
     }else{
       addVel(0,false);
     }
-    pos.add(vel.mult(vectorMagnification));
+    vel.x=abs(vel.x)<0.01?0f:vel.x;
+    vel.y=abs(vel.y)<0.01?0f:vel.y;
+    Speed=abs(Speed)<0.01?0f:Speed;
+    pos.add(vel.x*vectorMagnification,vel.y*vectorMagnification);
   }
   
   public void move(PVector v){
@@ -237,8 +240,8 @@ class Myself extends Entity{
     }else{
       Speed-=accel*vectorMagnification;
     }
-    vel.x=abs(cos(rotate)*Speed)>abs(vel.x)?cos(rotate)*Speed:vel.x;
-    vel.y=abs(-sin(rotate)*Speed)>abs(vel.y)?-sin(rotate)*Speed:vel.y;
+    vel.x=abs(cos(rotate)*Speed)<abs(vel.x)?vel.x:cos(rotate)*Speed;
+    vel.y=abs(-sin(rotate)*Speed)<abs(vel.y)?vel.y:-sin(rotate)*Speed;
   }
   
   public void shot(){

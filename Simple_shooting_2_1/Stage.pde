@@ -318,6 +318,10 @@ class SurvivorHUD extends GameHUD{
     text(Language.getString("ui_kill")+":"+killCount,width-200,78);
     pop();
   }
+  
+  public ComponentSet getComponent(){
+    return PauseSet;
+  }
 }
 enum EnemySpown{
   Single,
