@@ -29,6 +29,13 @@ class EntityProcess implements Callable<String>{
       }
       if(!e.isDead){
         next.add(e);
+      }else if(e instanceof Enemy&&!ArchiveEntity.contains(e.getClass().getName())&&e.getClass().getName().indexOf("$")==e.getClass().getName().lastIndexOf("$")){
+        synchronized(ArchiveEntity){
+          if(!ArchiveEntity.contains(e.getClass().getName())){
+            ArchiveEntity.add(e.getClass().getName());
+            Collections.sort(ArchiveEntity);
+          }
+        }
       }
     }
     EntityTime=(System.nanoTime()-pProcessTime)/1000000f;
@@ -125,6 +132,7 @@ class saveConfig implements Runnable{
   public void run(){
     if(!StageFlag.contains("Game_Over")){
       conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
+      conf.setJSONArray("Enemy",parseJSONArray(Arrays.toString(ArchiveEntity.toArray(new String[0]))));
       saveJSONObject(conf,SavePath+"config.json");
     }
   }

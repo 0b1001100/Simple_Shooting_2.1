@@ -1,18 +1,17 @@
 uniform float time;
 uniform vec2 mouse;
-uniform vec2 resolution;
+uniform int volsteps;
 
 
-#define iterations 14
+#define iterations 12
 #define formuparam2 0.79
- 
-#define volsteps 5
+
 #define stepsize 0.290
- 
+
 #define zoom 0.900
 #define tile   0.850
 #define speed2  0.10
- 
+
 #define brightness 0.0003
 #define darkmatter 0.600
 #define distfading 0.60
@@ -22,17 +21,17 @@ uniform vec2 resolution;
 #define transverseSpeed zoom*2.0
 #define cloud 0.11 
 
- 
+
 float triangle(float x, float a) { 
 	float output2 = 2.0*abs(  2.0*  ( (x/a) - floor( (x/a) + 0.5) ) ) - 1.0;
 	return output2;
 }
- 
+
 float field(in vec3 p) {	
 	float strength = 7. + .03 * log(1.e-6 + fract(sin(time) * 4373.11));
 	float accum = 0.;
 	float prev = 0.;
-	float tw = 0.;	
+	float tw = 0.;
 
 	for (int i = 0; i < 6; ++i) {
 		float mag = dot(p, p);
@@ -45,79 +44,77 @@ float field(in vec3 p) {
 	return max(0., 5. * accum / tw - .7);
 }
 
-
-
-void main() {   
+void main() {
      	vec2 uv2 = 2. * gl_FragCoord.xy / vec2(512) - 1.;
 	vec2 uvs = uv2 * vec2(512)  / 512.;
 	
-	float time2 = time;               
+	float time2 = time;
         float speed = speed2;
         speed = .01 * cos(time2*0.02 + 3.1415926/4.0);          
-	//speed = 0.0;	
+	//speed = 0.0;
     	float formuparam = formuparam2;
-	
-    	//get coords and direction	
-	vec2 uv = uvs;		       
+
+    	//get coords and direction
+	vec2 uv = uvs;
 	//mouse rotation
 	float a_xz = 0.9;
 	float a_yz = -.6;
-	float a_xy = 0.9 + time*0.08;	
-	
-	mat2 rot_xz = mat2(cos(a_xz),sin(a_xz),-sin(a_xz),cos(a_xz));	
-	mat2 rot_yz = mat2(cos(a_yz),sin(a_yz),-sin(a_yz),cos(a_yz));		
-	mat2 rot_xy = mat2(cos(a_xy),sin(a_xy),-sin(a_xy),cos(a_xy));
-	
+	float a_xy = 0.9 + time*0.08;
 
-	float v2 =1.0;	
-	vec3 dir=vec3(uv*zoom,1.); 
-	vec3 from=vec3(0.0, 0.0,0.0);                               
+	mat2 rot_xz = mat2(cos(a_xz),sin(a_xz),-sin(a_xz),cos(a_xz));
+	mat2 rot_yz = mat2(cos(a_yz),sin(a_yz),-sin(a_yz),cos(a_yz));
+	mat2 rot_xy = mat2(cos(a_xy),sin(a_xy),-sin(a_xy),cos(a_xy));
+
+
+	float v2 =1.0;
+	vec3 dir=vec3(uv*zoom,1.);
+	vec3 from=vec3(0.0, 0.0,0.0);
         from.x -= 5.0*(mouse.x-0.5);
         from.y -= 5.0*(mouse.y-0.5);
-               
-               
-	vec3 forward = vec3(0.,0.,1.);   
+
+
+	vec3 forward = vec3(0.,0.,1.);
 	from.x += transverseSpeed*(1.0)*cos(0.01*time) + 0.001*time;
 	from.y += transverseSpeed*(1.0)*sin(0.01*time) +0.001*time;
-	from.z += 0.003*time;	
-	
+	from.z += 0.003*time;
+
 	dir.xy*=rot_xy;
 	forward.xy *= rot_xy;
 	dir.xz*=rot_xz;
-	forward.xz *= rot_xz;	
+	forward.xz *= rot_xz;
 	dir.yz*= rot_yz;
 	forward.yz *= rot_yz;
-	
+
 	from.xy*=-rot_xy;
 	from.xz*=rot_xz;
 	from.yz*= rot_yz;
-	 
-	
+
+
 	//zoom
 	float zooom = (time2-3311.)*speed;
 	from += forward* zooom;
 	float sampleShift = mod( zooom, stepsize );
-	 
+	
 	float zoffset = -sampleShift;
 	sampleShift /= stepsize; // make from 0 to 1
-	
+
 	//volumetric rendering
 	float s=0.24;
 	float s3 = s + stepsize/2.0;
 	vec3 v=vec3(0.);
 	float t3 = 0.0;	
-	
+
 	vec3 backCol2 = vec3(0.);
 	for (int r=0; r<volsteps; r++) {
 		vec3 p2=from+(s+zoffset)*dir;// + vec3(0.,0.,zoffset);
 		vec3 p3=from+(s3+zoffset)*dir;// + vec3(0.,0.,zoffset);
-		
+
 		p2 = abs(vec3(tile)-mod(p2,vec3(tile*2.))); // tiling fold
 		p3 = abs(vec3(tile)-mod(p3,vec3(tile*2.))); // tiling fold		
 		#ifdef cloud
 		t3 = field(p3);
 		#endif
-		
+
 		float pa,a=pa=0.;
 		for (int i=0; i<iterations; i++) {
 			p2=abs(p2)/dot(p2,p2)-formuparam; // the magic formula

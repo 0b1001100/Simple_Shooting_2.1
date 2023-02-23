@@ -13,7 +13,6 @@ class Myself extends Entity{
   boolean useSub=true;
   boolean autoShot=true;
   boolean levelup=false;
-  boolean shield=false;
   boolean hit=false;
   boolean move=false;
   boolean canMagnet=true;
@@ -39,6 +38,7 @@ class Myself extends Entity{
   
   Myself(){
     setMaxSpeed(3);
+    accelSpeed=0.4;
     pos=new PVector(0,0);
     vel=new PVector(0,0);
     HP=new Status(1);
@@ -62,7 +62,7 @@ class Myself extends Entity{
   public void display(PGraphics g){
     g.pushMatrix();
     g.translate(pos.x,pos.y);
-    g.rotate(-rotate);
+    g.rotate(rotate);
     g.strokeWeight(1);
     g.noFill();
     g.stroke(toColor(c));
@@ -72,12 +72,20 @@ class Myself extends Entity{
         radians(-5)-selectedWeapon.diffuse/2,radians(5)+selectedWeapon.diffuse/2);
     g.popMatrix();
     if(!camera.moveEvent){
-      drawUI();
+      drawUI(g);
     }
   }
   
-  public void drawUI(){
-    
+  public void drawUI(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rectMode(CORNER);
+    g.noStroke();
+    g.fill(255,0,0);
+    g.rect(-size*0.5,size,size,4);
+    g.fill(0,255,0);
+    g.rect(-size*0.5,size,size*HP.getPercentage(),4);
+    g.popMatrix();
   }
   
   public void update(){
@@ -164,10 +172,10 @@ class Myself extends Entity{
     float r=0;
     float i=0;
     if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
-      ++i;
+      --i;
     }
     if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
-      --i;
+      ++i;
     }
     if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
       ++r;
@@ -176,7 +184,7 @@ class Myself extends Entity{
       --r;
     }
     if(useController){
-      i=abs(ctrl_sliders.get(2).getValue())>0.1?-ctrl_sliders.get(2).getValue():0;
+      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue():0;
       r=abs(ctrl_sliders.get(3).getValue())>0.1?ctrl_sliders.get(3).getValue():0;
     }
     move=abs(i)+abs(r)!=0;
@@ -228,7 +236,7 @@ class Myself extends Entity{
       Speed+=accel*vectorMagnification;
     }
     vel.x=abs(cos(rotate)*Speed)>abs(vel.x)?cos(rotate)*Speed:vel.x;
-    vel.y=abs(-sin(rotate)*Speed)>abs(vel.y)?-sin(rotate)*Speed:vel.y;
+    vel.y=abs(sin(rotate)*Speed)>abs(vel.y)?sin(rotate)*Speed:vel.y;
   }
   
   private void subVel(float accel,boolean force){
@@ -241,7 +249,7 @@ class Myself extends Entity{
       Speed-=accel*vectorMagnification;
     }
     vel.x=abs(cos(rotate)*Speed)<abs(vel.x)?vel.x:cos(rotate)*Speed;
-    vel.y=abs(-sin(rotate)*Speed)<abs(vel.y)?vel.y:-sin(rotate)*Speed;
+    vel.y=abs(sin(rotate)*Speed)<abs(vel.y)?vel.y:sin(rotate)*Speed;
   }
   
   public void shot(){
@@ -374,9 +382,9 @@ class Satellite extends Entity{
     rotate+=radians(vectorMagnification)*2;
     rotate%=TWO_PI;
     rad=atan2(pos,player.pos);
-    vel.set(cos(rad-HALF_PI),-sin(rad-HALF_PI));
+    vel.set(cos(rad-HALF_PI),sin(rad-HALF_PI));
     float dist=0.01*(dist(pos,player.pos)-140);
-    vel.add(dist*cos(rad),-dist*sin(rad));
+    vel.add(dist*cos(rad),dist*sin(rad));
     vel.normalize().mult(max(0.9,dist(pos,player.pos)/140)*vectorMagnification);
     pos.add(vel);
     Center=pos;

@@ -36,13 +36,13 @@ class GameProcess{
      mainHUD=new SurvivorHUD(this);
      initStatus();
      Entities=new ArrayList<Entity>();
-    wall=new ArrayList<>();
+     wall=new ArrayList<>();
      nearEnemy.clear();
      player=new Myself();
      stage=new Stage();
      StageFlag.clear();
-    gameOver=animation=upgrade=done=menu=pause=false;
-    killCount.set(0);
+     gameOver=animation=upgrade=done=menu=pause=false;
+     killCount.set(0);
      sumLevel=0;
      playerTable.clear();
      Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{
@@ -69,6 +69,10 @@ class GameProcess{
                      break;
        case "Stage5":player.subWeapons.add(masterTable.get("Fire").getWeapon());
                      player.subWeapons.add(masterTable.get("Lightning").getWeapon());
+                     break;
+       case "Stage6":player.subWeapons.add(masterTable.get("Mirror").getWeapon());
+                     player.subWeapons.add(masterTable.get("BLAS").getWeapon());
+                     player.subWeapons.add(masterTable.get("Ice").getWeapon());
                      break;
      }
   }
@@ -163,16 +167,6 @@ class GameProcess{
       pause=true;
     }
     done=false;
-    background(0);
-    if(HighQuality){
-      Title_HighShader.set("time",0);
-      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
-      Title_HighShader.set("resolution",width,height);
-      filter(Title_HighShader);
-    }else{
-      backgroundShader.set("offset",player.pos.x,-player.pos.y);
-      filter(backgroundShader);
-    }
     drawShape();
     if(gameOver){
       StageFlag.add("Game_Over");
@@ -255,7 +249,6 @@ class GameProcess{
   }
   
   public void EntityUpdateAndCollision(Runnable whileUpdate,Runnable whileCollision){
-    EntitySet=new HashSet(Entities);
     byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
     float block=Entities.size()/(float)ThreadNumber;
     for(byte b=0;b<ThreadNumber;b++){
@@ -276,7 +269,7 @@ class GameProcess{
       catch(ConcurrentModificationException e) {
         e.printStackTrace();
       }
-      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+      catch(InterruptedException|ExecutionException F) {F.printStackTrace();
       }
       catch(NullPointerException g) {
       }
@@ -288,6 +281,7 @@ class GameProcess{
     });
     Entities.addAll(NextEntities);
     NextEntities.clear();
+    exec.execute(()->{EntitySet=new HashSet(Entities);});
     HeapEntityDataX.forEach(m->{
       m.forEach(d->{
         EntityDataX.add(d);
@@ -320,7 +314,7 @@ class GameProcess{
       catch(ConcurrentModificationException e) {
         e.printStackTrace();
       }
-      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+      catch(InterruptedException|ExecutionException F) {F.printStackTrace();
       }
       catch(NullPointerException g) {
       }
@@ -329,13 +323,32 @@ class GameProcess{
   
   public void drawShape(){
     pProcessTime=System.nanoTime();
+    drawMain();
+    mainHUD.display();
+    DrawTime=(System.nanoTime()-pProcessTime)/1000000f;
+  }
+  
+  public void drawMain(){
+    background(0);
+    if(ShaderQuality==2){
+      Title_HighShader.set("time",0);
+      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      Title_HighShader.set("volsteps",10);
+      filter(Title_HighShader);
+    }else if(ShaderQuality==1){
+      Title_HighShader.set("time",0);
+      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      Title_HighShader.set("volsteps",5);
+      filter(Title_HighShader);
+    }else{
+      backgroundShader.set("offset",player.pos.x,-player.pos.y);
+      filter(backgroundShader);
+    }
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
     Entities.forEach(e->{e.display(g);});
-    mainHUD.display();
     popMatrix();
-    DrawTime=(System.nanoTime()-pProcessTime)/1000000f;
   }
   
    public void keyProcess(){
@@ -511,6 +524,7 @@ class GameProcess{
       player.nextLevel=10+(player.Level-1)*5*ceil(player.Level/10f);
     }else{
       Item i=masterTable.get(tokens.get(1).getText().replace("\"",""));
+      if(i==null)return;
       SubWeapon w=i.getWeapon();
       if(player.subWeapons.contains(w)){
         int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),PApplet.parseFloat(tokens.get(3).getText()));

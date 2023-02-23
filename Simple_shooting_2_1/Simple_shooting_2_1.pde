@@ -110,6 +110,7 @@ ArrayList<String>StageFlag=new ArrayList<String>();
 ArrayList<Entity>Entities=new ArrayList<Entity>(50);
 ArrayList<Entity>NextEntities=new ArrayList<Entity>();
 HashSet<Entity>EntitySet=new HashSet<Entity>();
+ArrayList<String>ArchiveEntity=new ArrayList<>();
 ArrayList<ArrayList<Entity>>HeapEntity=new ArrayList<ArrayList<Entity>>();
 HashSet<String>PressedKeyCode=new HashSet<String>();
 HashSet<String>PressedKey=new HashSet<String>();
@@ -144,13 +145,13 @@ int pEntityNum=0;
 int pscene=0;
 int scene=0;
 
-boolean HighQuality=false;
+int ShaderQuality=0;
 boolean displayFPS=true;
 boolean colorInverse=false;
 boolean fullscreen=false;
 boolean FXAA=false;
 
-static final String VERSION="1.1.4";
+static final String VERSION="1.1.5";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
@@ -352,7 +353,7 @@ public void draw(){
   stageList.addContent(conf.getJSONArray("Stage").getStringArray());
   displayFPS=conf.getBoolean("FPS");
   fullscreen=conf.getBoolean("Fullscreen");
-  HighQuality=conf.getBoolean("HighQuality");
+  ShaderQuality=conf.getInt("ShaderQuality");
   vsync=conf.getBoolean("vsync");
   if(vsync){
     FrameRateConfig=RefleshRate;
@@ -360,6 +361,7 @@ public void draw(){
   }else{
     frameRate(60);
   }
+  ArchiveEntity=new ArrayList<>(Arrays.asList(conf.getJSONArray("Enemy").getStringArray()));
 }
   
  public void initStatus(){
@@ -467,7 +469,7 @@ String getLanguageText(String s){
   textSize(20);
   textFont(font_20);
   text(Language.getString("ui_kill")+":"+killCount+"\n"+
-       "Time:"+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+floor((stage.time/60)%60),width*0.5-150,height*0.2+100);
+       "Time:"+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5-150,height*0.2+100);
   resultSet.display();
   resultSet.update();
   if(resultAnimation){
@@ -812,7 +814,7 @@ public void vertex(PGraphics g,PVector p){
 }
 
  public float atan2(PVector from,PVector to){
-  return atan2(-to.y+from.y,to.x-from.x);
+  return atan2(to.y-from.y,to.x-from.x);
 }
 
  public float cross(PVector v1, PVector v2) {

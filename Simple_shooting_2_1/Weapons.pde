@@ -226,8 +226,10 @@ class EnemyWeapon extends Weapon{
     setSpeed(3.5f);
     setDuration(120);
     setDiffuse(radians(1));
+    setColor(255,0,0);
     setCoolTime(250);
     setBulletNumber(1);
+    setColor(new Color(255,0,0));
   }
   
   @Override
@@ -247,6 +249,7 @@ class EnemyPoisonWeapon extends EnemyWeapon{
     setDiffuse(radians(1));
     setCoolTime(250);
     setBulletNumber(1);
+    setColor(new Color(10,130,30));
   }
   
   @Override
@@ -306,6 +309,88 @@ class SnipeWeapon extends Weapon{
     setDuration(170);
     setDiffuse(radians(1));
     setCoolTime(300);
+    setBulletNumber(1);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+      NextEntities.add(new ThroughBullet(parentEnemy,this));
+    }
+  }
+}
+
+class BlasterWeapon extends Weapon{
+  Enemy parentEnemy;
+  
+  BlasterWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.6f);
+    setSpeed(3f);
+    setDuration(60);
+    setDiffuse(radians(50));
+    setCoolTime(290);
+    setBulletNumber(5);
+    setColor(230,230,10);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+      NextEntities.add(new AntiExplosionBullet(parentEnemy,this));
+    }
+  }
+}
+
+class MissileWeapon extends Weapon{
+  Enemy parentEnemy;
+  
+  MissileWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.6f);
+    setSpeed(2f);
+    setDuration(420);
+    setDiffuse(radians(50));
+    setCoolTime(420);
+  }
+  
+  @Override
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+      NextEntities.add(new MissileBullet(parentEnemy,this));
+    }
+  }
+}
+
+class EnemyMirrorWeapon extends Weapon{
+  
+  EnemyMirrorWeapon(Enemy e){
+    super();
+    parent=e;
+  }
+  
+  @Override 
+  public void shot(){
+    for(int i=0;i<this.bulletNumber;i++){
+        NextEntities.add(new EnemyMirrorBullet(this,i,bulletNumber));
+    }
+  }
+}
+
+class FlashWeapon extends Weapon{
+  Enemy parentEnemy;
+  
+  FlashWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.1);
+    setSpeed(15f);
+    setDuration(60);
+    setDiffuse(radians(1));
+    setCoolTime(300);
+    setColor(new Color(255,25,0));
     setBulletNumber(1);
   }
   
@@ -738,6 +823,22 @@ class BLASWeapon extends SubWeapon{
     for(int i=0;i<this.bulletNumber;i++){
         NextEntities.add(new BLASBullet(this,i));
     }
+  }
+}
+
+class VoidWeapon extends SubWeapon{
+  
+  VoidWeapon(){
+    super();
+  }
+  
+  VoidWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override 
+  public void shot(){
+    NextEntities.add(new VoidBullet(this,0));
   }
 }
 

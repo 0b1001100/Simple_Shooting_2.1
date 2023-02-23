@@ -11,9 +11,15 @@ public void initMenu(){
   Canvas TitleCanvas=new Canvas(g);
   TitleCanvas.setContent((g)->{
     try{
-      if(HighQuality){
+      if(ShaderQuality==2){
         Title_HighShader.set("time",millis()/30000f);
         Title_HighShader.set("mouse",0,0);
+        Title_HighShader.set("volsteps",10);
+        filter(Title_HighShader);
+      }else if(ShaderQuality==1){
+        Title_HighShader.set("time",millis()/30000f);
+        Title_HighShader.set("mouse",0,0);
+        Title_HighShader.set("volsteps",5);
         filter(Title_HighShader);
       }else{
         for(int i=0;i<20;i++){
@@ -133,11 +139,11 @@ public void initMenu(){
         
          public void lostFocus(){}
       });
-      MenuCheckBox Quality=new MenuCheckBox(Language.getString("Quality"),HighQuality);
-      Quality.setCustomizeText(getLanguageText("ex_qu_high"),getLanguageText("ex_qu_low"));
+      MenuToggleBox Quality=new MenuToggleBox(Language.getString("Quality"),ShaderQuality,3);
+      Quality.addCustomizeText(0,getLanguageText("ex_qu_low")).addCustomizeText(1,getLanguageText("ex_qu_high")).addCustomizeText(2,getLanguageText("ex_qu_ultra"));
       Quality.addListener(()->{
-        HighQuality=Quality.value;
-        conf.setBoolean("HighQuality",HighQuality);
+        ShaderQuality=Quality.value;
+        conf.setInt("ShaderQuality",ShaderQuality);
         exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
       });
       Quality.addFocusListener(new FocusEvent(){
@@ -224,6 +230,23 @@ public void initMenu(){
        public void lostFocus(){}
     });
   //---
+  MenuButton Archive=new MenuButton(Language.getString("Archive"));
+  Archive.addListener(()->{
+    starts.toChild("archive");
+  });
+    //---
+    Y_AxisLayout arcLayout=new Y_AxisLayout(10,120,120,25,15);
+    MenuButton arc_tolist=new MenuButton(Language.getString("enemy"));
+    arc_tolist.addListener(()->{
+      starts.toChild("arc_list");
+      starts.getNowComponents().forEach(c->c.addSelect());
+    });
+    MenuButton arc_back=new MenuButton(Language.getString("back"));
+    arc_back.addListener(()->{
+      starts.toParent();
+    });
+    //---
+  //---
   MenuButton operationEx=new MenuButton(Language.getString("operation_ex"));
   operationEx.addListener(()->{
     starts.toChild("operation");
@@ -298,12 +321,13 @@ public void initMenu(){
   //--
   starts.setSubChildDisplayType(1);
   starts.addLayer("root",titleSet);
-  starts.addChild("root","main",toSet(mainLayout,Select,Config,operationEx,credit));
+  starts.addChild("root","main",toSet(mainLayout,Select,Config,Archive,operationEx,credit));
   starts.addSubChild("main","stage",toSet(stageList));
   starts.addSubChild("main","confMenu",toSet(confLayout,AbsMag,Display,Lang,exit),toSet(confBox));
   starts.addSubChild("confMenu","dispMenu",toSet(dispLayout,Colorinv,dispFPS,Quality,vsy,fullsc),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
-  //starts.addChild("main","archive",initArchive());
+  starts.addChild("main","archive",toSet(arcLayout,arc_tolist,arc_back));
+  starts.addSubChild("archive","arc_list",initArchive(arc_tolist,arc_back));
   starts.addChild("main","operation",toSet(back_op,op_canvas));
   starts.addChild("main","credit",toSet(back_cr,cr_canvas));
   if(launched){
@@ -313,27 +337,41 @@ public void initMenu(){
   }
 }
 
-ComponentSet initArchive(){
+ComponentSet initArchive(MenuButton... parent){
   Entities=new ArrayList<Entity>();
   ComponentSet archive=new ComponentSet();
   Canvas view=new Canvas(g);
   view.setContent((g)->{
+    scroll=new PVector(width/2,height/2);
     pushMatrix();
     main_game.EntityUpdateAndCollision(()->{},()->{});
+    main_game.drawMain();
     popMatrix();
   });
   ItemList list=new ItemList();
-  list.setBounds(50,100,300,height-200);
-  list.setSubBounds(width-350,100,300,height-200);
+  list.setAlpha(200);
+  list.setBounds(10,100,300,height-200);
+  list.setSubBounds(width-310,100,300,height-200);
   list.addWindowResizeEvent(()->{
-    list.setBounds(50,100,300,height-200);
-    list.setSubBounds(width-350,100,300,height-200);
+    list.setBounds(10,100,300,height-200);
+    list.setSubBounds(width-310,100,300,height-200);
+  });
+  list.addFocusListener(new FocusEvent(){
+    void getFocus(){
+      for(MenuButton m:parent)m.active=false;
+    }
+    
+    void lostFocus(){
+      for(MenuButton m:parent)m.active=true;
+    }
   });
   for(String s:conf.getJSONArray("Enemy").getStringArray())list.addContent(s.replace("Simple_shooting_2_1$",""));
   list.addSelectListener((s)->{
     Entities.clear();
     try{
-      Entities.add(((Enemy)Class.forName("Simple_shooting_2_1$"+s).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet)).setPos(new PVector(width/2,height/2)));
+      Enemy New=((Enemy)Class.forName("Simple_shooting_2_1$"+s).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet)).setPos(new PVector(0,0));
+      New.setController(new ArchiveEnemyController());
+      Entities.add(New);
     }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
     Entities.addAll(NextEntities);
   });

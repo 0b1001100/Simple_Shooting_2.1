@@ -4,6 +4,7 @@ class Bullet extends Entity{
   boolean bounse=false;
   Color bulletColor;
   Color parentColor;
+  float bulletRadius=0.5;
   float rotate=0;
   float speed=7;
   float power;
@@ -14,12 +15,12 @@ class Bullet extends Entity{
   }
   
   Bullet(Myself m){
-    rotate=useController?atan2(ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue())+random(-m.diffuse/2,m.diffuse/2):atan2(m.pos,localMouse)+random(-m.diffuse/2,m.diffuse/2);
+    rotate=(useController?atan2(ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue()):atan2(m.pos,localMouse))+random(-m.diffuse/2,m.diffuse/2);
     speed=m.selectedWeapon.speed;
     bulletColor=cloneColor(m.selectedWeapon.bulletColor);
     parentColor=cloneColor(m.selectedWeapon.bulletColor);
-    pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y-sin(rotate)*m.size*0.5f);
-    vel.set(cos(rotate)*speed,-sin(rotate)*speed);
+    pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y+sin(rotate)*m.size*0.5f);
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
     duration=m.selectedWeapon.duration;
     try{
       parent=m.selectedWeapon.clone();
@@ -33,12 +34,12 @@ class Bullet extends Entity{
     int n=m.selectedWeapon.bulletNumber;
     float r=n>1?radians(20)/(n/2):0;
     float rad=n>1?r*(n-1):0;
-    rotate=useController?atan2(ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue())+random(-m.diffuse/2,m.diffuse/2)+(n>1?+rad/2-num*r:0):atan2(m.pos,localMouse)+random(-m.diffuse/2,m.diffuse/2)+(n>1?+rad/2-num*r:0);
+    rotate=(useController?atan2(ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue()):atan2(m.pos,localMouse))+random(-m.diffuse/2,m.diffuse/2)+(n>1?+rad/2-num*r:0);
     speed=m.selectedWeapon.speed;
     bulletColor=cloneColor(m.selectedWeapon.bulletColor);
     parentColor=cloneColor(m.selectedWeapon.bulletColor);
-    pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y-sin(rotate)*m.size*0.5f);
-    vel.set(cos(rotate)*speed,-sin(rotate)*speed);
+    pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y+sin(rotate)*m.size*0.5f);
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
     duration=m.selectedWeapon.duration;
     try{
       parent=m.selectedWeapon.clone();
@@ -63,8 +64,8 @@ class Bullet extends Entity{
     speed=w.speed;
     bulletColor=cloneColor(w.bulletColor);
     parentColor=cloneColor(w.bulletColor);
-    pos.set(e.pos.x+cos(rotate)*e.size*0.5f,e.pos.y-sin(rotate)*e.size*0.5f);
-    vel.set(cos(rotate)*speed,-sin(rotate)*speed);
+    pos.set(e.pos.x+cos(rotate)*e.size*0.5f,e.pos.y+sin(rotate)*e.size*0.5f);
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
     duration=w.duration;
     setAABB();
     setMass(1.3);
@@ -89,7 +90,7 @@ class Bullet extends Entity{
   
    public void setAABB(){
     Center=pos.copy().add(vel.copy().mult(0.5f).mult(max(1,vectorMagnification)));
-    AxisSize=new PVector(abs(vel.x),abs(vel.y)).mult(max(1,vectorMagnification));
+    AxisSize=new PVector(abs(vel.x)+bulletRadius*2,abs(vel.y)+bulletRadius*2).mult(max(1,vectorMagnification));
     putAABB();
   }
   
@@ -114,7 +115,7 @@ class Bullet extends Entity{
   
   @Override
   public void ExplosionCollision(Explosion e){
-    if(CircleCollision(e.pos,e.size,pos,vel)){
+    if(CircleCollision(e.pos,e.size+bulletRadius*2,pos,vel.copy().mult(max(1,vectorMagnification)))){
       ExplosionHit(e,true);
     }
   }
@@ -126,7 +127,7 @@ class Bullet extends Entity{
   
   @Override
   public void EnemyCollision(Enemy e){
-    if(CircleCollision(e.pos,e.size,pos,vel)){
+    if(isMine&&CircleCollision(e.pos,e.size+bulletRadius*2,pos,vel.copy().mult(max(1,vectorMagnification)))){
       EnemyHit(e,true);
     }
   }
@@ -222,7 +223,7 @@ class SubBullet extends Bullet{
     isMine=true;
     pos=player.pos.copy();
     rotate=random(0,TWO_PI);
-    vel.set(cos(rotate)*speed,-sin(rotate)*speed);
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
   }
   
    public void init(SubWeapon w){
@@ -235,13 +236,13 @@ class SubBullet extends Bullet{
     isMine=true;
     pos=player.pos.copy();
     rotate=random(0,TWO_PI);
-    vel.set(cos(rotate)*speed,-sin(rotate)*speed);
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
   }
   
    public void setNear(int num){
     if(nearEnemy.size()>num){
       float rad=atan2(pos,nearEnemy.get(num).pos)+random(radians(-2),radians(2));
-      vel.set(cos(rad)*speed,-sin(rad)*speed);
+      vel.set(cos(rad)*speed,sin(rad)*speed);
     }
   }
   
@@ -332,8 +333,8 @@ class GravityBullet extends SubBullet{
   public void EnemyHit(Enemy e,boolean b){
     if(stop){
       float rad=atan2(e.pos,pos);
-      float dist=-dist(pos,e.pos)/((e.size+scale)*0.75f);
-      e.vel.add(cos(rad)*dist,-sin(rad)*dist);
+      float dist=dist(pos,e.pos)/((e.size+scale)*0.75f);
+      e.vel.add(cos(rad)*dist,sin(rad)*dist);
       if(count>=damageCoolTime&&qDist(pos,e.pos,(e.size+scale)*0.5f)){
         ((Enemy)e).Hit(parent);
       }
@@ -425,6 +426,8 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   PVector LeftDown;
   PVector RightDown;
   PVector vector;
+  
+  MirrorBullet(){}
   
   MirrorBullet(SubWeapon w,int num,int sum,float offset){
     super(w);
@@ -803,10 +806,10 @@ class LightningBullet extends SubBullet implements ExcludeGPGPU{
     int len=width+height;
     for(int i=0;i<4;i++){
       switch(i){
-        case 0:vel=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(width,0),pos,new PVector(cos(rad)*len,-sin(rad)*len));break;
-        case 1:vel=SegmentCrossPoint(scroll.copy().mult(-1).add(0,height),new PVector(width,0),pos,new PVector(cos(rad)*len,-sin(rad)*len));break;
-        case 2:vel=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(0,height),pos,new PVector(cos(rad)*len,-sin(rad)*len));break;
-        case 3:vel=SegmentCrossPoint(scroll.copy().mult(-1).add(width,0),new PVector(0,height),pos,new PVector(cos(rad)*len,-sin(rad)*len));break;
+        case 0:vel=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(width,0),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
+        case 1:vel=SegmentCrossPoint(scroll.copy().mult(-1).add(0,height),new PVector(width,0),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
+        case 2:vel=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(0,height),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
+        case 3:vel=SegmentCrossPoint(scroll.copy().mult(-1).add(width,0),new PVector(0,height),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
       }
       if(vel!=null){
         vel.sub(pos);
@@ -838,6 +841,7 @@ class ReflectorBullet extends SubBullet{
     bulletColor=new Color(230,230,230);
     HitEnemy=new HashSet<Entity>();
     nextHitEnemy=new HashSet<Entity>();
+    bulletRadius=1;
   }
   
   @Override public 
@@ -978,7 +982,6 @@ class EnemyPoisonBullet extends ThroughBullet{
   
   EnemyPoisonBullet(Enemy e,Weapon w){
     super(e,w);
-    bulletColor=new Color(5,200,70);
   }
   
   @Override
@@ -1037,6 +1040,16 @@ class BoundBullet extends ThroughBullet{
     m.Hit(parent.power);
     isDead=true;
   }
+}
+
+class AntiExplosionBullet extends ThroughBullet{
+  
+  AntiExplosionBullet(Enemy e,Weapon w){
+    super(e,w);
+  }
+  
+  @Override
+  public void ExplosionHit(Explosion e,boolean b){}
 }
 
 class AntiBulletFieldBullet extends Bullet{
@@ -1100,6 +1113,91 @@ class AntiBulletFieldBullet extends Bullet{
   public void WallCollision(WallEntity w){}
 }
 
+class EnemyMirrorBullet extends MirrorBullet{
+  float rotateOffset=0;
+  
+  EnemyMirrorBullet(Weapon w,int num,int sum){
+    float offset=-w.parent.rotate;
+    parent=w;
+    scale=16;
+    isMine=false;
+    rotateOffset=(num==0?0:(float)num/(float)sum)*TWO_PI;
+    offset+=rotateOffset;
+    axis+=offset;
+    float dist=scale*scaleMag;
+    pos=parent.parent.pos.copy().add(cos(axis)*dist,sin(axis)*dist);
+    rad=dist(0,0,scale,scale*0.25f)+offset;
+    vel.set(0,0);
+    LeftUP=new PVector(-scale*0.125f,scale*0.5f).rotate(axis).add(pos);
+    RightUP=new PVector(scale*0.125f,scale*0.5f).rotate(axis).add(pos);
+    LeftDown=new PVector(-scale*0.125f,-scale*0.5f).rotate(axis).add(pos);
+    RightDown=new PVector(scale*0.125f,-scale*0.5f).rotate(axis).add(pos);
+    vector=new PVector(0,scale);
+    bulletColor=new Color(255,0,35);
+  }
+  
+  @Override public 
+  void display(PGraphics g){
+    g.noFill();
+    g.rectMode(CENTER);
+    if(Debug){
+      displayAABB(g);
+    }
+    g.stroke(toColor(bulletColor));
+    g.strokeWeight(1);
+    g.pushMatrix();
+    g.beginShape();
+    vertex(g,LeftUP);
+    vertex(g,RightUP);
+    vertex(g,RightDown);
+    vertex(g,LeftDown);
+    g.endShape(CLOSE);
+    g.popMatrix();
+  }
+  
+  @Override public 
+  void update(){
+    if(!EntitySet.contains(parent.parent)){
+      isDead=true;
+      return;
+    }
+    axis=rotateOffset-parent.parent.rotate;
+    LeftUP.set(-scale*0.125f,scale*0.5f).rotate(axis).add(pos);
+    RightUP.set(scale*0.125f,scale*0.5f).rotate(axis).add(pos);
+    LeftDown.set(-scale*0.125f,-scale*0.5f).rotate(axis).add(pos);
+    RightDown.set(scale*0.125f,-scale*0.5f).rotate(axis).add(pos);
+    Center.set(0,0).rotate(axis).add(pos);
+    float dist=scale*scaleMag;
+    pos=parent.parent.pos.copy().add(cos(axis)*dist,sin(axis)*dist);
+    AxisSize.set(max(abs(LeftUP.x-RightDown.x),abs(RightUP.x-LeftDown.x)),max(abs(LeftUP.y-RightDown.y),abs(RightUP.y-LeftDown.y)));
+    putAABB();
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){}
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){}
+  
+  @Override
+  public void BulletCollision(Bullet b){
+    if(b.isMine){
+      if(SegmentOrientedRectangleCollision(b.pos,b.vel,LeftDown,new PVector(scale*0.25f,scale),axis)){
+        BulletHit(b,false);
+      }
+    }
+  }
+  
+  @Override
+  public void BulletHit(Bullet b,boolean p){
+    b.reflectFromNormal(axis);
+    if(!(b instanceof SubBullet)){
+      b.isMine=false;
+      b.parent.parent=parent.parent;
+    }
+  }
+}
+
 class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   ArrayList<Enemy>Source;
   
@@ -1158,6 +1256,45 @@ class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override
   public void WallHit(WallEntity w,boolean p){}
+}
+
+class MissileBullet extends Bullet{
+  float mag=0.05f;
+  int num;
+  
+  MissileBullet(Enemy e,Weapon w){
+    super(e,w);
+    setNear(num);
+    bulletColor=new Color(255,220,150);
+  }
+  
+  public void setNear(int num){
+    float rad=atan2(pos,player.pos);
+    vel.set(cos(rad)*speed,sin(rad)*speed);
+  }
+  
+  public void display(PGraphics g){
+    g.strokeWeight(2);
+    if(Debug){
+      displayAABB(g);
+    }
+    g.stroke(toColor(bulletColor));
+    g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    if(age/duration>0.9f)bulletColor=bulletColor.darker();
+  }
+  
+  @Override
+  public void update(){
+    float rad=atan2(pos,player.pos);
+    float nRad=0<rotate?rad+TWO_PI:rad-TWO_PI;
+    rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
+    rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,PI*mag*vectorMagnification);
+    rotate+=rad;
+    rotate%=TWO_PI;
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
+    super.update();
+    setAABB();
+  }
 }
 
 class FireBullet extends SubBullet{
@@ -1411,7 +1548,7 @@ class SatelliteBullet extends SubBullet{
       rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
       rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,radians(weight)*vectorMagnification);
       rotate+=rad;
-      vel=new PVector(speed,0).rotate(-rotate+HALF_PI);
+      vel=new PVector(speed,0).rotate(rotate);
     }
     super.update();
   }
@@ -1465,7 +1602,7 @@ class HexiteBullet extends SatelliteBullet{
     g.strokeWeight(1);
     g.beginShape();
     for(int i=0;i<6;i++){
-      g.vertex(pos.x+cos(rotate+TWO_PI*(i/6f))*scale,pos.y-sin(rotate+TWO_PI*(i/6f))*scale);
+      g.vertex(pos.x+cos(rotate+TWO_PI*(i/6f))*scale,pos.y+sin(rotate+TWO_PI*(i/6f))*scale);
     }
     g.endShape(CLOSE);
   }
@@ -1551,9 +1688,55 @@ class BLASBullet extends FireBullet{
   public void WallHit(WallEntity w,boolean b){}
 }
 
+class VoidBullet extends GravityBullet{
+  
+  VoidBullet(SubWeapon w,int num){
+    super(w,num);
+  }
+  
+  public void setAABB(){
+    if(stop){
+      Center=pos;
+      AxisSize=new PVector(scale,scale).mult(2.5f);
+    }else{
+      Center=pos.copy().add(vel.copy().mult(0.5f).mult(vectorMagnification));
+      AxisSize=new PVector(abs(vel.x),abs(vel.y)).mult(vectorMagnification);
+    }
+    putAABB();
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(stop){
+      if(qDist(pos,e.pos,e.size+scale)){
+        EnemyHit(e,true);
+      }
+    }else{
+      if(CircleCollision(e.pos,e.size,pos,vel)){
+        EnemyHit(e,true);
+      }
+    }
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    if(stop){
+      float rad=atan2(e.pos,pos);
+      float dist=dist(pos,e.pos)/((e.size+scale)*0.75f);
+      e.vel.add(cos(rad)*dist,sin(rad)*dist);
+      ((Enemy)e).Hit(parent);
+    }else{
+      ((Enemy)e).Hit(parent.power*3);
+      age=0;
+      stop=true;
+      vel.set(0,0);
+    }
+  }
+}
+
 class TLASBullet extends SubBullet{
   Enemy target;
-  float mag=0.005f;
+  float mag=0.05f;
   int num;
   
   TLASBullet(SubWeapon w,int num){
@@ -1567,7 +1750,7 @@ class TLASBullet extends SubBullet{
     if(nearEnemy.isEmpty())return;
     target=nearEnemy.get((int)random(0,min(nearEnemy.size()-1,num)));
     float rad=atan2(pos,target.pos);
-    vel.set(cos(rad)*speed,-sin(rad)*speed);
+    vel.set(cos(rad)*speed,sin(rad)*speed);
   }
   
   @Override
@@ -1579,7 +1762,7 @@ class TLASBullet extends SubBullet{
       rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,PI*mag*vectorMagnification);
       rotate+=rad;
       rotate%=TWO_PI;
-      vel.set(cos(rotate)*speed,-sin(rotate)*speed);
+      vel.set(cos(rotate)*speed,sin(rotate)*speed);
     }
     super.update();
     setAABB();
