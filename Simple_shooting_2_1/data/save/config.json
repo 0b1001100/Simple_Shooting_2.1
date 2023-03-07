@@ -20,7 +20,8 @@
     "power",
     "speed",
     "duration",
-    "cooltime"
+    "cooltime",
+    "magnet"
   ],
   "vsync": true,
   "Enemy": [
@@ -40,6 +41,7 @@
     "Simple_shooting_2_1$Decoy",
     "Simple_shooting_2_1$Defence",
     "Simple_shooting_2_1$Division",
+    "Simple_shooting_2_1$DummyEnemy",
     "Simple_shooting_2_1$Duplication",
     "Simple_shooting_2_1$EnemyShield",
     "Simple_shooting_2_1$ExplosionEnemy",
@@ -89,5 +91,6 @@
     "Stage7"
   ],
   "Fullscreen": false,
+  "Fragment": 145,
   "GPGPU": false
 }

@@ -2,7 +2,8 @@ java.util.List<Enemy>nearEnemy=Collections.synchronizedList(new ArrayList<Enemy>
 
 class Myself extends Entity{
   HashMap<String,StatusManage>effects=new HashMap<String,StatusManage>();
-  ArrayList<SubWeapon>subWeapons=new ArrayList<SubWeapon>();
+  ArrayList<AttackWeapon>attackWeapons=new ArrayList<AttackWeapon>();
+  ArrayList<ItemWeapon>itemWeapons=new ArrayList<ItemWeapon>();
   ArrayList<Weapon>weapons=new ArrayList<Weapon>();
   Weapon selectedWeapon;
   Weapon ShotWeapon;
@@ -20,16 +21,18 @@ class Myself extends Entity{
   double absHP;
   double absAttak;
   double absDefence;
+  volatile float exp=0;
   float nextLevel=10;
-  float exp=0;
   float protate=0;
   float diffuse=0;
   float rotateSpeed=10;
   float bulletSpeed=15;
   float coolingTime=0;
   float invincibleTime=0;
+  float initMagnetDist=40;
   float magnetDist=40;
   float speedMag=1;
+  volatile int fragment=0;
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
@@ -117,7 +120,8 @@ class Myself extends Entity{
       }
       effects=nextEffects;
     }
-    if(useSub)subWeapons.forEach(w->{w.update();});
+    if(useSub)attackWeapons.forEach(w->{w.update();});
+    itemWeapons.forEach(w->{w.update();});
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
     invincibleTime=max(0,invincibleTime-0.016*vectorMagnification);
@@ -361,7 +365,7 @@ class Satellite extends Entity{
   
   @Override
   public void update(){
-    if(!player.subWeapons.contains(satellite))main_game.CommandQue.put(getClass().getName(),new Command(0,0,0,(e)->Entities.remove(this)));
+    if(!player.attackWeapons.contains(satellite))main_game.CommandQue.put(getClass().getName(),new Command(0,0,0,(e)->Entities.remove(this)));
     cooltime+=vectorMagnification;
     if(attack){
       attackTime+=vectorMagnification;

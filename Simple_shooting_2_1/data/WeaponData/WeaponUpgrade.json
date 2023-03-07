@@ -637,5 +637,24 @@
       "cooltime":10,
       "weight":0
     }
+  ],
+  "magnet":[
+    {
+      "name":["scale"],
+      "scale":10
+    },
+    {
+      "name":["scale"],
+      "scale":10
+    },
+    {
+      "name":["scale"],
+      "scale":10
+    },
+    {
+      "name":["scale","weight"],
+      "scale":10,
+      "weight":0
+    }
   ]
 }

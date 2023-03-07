@@ -134,9 +134,14 @@ class Enemy extends Entity implements Cloneable{
   public void Down(){
     killCount.incrementAndGet();
     isDead=true;
+    spownEntity();
+    dead.deadEvent(this);
+  }
+  
+  private void spownEntity(){
     NextEntities.add(new Particle(this,(int)(size*3),1));
     NextEntities.add(new Exp(this,ceil(((float)maxHP)*expMag)));
-    dead.deadEvent(this);
+    if(random(1f)<maxHP*0.01f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.001?random(1)<maxHP*0.0001?100:10:1));
   }
   
   @Override
@@ -1245,6 +1250,9 @@ class Recover extends Enemy implements BossEnemy{
     setSize(40);
     setMass(35);
     setColor(new Color(255,150,225));
+    dead=(e)->{
+      NextEntities.add(new RecoverItem(this));
+    };
   }
   
   @Override
@@ -1259,22 +1267,12 @@ class Recover extends Enemy implements BossEnemy{
   }
   
   @Override
-  public void BulletCollision(Bullet b){
-    super.BulletCollision(b);
-    if(isDead)NextEntities.add(new RecoverItem(this));
-  }
-  
-  @Override
   public void ExplosionHit(Explosion e,boolean b){
     Hit(10);
   }
   
-  @Override
-  public void BulletHit(Bullet b,boolean p){
-    if(isDead)NextEntities.add(new RecoverItem(this));
-  }
-  
-  private final class RecoverItem extends Exp{
+  public final class RecoverItem extends Exp{
+    boolean recover=true;
     
     RecoverItem(){
       size=5;
@@ -1288,7 +1286,7 @@ class Recover extends Enemy implements BossEnemy{
     }
     
     @Override
-    public void display(PGraphics g){
+    public void display(PGraphics g){println(isDead,pos,this);
       g.stroke(60,255,230);
       g.noFill();
       g.strokeWeight(2);
@@ -1296,8 +1294,9 @@ class Recover extends Enemy implements BossEnemy{
     }
     
     @Override
-    public void update(){
-      if(inScreen&&qDist(player.pos,pos,player.magnetDist)&&player.canMagnet){
+    public void getProcess(){
+      if(recover){
+        recover=false;
         ++player.remain;
         player.exp+=250;
         isDead=true;
@@ -1515,7 +1514,7 @@ class SnipeEnemy extends Turret_S implements BossEnemy{
     g.rotate(rotate);
     g.strokeWeight(1);
     g.stroke(255,0,0,150);
-    g.line(0,0,0,-150);
+    g.line(0,0,150,0);
     g.noStroke();
     g.fill(255,0,0,150);
     g.ellipse(0,0,3,3);
@@ -2025,6 +2024,60 @@ class Missile_B extends M_Boss_Y implements BossEnemy{
       boss.startDisplay();
     }
     return this;
+  }
+}
+
+class Slide extends Turret_S{
+  float slideTime=0f;
+  
+  @Override
+  protected void init(){
+    setHP(4);
+    setSize(23);
+    maxSpeed=1;
+    rotateSpeed=1;
+    target=player;
+    setExpMag(1.1);
+    setColor(new Color(0,190,255));
+    addMultiplyer(G_ShotWeapon.class,2);
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    slideTime+=vectorMagnification;
+    if(slideTime>300f){
+      slideTime=0f;
+      vel.add(Speed*7*cos(rotate),0*sin(rotate));
+    }
+  }
+}
+
+class Slime_F extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(8);
+    setSize(18);
+    maxSpeed=0.7;
+    rotateSpeed=3;
+    setColor(new Color(0,125,255));
+    addMultiplyer(EnergyBullet.class,1.1);
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      if(e instanceof Slime_F){
+        if(!isDead){
+          e.isDead=true;
+          setSize(size+50f/size);
+          setHP(HP+e.HP*0.5);
+        }
+      }else{
+        EnemyHit(e,false);
+      }
+    }
   }
 }
 

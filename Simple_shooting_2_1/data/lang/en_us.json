@@ -45,6 +45,7 @@
   "me_menu":"Back to menu",
   "ui_kill":"Number of kill",
   "ui_remain":"Remain",
+  "ui_frag":"Fragment",
   "tu_move":"Move with WASD",
   "tu_shot":"Left click to shoot",
   "tu_shot_2":"Press and hold to fire continuously",
@@ -79,10 +80,12 @@
   "ex_power":"Increase attack power by 10%",
   "ex_speed":"Increases projectile speed by 10%",
   "ex_scale":"Increase damage range by 10%",
+  "ex_magnet":"Experience acquisition range increased by 10",
   "ex_param_projectile":"Projectile +",
   "ex_param_cooltime":"Cool time -",
   "ex_param_duration":"Duration +",
   "ex_param_power":"Attack +",
   "ex_param_velocity":"Speed +",
-  "ex_param_scale":"Scale +"
+  "ex_param_scale":"Scale +",
+  "ex_param_magnet":"Experience acquisition range +"
 }

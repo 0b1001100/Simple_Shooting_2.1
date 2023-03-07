@@ -42,8 +42,8 @@ class GameProcess{
      stage=new Stage();
      StageFlag.clear();
      gameOver=animation=upgrade=done=menu=pause=false;
+     deadTimer=sumLevel=0;
      killCount.set(0);
-     sumLevel=0;
      playerTable.clear();
      Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{
        playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());
@@ -52,27 +52,27 @@ class GameProcess{
        i.reset();
        playerTable.addTable(i,i.weight);
      });
-     player.subWeapons.clear();
+     player.attackWeapons.clear();
      switch(StageName){
        case "Tutorial":initTutorial();break;
-       case "Stage1":player.subWeapons.add(masterTable.get("Laser").getWeapon());
-                     player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
+       case "Stage1":player.attackWeapons.add(masterTable.getWeapon("Laser"));
+                     player.attackWeapons.add(masterTable.getWeapon("PlasmaField"));
                      break;
-       case "Stage2":player.subWeapons.add(masterTable.get("Mirror").getWeapon());
-                     player.subWeapons.add(masterTable.get("Reflector").getWeapon());
+       case "Stage2":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
+                     player.attackWeapons.add(masterTable.getWeapon("Reflector"));
                      break;
-       case "Stage3":player.subWeapons.add(masterTable.get("Turret").getWeapon());
-                    player.subWeapons.add(masterTable.get("Absorption").getWeapon());
+       case "Stage3":player.attackWeapons.add(masterTable.getWeapon("Turret"));
+                     player.attackWeapons.add(masterTable.getWeapon("Absorption"));
                      break;
-       case "Stage4":player.subWeapons.add(masterTable.get("G_Shot").getWeapon());
-                     player.subWeapons.add(masterTable.get("Grenade").getWeapon());
+       case "Stage4":player.attackWeapons.add(masterTable.getWeapon("G_Shot"));
+                     player.attackWeapons.add(masterTable.getWeapon("Grenade"));
                      break;
-       case "Stage5":player.subWeapons.add(masterTable.get("Fire").getWeapon());
-                     player.subWeapons.add(masterTable.get("Lightning").getWeapon());
+       case "Stage5":player.attackWeapons.add(masterTable.getWeapon("Fire"));
+                     player.attackWeapons.add(masterTable.getWeapon("Lightning"));
                      break;
-       case "Stage6":player.subWeapons.add(masterTable.get("Mirror").getWeapon());
-                     player.subWeapons.add(masterTable.get("BLAS").getWeapon());
-                     player.subWeapons.add(masterTable.get("Ice").getWeapon());
+       case "Stage6":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
+                     player.attackWeapons.add(masterTable.getWeapon("BLAS"));
+                     player.attackWeapons.add(masterTable.getWeapon("Ice"));
                      break;
      }
   }
@@ -248,7 +248,7 @@ class GameProcess{
     CommandQue=nextQue;
   }
   
-  public void EntityUpdateAndCollision(Runnable whileUpdate,Runnable whileCollision){
+  public void EntityUpdateAndCollision(Runnable whileUpdate,Runnable whileCollision) throws RejectedExecutionException{
     byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
     float block=Entities.size()/(float)ThreadNumber;
     for(byte b=0;b<ThreadNumber;b++){
@@ -380,7 +380,7 @@ class GameProcess{
         JSONArray a=nextDataMap.get(s);
         for(int i=0;i<a.size();i++){
           if(a.getJSONObject(i).getString("type").equals("use")){
-            player.subWeapons.remove(masterTable.get(a.getJSONObject(i).getString("name")).w);
+            player.attackWeapons.remove(masterTable.get(a.getJSONObject(i).getString("name")).w);
           }
         }
         playerTable.addTable(playerTable.get(s),playerTable.get(s).weight);
@@ -404,11 +404,22 @@ class GameProcess{
       EventSet.put("start_upgrade","");
       upgrade=true;
       menu=false;
-      int num=min(playerTable.probSize(),round(random(3,3.55)));
-      Item[]list=new Item[num];
       ItemTable copy=playerTable.clone();
+      java.util.List<String> weaponNames=Stream.concat(player.attackWeapons.stream(),player.itemWeapons.stream())
+                                                          .filter(w->masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))!=null
+                                                          ||w.level<masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$","")).upgradeData.size()+1)
+                                                          .map(w->w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))
+                                                          .collect(Collectors.toList());
+      int num=min(14-(player.attackWeapons.size()-weaponNames.size()),min(playerTable.probSize(),round(random(3,3.55))));
+      Item[]list=new Item[num];
       for(int i=0;i<num;i++){
-        list[i]=copy.getRandomWeapon();
+        if(random(0,0.35)<1&&!weaponNames.isEmpty()){
+          String target=weaponNames.get(round(random(0,weaponNames.size()-1)));
+          list[i]=copy.get(target);
+          weaponNames.remove(target);
+        }else if(player.attackWeapons.size()<7){
+          list[i]=copy.getRandomWeapon();
+        }
         switch(i){
           case 0:if((sumLevel>=17&&0.5f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
           case 1:if((sumLevel>=9&&0.5f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
@@ -421,8 +432,9 @@ class GameProcess{
       UpgradeSet.removeAll();
       UpgradeButton[]buttons=new UpgradeButton[num];
       for(int i=0;i<num;i++){
-        buttons[i]=(UpgradeButton)new UpgradeButton(list[i].getName()+"  Level"+(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1)).setBounds(width*0.45,100+(height-100)*0.25*i,width*0.5,(height-100)*0.225);
-        if(player.subWeapons.contains(list[i].w)){
+        boolean hasWeapon=player.attackWeapons.contains(list[i].getWeapon())||player.itemWeapons.contains(list[i].getWeapon());
+        buttons[i]=(UpgradeButton)new UpgradeButton(list[i].getName()+"  Level"+(hasWeapon?(list[i].level+1):1)).setBounds(width*0.45,100+(height-100)*0.25*i,width*0.5,(height-100)*0.225);
+        if(hasWeapon){
           if(list[i].type.equals("item")){
             buttons[i].setExplanation(getLanguageText("ex_"+list[i].getName()));
           }else{
@@ -442,19 +454,31 @@ class GameProcess{
         });
         Item item=list[i];
         buttons[i].addListener(()->{
-          if(player.subWeapons.contains(item.getWeapon())){
+          SubWeapon w=item.getWeapon();
+          if((w instanceof AttackWeapon)&&player.attackWeapons.contains(w)){
             ++item.level;
             item.update();
             ++sumLevel;
-          }else if(item.getType().equals("weapon")){
-            player.subWeapons.add(item.getWeapon());
-            ++sumLevel;
-          }else if(item.getType().equals("item")){
-            player.subWeapons.add(item.getWeapon());
-            item.getWeapon().update();
-          }else if(item.getType().equals("next_weapon")){
+          }else if((w instanceof ItemWeapon)&&player.itemWeapons.contains(w)){
+            ++item.level;
             item.update();
-            player.subWeapons.add(item.getWeapon());
+            w.update();
+            ++sumLevel;
+          }else{
+            switch(item.getType()){
+              case "weapon":{
+                player.attackWeapons.add((AttackWeapon)w);
+                ++sumLevel;
+              }break;
+              case "item":{
+                player.itemWeapons.add((ItemWeapon)w);
+                w.update();
+              }break;
+              case "next_weapon":{
+                item.update();
+                player.attackWeapons.add((AttackWeapon)w);
+              }break;
+            }
           }
           applyStatus();
           --player.levelupNumber;
@@ -526,14 +550,13 @@ class GameProcess{
       Item i=masterTable.get(tokens.get(1).getText().replace("\"",""));
       if(i==null)return;
       SubWeapon w=i.getWeapon();
-      if(player.subWeapons.contains(w)){
-        int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),PApplet.parseFloat(tokens.get(3).getText()));
+      int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),PApplet.parseFloat(tokens.get(3).getText()));
+      if((w instanceof AttackWeapon)&&player.attackWeapons.contains(w)){
         try{
           if(i.level<targetLevel){
             while(i.level<targetLevel){
               ++i.level;
               i.update();
-              if(i.getType().equals("item"))w.update();
               ++sumLevel;
             }
           }else{
@@ -541,7 +564,29 @@ class GameProcess{
             while(i.level<targetLevel){
               ++i.level;
               i.update();
-              if(i.getType().equals("item"))w.update();
+              ++sumLevel;
+            }
+          }
+        }catch(NullPointerException e){
+        }finally{
+          i.level=constrain(i.level,1,i.upgradeData.size()+1);
+          applyStatus();
+        }
+      }else if((w instanceof ItemWeapon)&&player.itemWeapons.contains(w)){
+        try{
+          if(i.level<targetLevel){
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              w.update();
+              ++sumLevel;
+            }
+          }else{
+            i.reset();
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              w.update();
               ++sumLevel;
             }
           }
@@ -558,9 +603,12 @@ class GameProcess{
     String src=tokens.get(1).getText();
     if(tokens.get(1).getText().length()>2&&masterTable.contains(src.replace("\"",""))){
       SubWeapon w=masterTable.get(src.replace("\"","")).getWeapon();
-      if(!player.subWeapons.contains(w)){
-        player.subWeapons.add(w);
-        if(masterTable.get(src.replace("\"","")).getType().equals("item"))w.update();
+      if((w instanceof AttackWeapon)&&!player.attackWeapons.contains(w)){
+        player.attackWeapons.add((AttackWeapon)w);
+        applyStatus();
+      }else if((w instanceof ItemWeapon)&&!player.itemWeapons.contains(w)){
+        player.itemWeapons.add((ItemWeapon)w);
+        w.update();
         applyStatus();
       }else{
         addWarning("You already have "+src);
@@ -568,10 +616,6 @@ class GameProcess{
     }else{
       addWarning(src+" doesn't exist");
     }
-  }
-  
-   public void command_weapon(java.util.List<Token>tokens){
-    if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))&&!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){}
   }
   
    public void command_kill(java.util.List<Token>tokens){
@@ -590,7 +634,7 @@ class GameProcess{
   }
   
   public void command_parameter(java.util.List<Token>tokens){
-    itemWeapon w=(itemWeapon)masterTable.get(tokens.get(1).getText()).getWeapon();
+    ItemWeapon w=(ItemWeapon)masterTable.get(tokens.get(1).getText()).getWeapon();
     switch(tokens.get(1).getText()){
       case "projectile":w.bulletNumber=(int)setParameter(w.bulletNumber,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
       case "scale":w.scale=(int)setParameter(w.scale,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;

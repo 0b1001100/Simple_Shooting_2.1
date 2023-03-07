@@ -640,14 +640,8 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
       displayAABB(g);
     }
     g.strokeWeight(2);
-    if(!pause){
-      points.add(pos.copy());
-      while(points.size()>memory){
-        points.remove(0);
-      }
-    }
     g.stroke(toColor(bulletColor),100);
-    if(points.size()>0&&vertex.size()>0&&!pause){
+    if(points.size()>0&&vertex.size()>0){
       ArrayList<PVector>vertexArray=new ArrayList<PVector>(vertex.keySet());
       for(int i=0;i<=vertex.size();i++){
         switch(i){
@@ -680,20 +674,6 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
       if(++v<memory)nextVertex.put(k,v);
     });
     vertex=nextVertex;
-    if(pos.x<-scroll.x){
-      pos.x=-scroll.x;
-      if(vel.x>0)vel.x=-vel.x;
-    }else if(-scroll.x+width<pos.x){
-      pos.x=-scroll.x+width;
-      if(vel.x<0)vel.x=-vel.x;
-    }
-    if(pos.y<-scroll.y){
-      pos.y=-scroll.y;
-      if(vel.y>0)vel.y=-vel.y;
-    }else if(-scroll.y+height<pos.y){
-      pos.y=-scroll.y+height;
-      if(vel.y<0)vel.y=-vel.y;
-    }
     PVector cross=null;
     PVector lvel=vel.copy();
     int dir=0;
@@ -706,6 +686,7 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
       }
       if(cross!=null){
         vertex.put(cross,0);
+        pos=cross.copy();
         dir=i;
         lvel=vel.copy().sub(cross.copy().sub(pos));
         if(dir<2){
@@ -719,6 +700,17 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
       }
     }
     pos.add(lvel.copy().mult(vectorMagnification));
+    if(cross!=null){
+      points.add(cross);
+      while(points.size()>memory){
+        points.remove(0);
+      }
+    }else if(!pause){
+      points.add(pos.copy());
+      while(points.size()>memory){
+        points.remove(0);
+      }
+    }
     setAABB();
   }
   

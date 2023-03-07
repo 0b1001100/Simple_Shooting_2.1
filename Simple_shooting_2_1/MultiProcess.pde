@@ -130,6 +130,7 @@ class EntityDraw implements Callable<PGraphics>{
 class saveConfig implements Runnable{
   
   public void run(){
+    conf.setInt("Fragment",fragmentCount);
     if(!StageFlag.contains("Game_Over")){
       conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
       conf.setJSONArray("Enemy",parseJSONArray(Arrays.toString(ArchiveEntity.toArray(new String[0]))));

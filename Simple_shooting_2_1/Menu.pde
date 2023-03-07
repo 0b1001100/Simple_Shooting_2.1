@@ -1,3 +1,5 @@
+Canvas menu_op_canvas;
+
 public void initMenu(){
   starts=new ComponentSetLayer();
   NormalButton New=new NormalButton(Language.getString("start_game"));
@@ -317,6 +319,21 @@ public void initMenu(){
       pg.textLeading(30);
       if(conf.getBoolean("clear"))pg.text(getLanguageText("credit_co_2"),0,0,width,height*0.9-30);
       pg.endDraw();
+    });
+  //--
+  menu_op_canvas=new Canvas(g);
+    menu_op_canvas.setContent((pg)->{
+      PGraphicsOpenGL glpg=(PGraphicsOpenGL)pg;
+      glpg.blendMode(BLEND);
+      glpg.rectMode(CORNER);
+      glpg.noStroke();
+      float v=grayScale(get(10,height-30));
+      glpg.fill(int(255-round(v/255)*255));
+      glpg.rect(10,height-30,width-20,1);
+      glpg.textSize(20);
+      glpg.textFont(font_20);
+      glpg.text("Enter : "+(useController?"〇":"Enter"),50,height-7.5);
+      glpg.text("Back : "+(useController?"×":"Shift"),200,height-7.5);
     });
   //--
   starts.setSubChildDisplayType(1);

@@ -9,6 +9,7 @@ import java.nio.*;
 import java.nio.file.*;
 
 import java.util.*;
+import java.util.stream.*;
 import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.Map.Entry;
@@ -22,6 +23,8 @@ import com.jogamp.newt.event.*;
 import com.jogamp.opengl.*;
 import com.jogamp.newt.*;
 
+//import jdk.incubator.vector.*;
+
 import static com.jogamp.common.util.IOUtil.ClassResources;
 
 import static com.jogamp.newt.event.KeyEvent.*;
@@ -31,6 +34,8 @@ Simple_shooting_2_1 CopyApplet=this;
 Myself player;
 
 ExecutorService exec;
+
+//VectorSpecies<Float> SPECIES = FloatVector.SPECIES_256;
 
 ArrayList<Future<?>>CollisionFuture=new ArrayList<Future<?>>();
 ArrayList<Future<?>>entityFuture=new ArrayList<Future<?>>();
@@ -136,6 +141,7 @@ String StageName="";
 float keyPressTime=0;
 float resultTime=0;
 long pTime=0;
+int fragmentCount=0;
 int mouseWheelCount=0;
 int compute_program;
 int compute_shader;
@@ -192,6 +198,10 @@ void settings(){
 void setup(){
   NewtFactory.setWindowIcons(new ClassResources(new String[]{ImagePath+"icon_16.png",ImagePath+"icon_48.png"},this.getClass().getClassLoader(),this.getClass()));
   hint(DISABLE_OPENGL_ERRORS);
+  hint(DISABLE_DEPTH_SORT);
+  hint(DISABLE_DEPTH_TEST);
+  hint(DISABLE_DEPTH_MASK);
+  hint(DISABLE_TEXTURE_MIPMAPS);
   ((GLWindow)surface.getNative()).addWindowListener(new com.jogamp.newt.event.WindowListener() {
     public void windowDestroyed(com.jogamp.newt.event.WindowEvent e) {
     }
@@ -248,9 +258,9 @@ void setup(){
        dev.getTypeName().equals(net.java.games.input.Controller.Type.STICK.toString())){
       controller=dev;
       break;
-    }  
+    }
   }
-  if(controller!=null){
+  if(!useController&&controller!=null){
     controller.open();
     useController=true;
     for(int i=0;i<controller.getNumberOfButtons();i++){
@@ -346,7 +356,7 @@ public void draw(){
       JSONObject o=a.getJSONObject(i);
       String name=o.getString("name");
       WeaponConstructor.put(name,Class.forName("Simple_shooting_2_1$"+name+"Weapon").getDeclaredConstructor(Simple_shooting_2_1.class,JSONObject.class));
-      masterTable.addTable(new Item(o,o.getString("type")),o.getFloat("weight"));
+      masterTable.addTable(build(o,o.getString("type")),o.getFloat("weight"));
     }catch(ClassNotFoundException|NoSuchMethodException g){g.printStackTrace();}
   }
   Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
@@ -354,6 +364,7 @@ public void draw(){
   displayFPS=conf.getBoolean("FPS");
   fullscreen=conf.getBoolean("Fullscreen");
   ShaderQuality=conf.getInt("ShaderQuality");
+  fragmentCount=conf.getInt("Fragment");
   vsync=conf.getBoolean("vsync");
   if(vsync){
     FrameRateConfig=RefleshRate;
@@ -388,7 +399,7 @@ void applyStatus(){
       AddtionalStatus.replace(k1,AddtionalStatus.get(k1)+v2);
     });
   });
-  player.subWeapons.forEach(w->{
+  player.attackWeapons.forEach(w->{
     w.reInit();
   });
 }
@@ -410,6 +421,7 @@ String getLanguageText(String s){
     default:background(230);break;
   }
   starts.display();
+  if(!starts.nowLayer.equals("root"))menu_op_canvas.display();
   starts.update();
   if(colorInverse&&!starts.nowLayer.equals("root")){
     colorInv.set("tex",g);
@@ -438,6 +450,7 @@ String getLanguageText(String s){
     });
     resultButton.requestFocus();
     resultSet=toSet(resultButton);
+    fragmentCount+=player.fragment;
     saveConfig save=new saveConfig();
     exec.submit(save);
   }
@@ -469,6 +482,7 @@ String getLanguageText(String s){
   textSize(20);
   textFont(font_20);
   text(Language.getString("ui_kill")+":"+killCount+"\n"+
+       Language.getString("ui_frag")+":"+player.fragment+"\n"+
        "Time:"+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5-150,height*0.2+100);
   resultSet.display();
   resultSet.update();
@@ -1027,6 +1041,10 @@ public void vertex(PGraphics g,PVector p){
 
  public int toRGB(Color c) {
   return color(c.getRed(),c.getGreen(),c.getBlue(),255);
+}
+
+public float grayScale(int c){
+  return ((c>>16)&0xFF)*0.298912f+((c>>8)&0xFF)*0.586611f+(c&0xFF)*0.114478;
 }
 
  public Color toAWTColor(int c) {

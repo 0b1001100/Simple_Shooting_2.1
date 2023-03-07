@@ -321,6 +321,9 @@ class SurvivorHUD extends GameHUD{
     textAlign(RIGHT);
     text(Language.getString("ui_kill")+":"+killCount,width-200,78);
     text(Language.getString("ui_remain")+":"+player.remain,100,78);
+    text(Language.getString("ui_frag")+":"+player.fragment,250,78);
+    //text("weapons:"+player.attackWeapons.size(),400,78);
+    text("weapons:"+player.magnetDist,400,78);
     pop();
   }
   

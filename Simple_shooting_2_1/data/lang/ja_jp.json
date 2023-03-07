@@ -45,6 +45,7 @@
   "me_menu":"メニューに戻る",
   "ui_kill":"撃破数",
   "ui_remain":"残機",
+  "ui_frag":"残骸",
   "tu_move":"WASDで移動",
   "tu_shot":"左クリックで射撃",
   "tu_shot_2":"長押しで連射",
@@ -79,10 +80,12 @@
   "ex_power":"攻撃力を10%増加",
   "ex_speed":"弾の速度を10%増加",
   "ex_scale":"ダメージ範囲を10%拡大",
+  "ex_magnet":"経験値取得範囲を10%拡大",
   "ex_param_projectile":"発射物 +",
   "ex_param_cooltime":"クールタイム -",
   "ex_param_duration":"効果時間 +",
   "ex_param_power":"攻撃力 +",
   "ex_param_velocity":"弾速 +",
-  "ex_param_scale":"ダメージ範囲 +"
+  "ex_param_scale":"ダメージ範囲 +",
+  "ex_param_magnet":"経験値取得範囲 +"
 }

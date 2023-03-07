@@ -57,6 +57,8 @@ void Debug(){
     });
     DebugWarning=NextWarning;
   }
+  RunTime=(System.nanoTime()-RunTimeBuffer)/1000000f;
+  RunTimeBuffer=System.nanoTime();
   if(Debug){
     String Text="";
     fill(255);
@@ -65,7 +67,6 @@ void Debug(){
     textAlign(LEFT);
     pushMatrix();
     resetMatrix();
-    RunTime=(System.nanoTime()-RunTimeBuffer)/1000000f;
     for(int i=0;i<5;i++){
       switch(i){
         case 0:fill(0,128,255,200);Text="EntityTime(ms):"+EntityTime;break;
@@ -77,7 +78,6 @@ void Debug(){
       }
       text(Text,30,100+i*20);
     }
-    RunTimeBuffer=System.nanoTime();
     addStatistics();
     strokeWeight(1);
     stroke(255,200);
