@@ -3,7 +3,7 @@ HashMap<String,Constructor>WeaponConstructor=new HashMap<String,Constructor>();
 HashMap<String,HashMap<String,Float>>StatusList;
 HashMap<String,Float>AddtionalStatus;
 
-class Weapon implements Equipment,Cloneable{
+abstract class Weapon implements Equipment,Cloneable{
   Entity parent;
   boolean autoShot=true;
   boolean pHeat=false;
@@ -127,18 +127,28 @@ class Weapon implements Equipment,Cloneable{
     }
   }
   
-   public void shot(){
+  public void shot(){
     for(int i=0;i<this.bulletNumber;i++){
-      if(parent instanceof Myself){
-        NextEntities.add(new Bullet((Myself)parent,i));
-      }else{
-        NextEntities.add(new Bullet(parent,this));
-      }
+      addBullet(i);
     }
   }
   
+  protected abstract void addBullet(int i);
+  
    public Weapon clone()throws CloneNotSupportedException{
     return (Weapon)super.clone();
+  }
+}
+
+class PlayerWeapon extends Weapon{
+  
+  PlayerWeapon(Entity e){
+    super(e);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new PlayerBullet((Myself)parent,i));
   }
 }
 
@@ -159,10 +169,8 @@ class EnemyWeapon extends Weapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new ThroughBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new ThroughBullet(parentEnemy,this));
   }
 }
 
@@ -179,10 +187,8 @@ class EnemyPoisonWeapon extends EnemyWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new EnemyPoisonBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new EnemyPoisonBullet(parentEnemy,this));
   }
 }
 
@@ -198,10 +204,8 @@ class AntiSkillWeapon extends EnemyWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new AntiSkillBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new AntiSkillBullet(parentEnemy,this));
   }
 }
 
@@ -217,10 +221,8 @@ class BoundWeapon extends EnemyWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new BoundBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new BoundBullet(parentEnemy,this));
   }
 }
 
@@ -239,10 +241,8 @@ class SnipeWeapon extends Weapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new ThroughBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new ThroughBullet(parentEnemy,this));
   }
 }
 
@@ -262,10 +262,8 @@ class BlasterWeapon extends Weapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new AntiExplosionBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new AntiExplosionBullet(parentEnemy,this));
   }
 }
 
@@ -283,10 +281,8 @@ class MissileWeapon extends Weapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new MissileBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new MissileBullet(parentEnemy,this));
   }
 }
 
@@ -298,10 +294,8 @@ class EnemyMirrorWeapon extends Weapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new EnemyMirrorBullet(this,i,bulletNumber));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new EnemyMirrorBullet(this,i,bulletNumber));
   }
 }
 
@@ -321,14 +315,12 @@ class FlashWeapon extends Weapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new ThroughBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new ThroughBullet(parentEnemy,this));
   }
 }
 
-class EnergyBullet extends Weapon{
+class EnergyBullet extends PlayerWeapon{
   
   EnergyBullet(Entity e){
     super(e);
@@ -341,7 +333,7 @@ class EnergyBullet extends Weapon{
   }
 }
 
-class PulseBullet extends Weapon{
+class PulseBullet extends PlayerWeapon{
   
   PulseBullet(Entity e){
     super(e);
@@ -378,7 +370,7 @@ abstract class SubWeapon extends Weapon{
   public abstract void update();
 }
 
-class AttackWeapon extends SubWeapon{
+abstract class AttackWeapon extends SubWeapon{
   
   AttackWeapon(){
     super();
@@ -409,7 +401,7 @@ class AttackWeapon extends SubWeapon{
     this.level=level;
     if(level-2>maxLevel)throw new NullPointerException();
     JSONObject add=a.getJSONObject(level-2);
-    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).getStringArray()));
+    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).toStringArray()));
     param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
     bulletNumber=obj.getInt(params[1])+upgradeStatus.get(params[1]).intValue()+AddtionalStatus.get(params[1]).intValue();
     scale=(obj.getFloat(params[2])+upgradeStatus.get(params[2]))*AddtionalStatus.get(params[2]);
@@ -456,10 +448,8 @@ class G_ShotWeapon extends AttackWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new GravityBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new GravityBullet(this,i));
   }
 }
 
@@ -474,10 +464,8 @@ class TurretWeapon extends AttackWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new TurretBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new TurretBullet(this,i));
   }
 }
 
@@ -492,10 +480,8 @@ class MP5Weapon extends TurretWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new MP5Bullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new MP5Bullet(this,i));
   }
 }
 
@@ -510,14 +496,13 @@ class GrenadeWeapon extends AttackWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new GrenadeBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new GrenadeBullet(this,i));
   }
 }
 
 class MirrorWeapon extends AttackWeapon{
+  float offset=0;
   
   MirrorWeapon(){
     super();
@@ -527,12 +512,15 @@ class MirrorWeapon extends AttackWeapon{
     super(o);
   }
   
-  @Override 
+  @Override
   public void shot(){
-    float offset=random(0,TWO_PI);
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new MirrorBullet(this,i,bulletNumber,offset));
-    }
+    offset=random(0,TWO_PI);
+    super.shot();
+  }
+  
+  @Override 
+  protected void addBullet(int i){
+    NextEntities.add(new MirrorBullet(this,i,bulletNumber,offset));
   }
 }
 
@@ -547,11 +535,8 @@ class InfinityShieldWeapon extends MirrorWeapon{
   }
   
   @Override 
-  public void shot(){
-    float offset=random(0,TWO_PI);
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new InfinityShieldBullet(this,i,bulletNumber,offset));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new InfinityShieldBullet(this,i,bulletNumber,offset));
   }
 }
 
@@ -594,6 +579,9 @@ class PlasmaFieldWeapon extends AttackWeapon{
     super.reInit();
     if(bullet!=null)bullet.init(this);
   }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
 class LaserWeapon extends AttackWeapon{
@@ -606,11 +594,9 @@ class LaserWeapon extends AttackWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new LaserBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new LaserBullet(this,i));
   }
 }
 
@@ -624,11 +610,9 @@ class ElectronWeapon extends LaserWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new ElectronBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new ElectronBullet(this,i));
   }
 }
 
@@ -639,13 +623,16 @@ class LightningWeapon extends AttackWeapon{
     super(o);
   }
   
-  @Override 
+  @Override
   public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new LightningBullet(this,i,bulletNumber,offset));
-    }
-    offset++;
+    super.shot();
+    ++offset;
     offset%=12;
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new LightningBullet(this,i,bulletNumber,offset));
   }
 }
 
@@ -659,11 +646,9 @@ class ReflectorWeapon extends AttackWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new ReflectorBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new ReflectorBullet(this,i));
   }
 }
 
@@ -677,11 +662,9 @@ class ShadowReflectorWeapon extends ReflectorWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new ShadowReflectorBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new ShadowReflectorBullet(this,i));
   }
 }
 
@@ -715,6 +698,9 @@ class AbsorptionWeapon extends AttackWeapon{
     super.init(o);
     bullet=null;
   }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
 class FireWeapon extends AttackWeapon{
@@ -728,10 +714,8 @@ class FireWeapon extends AttackWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new FireBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new FireBullet(this,i));
   }
 }
 
@@ -746,10 +730,8 @@ class IceWeapon extends AttackWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new IceBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new IceBullet(this,i));
   }
 }
 
@@ -764,10 +746,8 @@ class InfernoWeapon extends AttackWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new InfernoBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new InfernoBullet(this,i));
   }
 }
 
@@ -798,6 +778,9 @@ class SatelliteWeapon extends AttackWeapon{
     if(child==null)update();
     child.maxCooltime=max(15/bulletNumber,15-bulletNumber*2);
   }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
 class HexiteWeapon extends SatelliteWeapon{
@@ -834,10 +817,8 @@ class BLASWeapon extends AttackWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new BLASBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new BLASBullet(this,i));
   }
 }
 
@@ -852,7 +833,7 @@ class VoidWeapon extends AttackWeapon{
   }
   
   @Override 
-  public void shot(){
+  protected void addBullet(int i){
     NextEntities.add(new VoidBullet(this,0));
   }
 }
@@ -870,14 +851,12 @@ class TLASWeapon extends AttackWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new TLASBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new TLASBullet(this,i));
   }
 }
 
-class ItemWeapon extends SubWeapon{
+abstract class ItemWeapon extends SubWeapon{
   
   ItemWeapon(){
     super();
@@ -910,7 +889,7 @@ class ItemWeapon extends SubWeapon{
     this.level=level;
     if(level-2>=a.size())throw new NullPointerException();
     JSONObject add=a.getJSONObject(level-2);
-    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).getStringArray()));
+    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).toStringArray()));
     param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
     switch(name){
       case "projectile":bulletNumber=obj.getInt("value")+upgradeStatus.get(params[1]).intValue();break;
@@ -950,6 +929,9 @@ class ItemWeapon extends SubWeapon{
   @Override
   public void update(){
   }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
 final class projectileWeapon extends ItemWeapon{

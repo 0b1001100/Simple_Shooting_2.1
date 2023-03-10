@@ -2,7 +2,7 @@ ArrayList<AABBData>EntityDataX=new ArrayList<AABBData>();
 ArrayList<ArrayList<AABBData>>HeapEntityDataX=new ArrayList<ArrayList<AABBData>>();
 AABBData[]SortedDataX;
 
-class Enemy extends Entity implements Cloneable{
+abstract class Enemy extends Entity implements Cloneable{
   HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
   Weapon useWeapon=null;
   Weapon ShotWeapon=null;
@@ -41,10 +41,6 @@ class Enemy extends Entity implements Cloneable{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
     g.rotate(rotate);
@@ -183,7 +179,7 @@ class Enemy extends Entity implements Cloneable{
   @Override
   public void EnemyHit(Enemy e,boolean b){
     PVector c=pos.copy().sub(e.pos).normalize();
-    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos,e.pos));
+    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(atan2(pos,e.pos));
     vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
     e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
     pos.sub(d);
@@ -887,10 +883,6 @@ class Teleport extends Enemy{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
     g.rotate(rotate);
@@ -1286,7 +1278,7 @@ class Recover extends Enemy implements BossEnemy{
     }
     
     @Override
-    public void display(PGraphics g){println(isDead,pos,this);
+    public void display(PGraphics g){
       g.stroke(60,255,230);
       g.noFill();
       g.strokeWeight(2);
@@ -1357,10 +1349,6 @@ class Barrier extends M_Boss_Y implements BossEnemy{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
     g.strokeWeight(2);
@@ -1505,10 +1493,6 @@ class SnipeEnemy extends Turret_S implements BossEnemy{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
     g.rotate(rotate);
@@ -2080,6 +2064,32 @@ class Slime_F extends Enemy{
     }
   }
 }
+
+//class Slide extends Turret_S{
+//  float slideTime=0f;
+  
+//  @Override
+//  protected void init(){
+//    setHP(4);
+//    setSize(23);
+//    maxSpeed=1;
+//    rotateSpeed=1;
+//    target=player;
+//    setExpMag(1.1);
+//    setColor(new Color(0,190,255));
+//    addMultiplyer(G_ShotWeapon.class,2);
+//  }
+  
+//  @Override
+//  public void Process(){
+//    super.Process();
+//    slideTime+=vectorMagnification;
+//    if(slideTime>300f){
+//      slideTime=0f;
+//      vel.add(Speed*7*cos(rotate),0*sin(rotate));
+//    }
+//  }
+//}
 
 interface BossEnemy{
 }

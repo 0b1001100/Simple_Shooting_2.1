@@ -118,7 +118,7 @@ class Weapon_Item extends Item{
     if(upgradeData!=null&&level>1&&level<=maxLevel){
       w.upgrade(upgradeData,level);
       JSONObject add=upgradeData.getJSONObject(level-2);
-      HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
+      HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").toStringArray()));
       if(param.contains("weight")){
         weight=upgradeData.getJSONObject(level-2).getInt("weight");
         playerTable.addTable(this,weight);
@@ -151,7 +151,7 @@ class Item_Item extends Item{
     if(upgradeData!=null&&level>1&&level<=maxLevel){
       w.upgrade(upgradeData,level);
       JSONObject add=upgradeData.getJSONObject(level-2);
-      HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
+      HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").toStringArray()));
       if(param.contains("weight")){
         weight=upgradeData.getJSONObject(level-2).getInt("weight");
         playerTable.addTable(this,weight);
@@ -195,7 +195,7 @@ class NextWeapon_Item extends Item{
       ++level;
       w.upgrade(upgradeData,level);
       JSONObject add=upgradeData.getJSONObject(level-2);
-      HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").getStringArray()));
+      HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").toStringArray()));
       if(param.contains("weight")){
         weight=upgradeData.getJSONObject(level-2).getInt("weight");
         playerTable.addTable(this,weight);

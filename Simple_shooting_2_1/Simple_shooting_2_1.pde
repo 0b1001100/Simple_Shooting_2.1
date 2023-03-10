@@ -305,8 +305,6 @@ void setup(){
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
-  initGPGPU();
-  if(doGPGPU)try{initMergeGPGPU();}catch(Exception e){e.printStackTrace();}
   LoadData();
   initThread();
   main_game=new GameProcess();
@@ -344,8 +342,6 @@ public void draw(){
 
  public void LoadData(){
   conf=loadJSONObject(SavePath+"config.json");
-  useGPGPU=conf.getBoolean("GPGPU");
-  if(useGPGPU)initGPGPU();
   LoadLanguage();
   LanguageData=loadJSONObject(LanguagePath+"Languages.json");
   UpgradeArray=loadJSONObject(WeaponDataPath+"WeaponUpgrade.json");
@@ -359,8 +355,8 @@ public void draw(){
       masterTable.addTable(build(o,o.getString("type")),o.getFloat("weight"));
     }catch(ClassNotFoundException|NoSuchMethodException g){g.printStackTrace();}
   }
-  Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
-  stageList.addContent(conf.getJSONArray("Stage").getStringArray());
+  Arrays.asList(conf.getJSONArray("Weapons").toStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
+  stageList.addContent(conf.getJSONArray("Stage").toStringArray());
   displayFPS=conf.getBoolean("FPS");
   fullscreen=conf.getBoolean("Fullscreen");
   ShaderQuality=conf.getInt("ShaderQuality");
@@ -372,7 +368,7 @@ public void draw(){
   }else{
     frameRate(60);
   }
-  ArchiveEntity=new ArrayList<>(Arrays.asList(conf.getJSONArray("Enemy").getStringArray()));
+  ArchiveEntity=new ArrayList<>(Arrays.asList(conf.getJSONArray("Enemy").toStringArray()));
 }
   
  public void initStatus(){
@@ -1114,27 +1110,27 @@ public void ctrl_button_pressed(){
   mouseWheelCount+=e.getCount();
 }
 
-class Entity implements Egent,Cloneable{
+abstract class Entity implements Cloneable{
   private Controller control;
-  RigidBody r_body;
-  DeadEvent dead=(e)->{};
-  float size=20;
-  PVector pos=new PVector(0,0);
-  PVector vel=new PVector(0,0);
-  PVector Center=new PVector();
-  PVector AxisSize=new PVector();
-  Color c=new Color(0,255,0);
-  float rotate=0;
-  float accelSpeed=0.25f;
-  float maxSpeed=7.5f;
-  float Speed=0;
-  float Mass=10;
-  float e=0.5f;
-  int threadNum=0;
-  boolean mark=false;
-  boolean isDead=false;
-  boolean pDead=false;
-  boolean inScreen=true;
+  protected DeadEvent dead=(e)->{};
+  protected float size=20;
+  protected PVector pos=new PVector(0,0);
+  protected PVector vel=new PVector(0,0);
+  protected PVector Center=new PVector();
+  protected PVector AxisSize=new PVector();
+  protected Color c=new Color(0,255,0);
+  protected float rotate=0;
+  protected float accelSpeed=0.25f;
+  protected float maxSpeed=7.5f;
+  protected float Speed=0;
+  protected float Mass=10;
+  protected float e=0.5f;
+  public int threadNum=0;
+  protected boolean mark=false;
+  protected boolean displayAABB=true;
+  protected boolean isDead=false;
+  protected boolean pDead=false;
+  protected boolean inScreen=true;
 
   Entity() {
   }
@@ -1149,17 +1145,27 @@ class Entity implements Egent,Cloneable{
     }
     return control;
   }
-
-   public void display(PGraphics g){
+  
+  public final void handleDisplay(PGraphics g){
+    if(!inScreen)return;
+    if(Debug&&displayAABB){
+      displayAABB(g);
+    }
+    display(g);
   }
 
-   public void update(){
+  protected abstract void display(PGraphics g);
+  
+  public final void handleUpdate(){
     getController().update(this);
     if(isDead&&!pDead){
       dead.deadEvent(this);
       pDead=isDead;
     }
+    update();
   }
+
+  protected abstract void update();
 
    public void setColor(Color c) {
     this.c=c;
@@ -1202,14 +1208,6 @@ class Entity implements Egent,Cloneable{
     HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
   }
   
-  protected void putOnlyAABB(){
-    float x=AxisSize.x*0.5f;
-    float min=Center.x-x;
-    float max=Center.x+x;
-    HeapEntityDataX.get(threadNum).add(new AABBData(min,"s",this));
-    HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
-  }
-  
   public void Collision(Entity e){}
   
   public void ExplosionCollision(Explosion e){}
@@ -1244,78 +1242,6 @@ class Entity implements Egent,Cloneable{
     }
     g.rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
   }
-}
-
-class RigidBody{
-  SolidType s_type;
-  MaterialType m_type;
-  PVector pos,dist;
-  float radius;
-  float rotate;
-  boolean substance=false;
-  
-  RigidBody(SolidType s_t,MaterialType m_t,PVector pos,PVector dist,float ra,float ro){
-    this.s_type=s_t;
-    this.m_type=m_t;
-    this.pos=pos;
-    this.dist=dist;
-    this.radius=ra;
-    this.rotate=ro;
-  }
-}
-
-enum SolidType{
-  Circle,
-  Capsule,
-  Rectangle
-}
-
-enum MaterialType{
-  Bullet,
-  MyBullet,
-  Mirror,
-  Explosion,
-  Solid,
-  Ghost
-}
-
-boolean isHit(MaterialType src,MaterialType t){
-  switch(src){
-    case Bullet:switch(t){
-                  case MyBullet:return true;
-                  case Mirror:return true;
-                  case Explosion:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case MyBullet:switch(t){
-                  case Bullet:return true;
-                  case Explosion:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case Mirror:switch(t){
-                  case Bullet:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case Explosion:switch(t){
-                  case Bullet:return true;
-                  case MyBullet:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case Solid:switch(t){
-                  case Bullet:return true;
-                  case MyBullet:return true;
-                  case Mirror:return true;
-                  case Explosion:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    default:break;
-  }
-  return false;
 }
 
 class Camera {
@@ -1407,12 +1333,6 @@ class Camera {
 }
 
 interface ExcludeGPGPU{
-}
-
-interface Egent {
-  public void display(PGraphics g);
-
-  public void update();
 }
 
 interface DeadEvent{

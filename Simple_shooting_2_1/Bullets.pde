@@ -1,9 +1,7 @@
-class Bullet extends Entity{
+abstract class Bullet extends Entity{
   Weapon parent;
   boolean isMine=false;
-  boolean bounse=false;
   Color bulletColor;
-  Color parentColor;
   float bulletRadius=0.5;
   float rotate=0;
   float speed=7;
@@ -11,33 +9,19 @@ class Bullet extends Entity{
   float age=0;
   float duration=0;
   
-  Bullet(){
+  public Bullet(){
   }
   
-  Bullet(Myself m){
-    rotate=(useController?atan2(ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue()):atan2(m.pos,localMouse))+random(-m.diffuse/2,m.diffuse/2);
-    speed=m.selectedWeapon.speed;
-    bulletColor=cloneColor(m.selectedWeapon.bulletColor);
-    parentColor=cloneColor(m.selectedWeapon.bulletColor);
-    pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y+sin(rotate)*m.size*0.5f);
-    vel.set(cos(rotate)*speed,sin(rotate)*speed);
-    duration=m.selectedWeapon.duration;
-    try{
-      parent=m.selectedWeapon.clone();
-    }catch(Exception e){}
-    isMine=true;
-    setAABB();
-    setMass(1.3);
-  }
-  
-  Bullet(Myself m,int num){
+  protected void init(Myself m,int num){
+    float rad=0;
     int n=m.selectedWeapon.bulletNumber;
     float r=n>1?radians(20)/(n/2):0;
-    float rad=n>1?r*(n-1):0;
+    if(num==-1){
+      rad=n>1?r*(n-1):0;
+    }
     rotate=(useController?atan2(ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue()):atan2(m.pos,localMouse))+random(-m.diffuse/2,m.diffuse/2)+(n>1?+rad/2-num*r:0);
     speed=m.selectedWeapon.speed;
     bulletColor=cloneColor(m.selectedWeapon.bulletColor);
-    parentColor=cloneColor(m.selectedWeapon.bulletColor);
     pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y+sin(rotate)*m.size*0.5f);
     vel.set(cos(rotate)*speed,sin(rotate)*speed);
     duration=m.selectedWeapon.duration;
@@ -63,7 +47,6 @@ class Bullet extends Entity{
     rotate=e.rotate+random(-w.diffuse/2,w.diffuse/2);
     speed=w.speed;
     bulletColor=cloneColor(w.bulletColor);
-    parentColor=cloneColor(w.bulletColor);
     pos.set(e.pos.x+cos(rotate)*e.size*0.5f,e.pos.y+sin(rotate)*e.size*0.5f);
     vel.set(cos(rotate)*speed,sin(rotate)*speed);
     duration=w.duration;
@@ -71,17 +54,14 @@ class Bullet extends Entity{
     setMass(1.3);
   }
   
-   public void display(PGraphics g){
+   protected void display(PGraphics g){
     g.strokeWeight(1);
-    if(Debug){
-      displayAABB(g);
-    }
     g.stroke(toColor(bulletColor));
     g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
     if(age/duration>0.9f)bulletColor=bulletColor.darker();
   }
   
-   public void update(){
+   protected void update(){
     pos.add(vel.copy().mult(vectorMagnification));
     if(age>duration)isDead=true;
     age+=vectorMagnification;
@@ -92,10 +72,6 @@ class Bullet extends Entity{
     Center=pos.copy().add(vel.copy().mult(0.5f).mult(max(1,vectorMagnification)));
     AxisSize=new PVector(abs(vel.x)+bulletRadius*2,abs(vel.y)+bulletRadius*2).mult(max(1,vectorMagnification));
     putAABB();
-  }
-  
-   public void setBounse(boolean b){
-    bounse=b;
   }
   
   @Override
@@ -207,6 +183,21 @@ class Bullet extends Entity{
   }
 }
 
+class PlayerBullet extends Bullet{
+  
+  PlayerBullet(){
+    super();
+  }
+  
+  PlayerBullet(Myself m){
+    init(m,-1);
+  }
+  
+  PlayerBullet(Myself m,int num){
+    init(m,num);
+  }
+}
+
 class SubBullet extends Bullet{
   float scale=0;
   int through=0;
@@ -273,9 +264,6 @@ class GravityBullet extends SubBullet{
   }
   
    public void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
     if(stop){
       LensData.add(this);
     }else{
@@ -451,9 +439,6 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   void display(PGraphics g){
     g.noFill();
     g.rectMode(CENTER);
-    if(Debug){
-      displayAABB(g);
-    }
     g.stroke(toColor(bulletColor));
     g.strokeWeight(1);
     g.pushMatrix();
@@ -548,9 +533,6 @@ class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override public 
   void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
     g.fill(195,255,0,10);
     g.stroke(255,50);
     g.strokeWeight(1);
@@ -636,9 +618,6 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override public 
   void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
     g.strokeWeight(2);
     g.stroke(toColor(bulletColor),100);
     if(points.size()>0&&vertex.size()>0){
@@ -776,9 +755,6 @@ class LightningBullet extends SubBullet implements ExcludeGPGPU{
   @Override
   public void display(PGraphics g){
     if(vel==null)initDirection();
-    if(Debug){
-      displayAABB(g);
-    }
     g.strokeWeight(scale);
     g.stroke(255,255,240);
     g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
@@ -920,9 +896,6 @@ class ThroughBullet extends Bullet{
   @Override public 
   void display(PGraphics g){
     g.strokeWeight(2);
-    if(Debug){
-      displayAABB(g);
-    }
     g.stroke(toColor(bulletColor));
     g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
     if(age/duration>0.9f)bulletColor=bulletColor.darker();
@@ -1132,9 +1105,6 @@ class EnemyMirrorBullet extends MirrorBullet{
   void display(PGraphics g){
     g.noFill();
     g.rectMode(CENTER);
-    if(Debug){
-      displayAABB(g);
-    }
     g.stroke(toColor(bulletColor));
     g.strokeWeight(1);
     g.pushMatrix();
@@ -1153,7 +1123,7 @@ class EnemyMirrorBullet extends MirrorBullet{
       isDead=true;
       return;
     }
-    axis=rotateOffset-parent.parent.rotate;
+    axis=parent.parent.rotate;
     LeftUP.set(-scale*0.125f,scale*0.5f).rotate(axis).add(pos);
     RightUP.set(scale*0.125f,scale*0.5f).rotate(axis).add(pos);
     LeftDown.set(-scale*0.125f,-scale*0.5f).rotate(axis).add(pos);
@@ -1203,9 +1173,6 @@ class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override public 
   void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
     g.noFill();
     g.stroke(255,50+205*min(1,Source.size()*0.25f));
     g.strokeWeight(1);
@@ -1267,9 +1234,6 @@ class MissileBullet extends Bullet{
   
   public void display(PGraphics g){
     g.strokeWeight(2);
-    if(Debug){
-      displayAABB(g);
-    }
     g.stroke(toColor(bulletColor));
     g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
     if(age/duration>0.9f)bulletColor=bulletColor.darker();
@@ -1307,9 +1271,6 @@ class FireBullet extends SubBullet{
   }
   
    public void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
     g.strokeWeight(1);
     if(stop){
       g.stroke(255,100,0,100);
@@ -1423,9 +1384,6 @@ class IceBullet extends FireBullet{
   }
   
    public void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
     g.strokeWeight(1);
     if(stop){
       g.stroke(40,245,255,100);
@@ -1468,9 +1426,6 @@ class InfernoBullet extends IceBullet{
   }
   
    public void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
     g.strokeWeight(1);
     if(stop){
       g.stroke(255,0,0,100);
@@ -1514,6 +1469,7 @@ class SatelliteBullet extends SubBullet{
   SatelliteBullet(SatelliteWeapon w,Satellite s,PVector target){
     super(w);
     pos=w.child.pos.copy();
+    setMass(0.2);
     bulletColor=new Color(0,255,150);
     satellite=s;
     t=target;
@@ -1523,7 +1479,6 @@ class SatelliteBullet extends SubBullet{
   
   @Override
   public void display(PGraphics g){
-    if(Debug)displayAABB(g);
     g.noFill();
     g.stroke(toColor(bulletColor));
     g.strokeWeight(1);
@@ -1583,12 +1538,12 @@ class HexiteBullet extends SatelliteBullet{
   
   HexiteBullet(HexiteWeapon w,Hexite s,PVector target){
     super(w,s,target);
+    setMass(0.2);
     bulletColor=new Color(255,128,0);
   }
   
   @Override
   public void display(PGraphics g){
-    if(Debug)displayAABB(g);
     g.noFill();
     g.stroke(toColor(bulletColor));
     g.strokeWeight(1);
@@ -1609,7 +1564,6 @@ class BLASBullet extends FireBullet{
   
   @Override
   public void display(PGraphics g){
-    if(Debug)displayAABB(g);
     g.strokeWeight(1);
     if(stop){
       g.fill(100,100,255,50);
@@ -1734,6 +1688,7 @@ class TLASBullet extends SubBullet{
   TLASBullet(SubWeapon w,int num){
     super(w);
     setNear(num);
+    setMass(2);
     bulletColor=new Color(0,255,255);
     this.num=num;
   }

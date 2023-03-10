@@ -34,7 +34,6 @@ class Exp extends Entity{
   
   @Override
   public void display(PGraphics g){
-    if(Debug)displayAABB(g);
     g.fill(toColor(c));
     g.noStroke();
     g.rect(pos.x,pos.y,size,size);
@@ -111,7 +110,6 @@ class Fragment extends Exp{
   
   @Override
   public void display(PGraphics g){
-    if(Debug)displayAABB(g);
     g.fill(toColor(c));
     g.noStroke();
     g.beginShape();

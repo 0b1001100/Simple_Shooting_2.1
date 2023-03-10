@@ -92,7 +92,6 @@ class Myself extends Entity{
   }
   
   public void update(){
-    super.update();
     if(isDead)return;
     while(exp>=nextLevel){
       exp-=nextLevel;

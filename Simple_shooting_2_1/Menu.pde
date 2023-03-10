@@ -382,7 +382,7 @@ ComponentSet initArchive(MenuButton... parent){
       for(MenuButton m:parent)m.active=true;
     }
   });
-  for(String s:conf.getJSONArray("Enemy").getStringArray())list.addContent(s.replace("Simple_shooting_2_1$",""));
+  for(String s:conf.getJSONArray("Enemy").toStringArray())list.addContent(s.replace("Simple_shooting_2_1$",""));
   list.addSelectListener((s)->{
     Entities.clear();
     try{

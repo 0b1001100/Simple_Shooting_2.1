@@ -183,8 +183,8 @@ class SpownPoint{
     time-=vectorMagnification;
     if(time<0){
       isDead=true;
-      e.init();
       e.setPos(pos);
+      e.init();
       NextEntities.add(e);
       return;
     }

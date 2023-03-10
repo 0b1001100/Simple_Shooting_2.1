@@ -45,7 +45,7 @@ class GameProcess{
      deadTimer=sumLevel=0;
      killCount.set(0);
      playerTable.clear();
-     Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{
+     Arrays.asList(conf.getJSONArray("Weapons").toStringArray()).forEach(s->{
        playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());
      });
      playerTable.getAll().forEach(i->{
@@ -237,7 +237,7 @@ class GameProcess{
     }
     if(!upgrade)keyProcess();
     if(!(upgrade||menu)){
-      player.update();
+      player.handleUpdate();
       EntityUpdateAndCollision(()->{},()->{EventProcess();EventSet.clear();});
     }
     HashMap<String,Command>nextQue=new HashMap<String,Command>();
@@ -347,7 +347,7 @@ class GameProcess{
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
-    Entities.forEach(e->{e.display(g);});
+    Entities.forEach(e->{e.handleDisplay(g);});
     popMatrix();
   }
   
@@ -413,7 +413,7 @@ class GameProcess{
       int num=min(14-(player.attackWeapons.size()-weaponNames.size()),min(playerTable.probSize(),round(random(3,3.55))));
       Item[]list=new Item[num];
       for(int i=0;i<num;i++){
-        if(random(0,0.35)<1&&!weaponNames.isEmpty()){
+        if(random(0,1)<0.35&&!weaponNames.isEmpty()){
           String target=weaponNames.get(round(random(0,weaponNames.size()-1)));
           list[i]=copy.get(target);
           weaponNames.remove(target);
@@ -439,7 +439,7 @@ class GameProcess{
             buttons[i].setExplanation(getLanguageText("ex_"+list[i].getName()));
           }else{
             String res="";
-            for(String t:list[i].upgradeData.getJSONObject(list[i].level-1).getJSONArray("name").getStringArray()){
+            for(String t:list[i].upgradeData.getJSONObject(list[i].level-1).getJSONArray("name").toStringArray()){
               if(!t.equals("weight"))res+=getLanguageText("ex_param_"+t)+list[i].upgradeData.getJSONObject(list[i].level-1).getInt(t)+"\n";
             }
             buttons[i].setExplanation(res);
@@ -963,7 +963,6 @@ class WallEntity extends Entity{
   
   @Override
   public void display(PGraphics g){
-    if(Debug)displayAABB(g);
     g.strokeWeight(2);
     g.stroke(255);
     g.line(pos.x,pos.y,pos.x+dist.x,pos.y+dist.y);
@@ -974,7 +973,6 @@ class WallEntity extends Entity{
     Center=new PVector(pos.x+dist.x*0.5,pos.y+dist.y*0.5);
     AxisSize=new PVector(max(1,abs(dist.x)),max(1,abs(dist.y)));
     putAABB();
-    super.update();
   }
   
   public void Process(Entity e){

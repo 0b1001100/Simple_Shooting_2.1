@@ -1,7 +1,12 @@
 {
   "java.project.referencedLibraries": [
     "lib/**/*.jar",
-    "Library/parser.jar",
-    "c:\\Users\\okumura\\Documents\\Processing\\libraries\\antlr\\library\\antlr.jar"
-  ]
+    "Simple_shooting_2_1/Libraries/antlr.jar",
+    "Simple_shooting_2_1/Libraries/core.jar",
+    "Simple_shooting_2_1/Libraries/GameControlPlus.jar",
+    "Simple_shooting_2_1/Libraries/gluegen-rt.jar",
+    "Simple_shooting_2_1/Libraries/jogl-all.jar",
+    "Simple_shooting_2_1/Libraries/parser.jar"
+  ],
+  "java.configuration.updateBuildConfiguration": "automatic"
 }

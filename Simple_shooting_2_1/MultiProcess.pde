@@ -20,12 +20,12 @@ class EntityProcess implements Callable<String>{
       e.threadNum=number;
       if(player.isDead){
         if((e instanceof Explosion)||(e instanceof Particle)){
-          e.update();
+          e.handleUpdate();
         }else{
           e.putAABB();
         }
       }else{
-        e.update();
+        e.handleUpdate();
       }
       if(!e.isDead){
         next.add(e);
@@ -115,7 +115,7 @@ class EntityDraw implements Callable<PGraphics>{
     g.translate(scroll.x,scroll.y);
     g.background(0,0);
     for(int i=s;i<l;i++){
-      Entities.get(i).display(g);
+      Entities.get(i).handleDisplay(g);
     }
     g.endDraw();
     return g;
