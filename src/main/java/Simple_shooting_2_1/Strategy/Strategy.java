@@ -7,5 +7,5 @@ public abstract class Strategy {
   
   public abstract void display(PGraphicsOpenGL g);
 
-  public abstract void update();
+  public abstract void update(float deltaTime);
 }

@@ -180,8 +180,8 @@
     "scale":0,
     "power":10,
     "velocity":9,
-    "duration":2000,
-    "cooltime":1500,
+    "duration":600,
+    "cooltime":150,
     "through":0,
     "nextWeapon":{
       "name":"undefined",
@@ -463,7 +463,7 @@
   {
     "name":"power",
     "type":"item",
-    "maxLevel":5,
+    "maxLevel":4,
     "value":10,
     "weight":14
   },

@@ -187,6 +187,7 @@ class PlayerBullet extends Bullet{
   
   PlayerBullet(){
     super();
+    isMine=true;
   }
   
   PlayerBullet(Myself m){
@@ -492,15 +493,15 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override
   public void BulletCollision(Bullet b){
-    if(!b.isMine){
-      if(SegmentOrientedRectangleCollision(b.pos,b.vel,LeftDown,new PVector(scale*0.25f,scale),axis)){
-        BulletHit(b,false);
-      }
+    if(b instanceof PlayerBullet)return;
+    if(SegmentOrientedRectangleCollision(b.pos,b.vel,LeftDown,new PVector(scale*0.25f,scale),axis)){
+      BulletHit(b,false);
     }
   }
   
   @Override
   public void BulletHit(Bullet b,boolean p){
+    if(b instanceof PlayerBullet)return;
     b.reflectFromNormal(axis);
     if(b instanceof ThroughBullet){
       b.isMine=true;
@@ -1337,7 +1338,7 @@ class FireBullet extends SubBullet{
         EnemyHit(e,true);
       }
     }else{
-      if(CircleCollision(e.pos,e.size,pos,vel)){
+      if(CircleCollision(e.pos,e.size+bulletRadius,pos,vel)){
         EnemyHit(e,true);
       }
     }
@@ -1489,12 +1490,13 @@ class SatelliteBullet extends SubBullet{
   public void update(){
     if(doRotate){
       float protate=rotate;
-      float rad=atan2(t,pos);
-      doRotate=abs(rad)<2;
+      float rad=atan2(pos,t);
+      doRotate=!(abs(rad-rotate)<radians(30));
       float nRad=0<rotate?rad+TWO_PI:rad-TWO_PI;
       rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
       rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,radians(weight)*vectorMagnification);
       rotate+=rad;
+      rotate%=TWO_PI;
       vel=new PVector(speed,0).rotate(rotate);
     }
     super.update();

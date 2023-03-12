@@ -50,8 +50,8 @@ class Myself extends Entity{
     absHP=HP.getMax().doubleValue();
     absAttak=Attak.getMax().doubleValue();
     absDefence=Defence.getMax().doubleValue();
-    weapons.add(new EnergyBullet(this));
-    weapons.add(new PulseBullet(this));
+    weapons.add(new EnergyWeapon(this));
+    weapons.add(new PulseWeapon(this));
     resetWeapon();
     camera=new Camera();
     camera.setTarget(this);

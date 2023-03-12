@@ -25,7 +25,7 @@
   "ex_SE":"SEの音量の設定",
   "key":"操作",
   "ex_key":"操作の設定",
-  "bind_enter":"決定",
+  "enter":"決定",
   "language":"言語",
   "ex_language":"言語の選択",
   "exit":"終了",

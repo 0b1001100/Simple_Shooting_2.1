@@ -54,7 +54,7 @@ abstract class Item{
       for(int i=0;i<nextData.size();i++){
         JSONObject o=nextData.getJSONObject(i);
         Item it=playerTable.getForce(o.getString("name"));//it->need weapons
-        if(!isAddNext(it))return;
+        if(!it.isAddNext(it))return;
       }
       if(main_game.EventSet.containsKey("addNextWeapon")){
         main_game.EventSet.replace("addNemtWeapon",main_game.EventSet.get("addNextWeapon")+"_"+nextName);
@@ -128,7 +128,7 @@ class Weapon_Item extends Item{
   
   @Override
   public boolean isAddNext(Item i){
-    return player.attackWeapons.contains(i.w)&&(i.level==i.maxLevel);
+    return (player.attackWeapons.contains(i.w)||player.itemWeapons.contains(i.w))&&(i.level==i.maxLevel);
   }
 }
 
@@ -161,7 +161,7 @@ class Item_Item extends Item{
   
   @Override
   public boolean isAddNext(Item i){
-    return player.attackWeapons.contains(i.w);
+    return player.itemWeapons.contains(i.w);
   }
 }
 

@@ -1,0 +1,1 @@
+copy .\data\save\config_base.json .\data\save\config.json

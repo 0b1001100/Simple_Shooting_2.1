@@ -247,6 +247,7 @@ public void initMenu(){
     arc_back.addListener(()->{
       starts.toParent();
     });
+    ComponentSet archiveSelect=toSet(arcLayout,arc_tolist,arc_back);
     //---
   //---
   MenuButton operationEx=new MenuButton(Language.getString("operation_ex"));
@@ -330,10 +331,11 @@ public void initMenu(){
       float v=grayScale(get(10,height-30));
       glpg.fill(int(255-round(v/255)*255));
       glpg.rect(10,height-30,width-20,1);
-      glpg.textSize(20);
-      glpg.textFont(font_20);
-      glpg.text("Enter : "+(useController?"〇":"Enter"),50,height-7.5);
-      glpg.text("Back : "+(useController?"×":"Shift"),200,height-7.5);
+      glpg.textAlign(LEFT);
+      glpg.textSize(15);
+      glpg.textFont(font_15);
+      glpg.text(getLanguageText("enter")+" : "+(useController?"〇":"Enter"),30,height-7.5);
+      glpg.text(getLanguageText("back")+" : "+(useController?"×":"Shift"),150,height-7.5);
     });
   //--
   starts.setSubChildDisplayType(1);
@@ -343,8 +345,8 @@ public void initMenu(){
   starts.addSubChild("main","confMenu",toSet(confLayout,AbsMag,Display,Lang,exit),toSet(confBox));
   starts.addSubChild("confMenu","dispMenu",toSet(dispLayout,Colorinv,dispFPS,Quality,vsy,fullsc),toSet(confBox));
   starts.addSubChild("confMenu","Language",toSet(LangList));
-  starts.addChild("main","archive",toSet(arcLayout,arc_tolist,arc_back));
-  starts.addSubChild("archive","arc_list",initArchive(arc_tolist,arc_back));
+  starts.addChild("main","archive",archiveSelect);
+  starts.addSubChild("archive","arc_list",initArchive(archiveSelect));
   starts.addChild("main","operation",toSet(back_op,op_canvas));
   starts.addChild("main","credit",toSet(back_cr,cr_canvas));
   if(launched){
@@ -354,7 +356,7 @@ public void initMenu(){
   }
 }
 
-ComponentSet initArchive(MenuButton... parent){
+ComponentSet initArchive(ComponentSet parent){
   Entities=new ArrayList<Entity>();
   ComponentSet archive=new ComponentSet();
   Canvas view=new Canvas(g);
@@ -375,11 +377,11 @@ ComponentSet initArchive(MenuButton... parent){
   });
   list.addFocusListener(new FocusEvent(){
     void getFocus(){
-      for(MenuButton m:parent)m.active=false;
+      parent.Active=false;
     }
     
     void lostFocus(){
-      for(MenuButton m:parent)m.active=true;
+     parent.Active=true;
     }
   });
   for(String s:conf.getJSONArray("Enemy").toStringArray())list.addContent(s.replace("Simple_shooting_2_1$",""));

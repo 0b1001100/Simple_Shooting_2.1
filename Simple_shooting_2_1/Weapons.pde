@@ -320,9 +320,9 @@ class FlashWeapon extends Weapon{
   }
 }
 
-class EnergyBullet extends PlayerWeapon{
+class EnergyWeapon extends PlayerWeapon{
   
-  EnergyBullet(Entity e){
+  EnergyWeapon(Entity e){
     super(e);
     setPower(1.2f);
     setSpeed(15);
@@ -333,9 +333,9 @@ class EnergyBullet extends PlayerWeapon{
   }
 }
 
-class PulseBullet extends PlayerWeapon{
+class PulseWeapon extends PlayerWeapon{
   
-  PulseBullet(Entity e){
+  PulseWeapon(Entity e){
     super(e);
     setSpeed(20);
     setPower(0.8f);

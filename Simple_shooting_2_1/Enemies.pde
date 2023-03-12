@@ -67,7 +67,7 @@ abstract class Enemy extends Entity implements Cloneable{
     }
   }
   
-  private void addVel(float accel,boolean force){
+  protected void addVel(float accel,boolean force){
     Speed*=0.95f;
     vel.mult(0.95f);
     if(!force){
@@ -290,7 +290,7 @@ class Plus extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(20,170,20));
-    addMultiplyer(EnergyBullet.class,1.1);
+    addMultiplyer(EnergyWeapon.class,1.1);
   }
   
   public void Process(){
@@ -511,7 +511,7 @@ class Plus_S extends Turret_S{
     target=player;
     setColor(new Color(20,170,20));
     setExpMag(0.8);
-    addMultiplyer(EnergyBullet.class,1.2);
+    addMultiplyer(EnergyWeapon.class,1.2);
   }
 }
 
@@ -526,7 +526,7 @@ class Slime extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(20,255,0));
-    addMultiplyer(EnergyBullet.class,1.1);
+    addMultiplyer(EnergyWeapon.class,1.1);
   }
   
   @Override
@@ -855,7 +855,7 @@ class Boost extends Enemy{
     }
     if(boost){
       if(time<60){
-        maxSpeed=4;
+        maxSpeed=2.2;
       }else{
         boost=false;
         maxSpeed=0.5;
@@ -1968,7 +1968,7 @@ class Missile_B extends M_Boss_Y implements BossEnemy{
       boss=new HUDText("BOSS");
       dead=(e)->{
         StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage7"))stageList.addContent("Stage7");scene=3;}));
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage7")&&STAGE_NUMBER>6)stageList.addContent("Stage7");scene=3;}));
         boss.Dispose();
       };
     }
@@ -2046,7 +2046,7 @@ class Slime_F extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(0,125,255));
-    addMultiplyer(EnergyBullet.class,1.1);
+    addMultiplyer(EnergyWeapon.class,1.1);
   }
   
   @Override

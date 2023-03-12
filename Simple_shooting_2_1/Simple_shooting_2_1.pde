@@ -157,6 +157,8 @@ boolean colorInverse=false;
 boolean fullscreen=false;
 boolean FXAA=false;
 
+static final int STAGE_NUMBER=6;
+
 static final String VERSION="1.1.5";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));

@@ -29,9 +29,9 @@ void Debug(){
   if(keyPress&&(nowPressedKeyCode==98||PressedKeyCode.contains("98"))){
     Command=!Command;
     if(Command){
-      ((SurvivorHUD)main_game.mainHUD).getComponent().Active=false;
+      ((SurvivorHUD)main_game.mainHUD).getComponent().focussable=false;
     }else{
-      ((SurvivorHUD)main_game.mainHUD).getComponent().Active=true;
+      ((SurvivorHUD)main_game.mainHUD).getComponent().focussable=true;
     }
     player.vel=new PVector(0,0);
   }

@@ -1,6 +1,5 @@
 package SSGUI.Component;
 
-import java.util.HashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -26,8 +25,6 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
    */
   private Supplier<PVector>size;
 
-  protected HashMap<String,Animator>animators;
-
   protected Theme theme;
 
   private Consumer<GameComponent>selectedProcess;
@@ -43,11 +40,11 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
   
   public GameComponent(){}
 
-  public void HandleUpdate(){
-    if(isActive)update();
+  public void HandleUpdate(float deltaTime){
+    if(isActive)update(deltaTime);
   }
 
-  protected abstract void update();
+  protected abstract void update(float deltaTime);
 
   public void HandleDisplay(PGraphicsOpenGL g,boolean focus){
     if(isActive){
@@ -121,6 +118,12 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
   public Direction getConstraintDirection(){
     return constraintDirection;
   }
+
+  /**
+   * This method called when detected input in constrained direction.
+   * @param d Input direction.
+   */
+  protected abstract void constraintInput(Direction d);
 
   /**
    * This method activate/deactivate this component.<br>

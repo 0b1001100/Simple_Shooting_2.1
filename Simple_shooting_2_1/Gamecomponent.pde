@@ -248,7 +248,7 @@ class LineTextField extends GameComponent{
     }else{
       removeFocus();
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     super.update();
   }
   
@@ -360,7 +360,7 @@ abstract class ButtonItem extends GameComponent{
     if(mousePress&onMouse){
       executeEvent();
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
     super.update();
   }
@@ -408,7 +408,7 @@ abstract class CheckBox extends GameComponent{
       value=!value;
       executeEvent();
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
     super.update();
   }
@@ -466,7 +466,7 @@ abstract class ToggleBox extends GameComponent{
       value%=num;
       executeEvent();
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
     super.update();
   }
@@ -545,7 +545,7 @@ class SliderItem extends GameComponent{
     }else {
       move=false;
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     super.update();
     if(move){
       Xdist=constrain(mouseX,pos.x,pos.x+dist.x)-pos.x;
@@ -699,7 +699,7 @@ class MultiButton extends GameComponent{
           case LEFT:focusIndex=constrain(focusIndex-1,0,Buttons.size()-1);reloadIndex();break;
           case ENTER:Buttons.get(focusIndex).executeEvent();break;
         }
-      if(!pFocus)FocusEvent=true;else FocusEvent=false;
+      if(!pFocus||mousePress)FocusEvent=true;else FocusEvent=false;
     }
     super.update();
   }
@@ -1561,10 +1561,12 @@ class MenuToggleBox extends ToggleBox{
 
 class ComponentSet{
   Layout layout;
+  GameComponent focusComponent;
   ArrayList<GameComponent>components=new ArrayList<GameComponent>();
   boolean keyMove=true;
   boolean Active=true;
   boolean Focus=true;
+  boolean focussable=true;
   int subSelectButton=-0xFFFFFF;
   int pSelectedIndex=0;
   int selectedIndex=0;
@@ -1591,6 +1593,7 @@ class ComponentSet{
     if(components.size()==1){
       if(val.canFocus&&Focus){
         val.requestFocus();
+        focusComponent=val;
         selectedIndex=0;
       }else{
         val.removeFocus();
@@ -1598,6 +1601,7 @@ class ComponentSet{
     }else if(!components.get(min(selectedIndex,components.size()-2)).canFocus){
       if(val.canFocus){
         val.requestFocus();
+        focusComponent=val;
         selectedIndex=components.size()-1;
       }
     }
@@ -1612,6 +1616,7 @@ class ComponentSet{
       for(int i=0;i<components.size();i++){
         if(components.get(i).canFocus){
           components.get(i).requestFocus();
+          focusComponent=components.get(i);
           selectedIndex=i;
         }
       }
@@ -1652,6 +1657,7 @@ class ComponentSet{
   }
   
   public void display(){
+    if(!Active)return;
     if(components.size()==0)return;
     for(GameComponent c:components){
       c.handleDisplay();
@@ -1659,7 +1665,7 @@ class ComponentSet{
   }
   
   public void update(){
-    if(!Active)return;
+    if(!Active||!focussable)return;
     if(components.size()==0)return;
     for(GameComponent c:components){
       c.handleUpdate();
@@ -1672,6 +1678,11 @@ class ComponentSet{
       if(c.focus)selectedIndex=components.indexOf(c);
     }
     if(Focus)keyEvent();
+    int count=0;
+    for(GameComponent c:components){
+      if(count==selectedIndex)c.requestFocus();else c.removeFocus();
+      ++count;
+    }
     if(pSelectedIndex!=selectedIndex){
       if(pSelectedIndex!=-1&&!(pSelectedIndex>=components.size()))components.get(pSelectedIndex).Fe.lostFocus();
       if(selectedIndex!=-1&&!(selectedIndex>=components.size()))components.get(selectedIndex).Fe.getFocus();
@@ -1681,7 +1692,7 @@ class ComponentSet{
   }
   
   public void updateExcludingKey(){
-    if(!Active)return;
+    if(!Active||!focussable)return;
     for(GameComponent c:components){
       c.handleUpdate();
       if(c.FocusEvent){
@@ -2127,7 +2138,7 @@ class ComponentSetLayer{
     if(SubChildshowType==2&&s.equals(nowParent))return;
     for(ComponentSet c:Layers.get(s).getComponents()){
       c.updateExcludingKey();
-      if(!layerChanged&&c.onMouse()&&mousePress){
+      if(!layerChanged&&c.Active&&c.onMouse()&&mousePress){
         String target=s;
         while(!nowLayer.equals(target))toParent();
       }

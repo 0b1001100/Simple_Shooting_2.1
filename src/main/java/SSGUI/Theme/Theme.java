@@ -1,6 +1,7 @@
 package SSGUI.Theme;
 
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 /**
  * This class provides a means of implementing color theme such as dark theme.
@@ -9,7 +10,7 @@ public abstract class Theme{
   /**
    * The HashMap of Color with an element name.
    */
-  private HashMap<String,Color>Colors;
+  private HashMap<String,Supplier<Color>>Colors;
 
   /**
    * This constructor calls {@link #init()} and initalize {@code Colors}.<br>
@@ -31,6 +32,10 @@ public abstract class Theme{
    * @param color The color element.
    */
   protected void putColor(String name,Color color){
+    Colors.put(name,()->color);
+  }
+
+  public void putColor(String name,Supplier<Color> color){
     Colors.put(name,color);
   }
 
@@ -40,6 +45,6 @@ public abstract class Theme{
    * @return The color gets from the element.
    */
   public Color getColor(String name){
-    return Colors.get(name);
+    return Colors.get(name).get();
   }
 }

@@ -387,7 +387,7 @@ class GameProcess{
       }
     }
     if(EventSet.containsKey("addNextWeapon")){
-      String[] src=EventSet.get("addNextWeapon").split("_");
+      String[] src=EventSet.get("addNextWeapon").split("_");println(src);
       for(String s:src){
         Item i=masterTable.get(s);
         playerTable.addTable(i,i.weight);
