@@ -141,6 +141,58 @@
     "cooltime":50,
     "through":0,
     "nextWeapon":{
+      "name":"Sanctuary",
+      "need":[
+        {
+          "name":"PlasmaField",
+          "type":"use"
+        },
+        {
+          "name":"Absorption",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Absorption",
+    "type":"weapon",
+    "maxLevel":5,
+    "weight":20,
+    "projectile":1,
+    "scale":120,
+    "power":12,
+    "velocity":0,
+    "duration":0,
+    "cooltime":20,
+    "through":0,
+    "nextWeapon":{
+      "name":"Sanctuary",
+      "need":[
+        {
+          "name":"PlasmaField",
+          "type":"use"
+        },
+        {
+          "name":"Absorption",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Sanctuary",
+    "type":"next_weapon",
+    "maxLevel":1,
+    "weight":15,
+    "projectile":1,
+    "scale":350,
+    "power":40,
+    "velocity":0,
+    "duration":0,
+    "cooltime":30,
+    "through":0,
+    "nextWeapon":{
       "name":"undefined",
       "need":[]
     }
@@ -201,6 +253,32 @@
     "cooltime":170,
     "through":0,
     "nextWeapon":{
+      "name":"Anomaly",
+      "need":[
+        {
+          "name":"Lightning",
+          "type":"use"
+        },
+        {
+          "name":"TLAS",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Anomaly",
+    "type":"next_weapon",
+    "maxLevel":1,
+    "weight":12,
+    "projectile":5,
+    "scale":5,
+    "power":20,
+    "velocity":1,
+    "duration":30,
+    "cooltime":50,
+    "through":0,
+    "nextWeapon":{
       "name":"undefined",
       "need":[]
     }
@@ -249,23 +327,6 @@
     }
   },
   {
-    "name":"Absorption",
-    "type":"weapon",
-    "maxLevel":8,
-    "weight":20,
-    "projectile":1,
-    "scale":120,
-    "power":40,
-    "velocity":0,
-    "duration":0,
-    "cooltime":50,
-    "through":0,
-    "nextWeapon":{
-      "name":"undefined",
-      "need":[]
-    }
-  },
-  {
     "name":"Fire",
     "type":"weapon",
     "maxLevel":8,
@@ -295,7 +356,7 @@
     "name":"Ice",
     "type":"weapon",
     "maxLevel":8,
-    "weight":22,
+    "weight":20,
     "projectile":1,
     "scale":120,
     "power":1,
@@ -433,17 +494,78 @@
     "cooltime":130,
     "through":0,
     "nextWeapon":{
-      "name":"ShadowReflector",
+      "name":"Anomaly",
       "need":[
         {
-          "name":"Reflector",
+          "name":"Lightning",
           "type":"use"
         },
         {
-          "name":"power",
-          "type":"exist"
+          "name":"TLAS",
+          "type":"use"
         }
       ]
+    }
+  },
+  {
+    "name":"Linear",
+    "type":"weapon",
+    "maxLevel":6,
+    "weight":16,
+    "projectile":1,
+    "scale":0,
+    "power":2,
+    "velocity":3,
+    "duration":150,
+    "cooltime":130,
+    "through":0,
+    "nextWeapon":{
+      "name":"BiLinear",
+      "need":[
+        {
+          "name":"Linear",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"BiLinear",
+    "type":"next_weapon",
+    "maxLevel":6,
+    "weight":12,
+    "projectile":3,
+    "scale":0,
+    "power":6,
+    "velocity":5,
+    "duration":180,
+    "cooltime":75,
+    "through":0,
+    "nextWeapon":{
+      "name":"TriLinear",
+      "need":[
+        {
+          "name":"BiLinear",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"TriLinear",
+    "type":"next_weapon",
+    "maxLevel":1,
+    "weight":8,
+    "projectile":5,
+    "scale":0,
+    "power":12,
+    "velocity":7,
+    "duration":240,
+    "cooltime":30,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
     }
   },
   {

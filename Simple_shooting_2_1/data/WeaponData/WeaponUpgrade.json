@@ -194,6 +194,30 @@
       "weight":0
     }
   ],
+  "Absorption":[
+    {
+      "name":["scale","power"],
+      "scale":30,
+      "power":5
+    },
+    {
+      "name":["scale","power","weight"],
+      "scale":40,
+      "power":5,
+      "weight":15
+    },
+    {
+      "name":["scale","power"],
+      "scale":45,
+      "power":5
+    },
+    {
+      "name":["scale","power","weight"],
+      "scale":45,
+      "power":5,
+      "weight":0
+    }
+  ],
   "Laser":[
     {
       "name":["power","velocity"],
@@ -314,30 +338,6 @@
       "weight":0
     }
   ],
-  "Absorption":[
-    {
-      "name":["scale","power"],
-      "scale":30,
-      "power":5
-    },
-    {
-      "name":["scale","power","weight"],
-      "scale":40,
-      "power":5,
-      "weight":15
-    },
-    {
-      "name":["scale","power"],
-      "scale":45,
-      "power":5
-    },
-    {
-      "name":["scale","power","weight"],
-      "scale":45,
-      "power":5,
-      "weight":0
-    }
-  ],
   "Fire":[
     {
       "name":["cooltime"],
@@ -389,16 +389,16 @@
       "name":["projectile","scale","weight"],
       "projectile":1,
       "scale":20,
-      "weight":18
+      "weight":16
     },
     {
       "name":["cooltime","power"],
-      "cooltime":20,
+      "cooltime":10,
       "power":1
     },
     {
       "name":["duration","scale"],
-      "duration":30,
+      "duration":20,
       "scale":20
     },
     {
@@ -461,37 +461,35 @@
     },
     {
       "name":["velocity","cooltime","scale"],
-      "velocity":2,
+      "velocity":1,
       "cooltime":20,
       "scale":30
     },
     {
       "name":["velocity","duration","weight"],
       "velocity":1,
-      "duration":40,
+      "duration":30,
       "weight":15
     },
     {
-      "name":["cooltime","power","velocity"],
-      "velocity":1,
+      "name":["cooltime","power"],
       "cooltime":20,
       "power":1
     },
     {
-      "name":["duration","cooltime","power"],
-      "duration":40,
-      "cooltime":10,
-      "power":2
+      "name":["duration","cooltime"],
+      "duration":30,
+      "cooltime":10
     },
     {
       "name":["cooltime","power","scale"],
-      "cooltime":20,
-      "power":2,
+      "cooltime":10,
+      "power":1,
       "scale":30
     },
     {
       "name":["duration","projectile","weight"],
-      "duration":40,
+      "duration":30,
       "projectile":1,
       "weight":0
     }
@@ -536,6 +534,63 @@
       "name":["duration","projectile","weight"],
       "duration":40,
       "projectile":1,
+      "weight":0
+    }
+  ],
+  "Linear":[
+    {
+      "name":["power","projectile"],
+      "power":1,
+      "projectile":1
+    },
+    {
+      "name":["cooltime","power"],
+      "cooltime":20,
+      "power":1
+    },
+    {
+      "name":["velocity","duration","weight"],
+      "velocity":1,
+      "duration":20,
+      "weight":14
+    },
+    {
+      "name":["cooltime","velocity"],
+      "velocity":1,
+      "cooltime":20
+    },
+    {
+      "name":["cooltime","power","weight"],
+      "cooltime":10,
+      "power":1,
+      "weight":0
+    }
+  ],
+  "BiLinear":[
+    {
+      "name":["cooltime","duration"],
+      "cooltime":10,
+      "duration":15
+    },
+    {
+      "name":["power","projectile"],
+      "power":1,
+      "projectile":1
+    },
+    {
+      "name":["velocity","duration","weight"],
+      "velocity":1,
+      "duration":15,
+      "weight":10
+    },
+    {
+      "name":["cooltime"],
+      "cooltime":15
+    },
+    {
+      "name":["cooltime","power","weight"],
+      "cooltime":10,
+      "power":2,
       "weight":0
     }
   ],

@@ -115,20 +115,23 @@ class Weapon_Item extends Item{
   
   @Override
    public void update() throws NullPointerException{
-    if(upgradeData!=null&&level>1&&level<=maxLevel){
+    if(upgradeData!=null&&level>0&&level<=maxLevel){
       w.upgrade(upgradeData,level);
       JSONObject add=upgradeData.getJSONObject(level-2);
       HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").toStringArray()));
       if(param.contains("weight")){
         weight=upgradeData.getJSONObject(level-2).getInt("weight");
         playerTable.addTable(this,weight);
+        if(weight<=0)checkNext();
       }
+    }else{
+      throw new NullPointerException();
     }
   }
   
   @Override
   public boolean isAddNext(Item i){
-    return (player.attackWeapons.contains(i.w)||player.itemWeapons.contains(i.w))&&(i.level==i.maxLevel);
+    return player.attackWeapons.contains(i.w)&&(i.level==i.maxLevel);
   }
 }
 
@@ -148,14 +151,17 @@ class Item_Item extends Item{
   
   @Override
    public void update() throws NullPointerException{
-    if(upgradeData!=null&&level>1&&level<=maxLevel){
+    if(upgradeData!=null&&level>0&&level<=maxLevel){
       w.upgrade(upgradeData,level);
       JSONObject add=upgradeData.getJSONObject(level-2);
       HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").toStringArray()));
       if(param.contains("weight")){
         weight=upgradeData.getJSONObject(level-2).getInt("weight");
         playerTable.addTable(this,weight);
+        if(weight<=0)checkNext();
       }
+    }else{
+      throw new NullPointerException();
     }
   }
   
@@ -177,6 +183,7 @@ class NextWeapon_Item extends Item{
       w=(SubWeapon)WeaponConstructor.get(name).newInstance(CopyApplet,o);
     }catch(InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
     nextName=o.getJSONObject("nextWeapon").getString("name");
+    --maxLevel;
   }
   
   @Override
@@ -191,21 +198,23 @@ class NextWeapon_Item extends Item{
         weight=0;
       }
     }
-    if(upgradeData!=null&&level>1&&level<=maxLevel){
-      ++level;
-      w.upgrade(upgradeData,level);
-      JSONObject add=upgradeData.getJSONObject(level-2);
+    if(upgradeData!=null&&level>0&&level<=maxLevel){
+      w.upgrade(upgradeData,level+1);
+      JSONObject add=upgradeData.getJSONObject(level-1);
       HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray("name").toStringArray()));
       if(param.contains("weight")){
-        weight=upgradeData.getJSONObject(level-2).getInt("weight");
+        weight=upgradeData.getJSONObject(level-1).getInt("weight");
         playerTable.addTable(this,weight);
+        if(weight<=0)checkNext();
       }
+    }else if(upgradeData!=null){
+      throw new NullPointerException();
     }
   }
   
   @Override
   public boolean isAddNext(Item i){
-    return player.attackWeapons.contains(i.w);
+    return player.attackWeapons.contains(i.w)&&(i.level==i.maxLevel);
   }
 }
 
@@ -311,8 +320,7 @@ class ItemTable implements Cloneable{
    public Item getRandomWeapon(){
     HashMap<String,Float>p=new HashMap<String,Float>();
     for(String s:table.keySet()){
-      if(table.get(s).type.equals("item"))continue;
-      p.put(s,prob.get(s));
+      if(table.get(s).type.equals("weapon"))p.put(s,prob.get(s));
     }
     float sum=0;
     for(float f:p.values()){
@@ -327,8 +335,22 @@ class ItemTable implements Cloneable{
    public Item getRandomItem(){
     HashMap<String,Float>p=new HashMap<String,Float>();
     for(String s:table.keySet()){
-      if(!table.get(s).type.equals("item"))continue;
-      p.put(s,prob.get(s));
+      if(table.get(s).type.equals("item"))p.put(s,prob.get(s));
+    }
+    float sum=0;
+    for(float f:p.values()){
+      sum+=f;
+    }
+    for(String s:p.keySet()){
+      p.replace(s,sum==0?0:(p.get(s)/sum*100));
+    }
+    return getRandom(p);
+  }
+  
+  public Item getRandomNextWeapon(){
+    HashMap<String,Float>p=new HashMap<String,Float>();
+    for(String s:table.keySet()){
+      if(table.get(s).type.equals("next_weapon"))p.put(s,prob.get(s));
     }
     float sum=0;
     for(float f:p.values()){
@@ -370,6 +392,13 @@ class ItemTable implements Cloneable{
   
    public boolean contains(String s){
     return table.containsKey(s);
+  }
+  
+  public boolean hasNextWeapon(){
+    for(String s:table.keySet()){
+      if(table.get(s).type.equals("next_weapon"))return true;
+    }
+    return false;
   }
 }
 

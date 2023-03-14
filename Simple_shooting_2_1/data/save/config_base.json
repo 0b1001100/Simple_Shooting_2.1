@@ -12,6 +12,7 @@
     "Absorption",
     "BLAS",
     "TLAS",
+    "Linear",
     "Fire",
     "Ice",
     "Satellite",

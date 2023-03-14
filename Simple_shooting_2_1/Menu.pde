@@ -334,8 +334,8 @@ public void initMenu(){
       glpg.textAlign(LEFT);
       glpg.textSize(15);
       glpg.textFont(font_15);
-      glpg.text(getLanguageText("enter")+" : "+(useController?"〇":"Enter"),30,height-7.5);
-      glpg.text(getLanguageText("back")+" : "+(useController?"×":"Shift"),150,height-7.5);
+      glpg.text(getLanguageText("enter")+" : "+(useController?"〇":"Enter"),30,height-10);
+      glpg.text(getLanguageText("back")+" : "+(useController?"×":"Shift"),150,height-10);
     });
   //--
   starts.setSubChildDisplayType(1);

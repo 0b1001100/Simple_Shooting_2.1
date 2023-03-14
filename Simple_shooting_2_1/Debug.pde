@@ -5,7 +5,7 @@ import com.parser.command.*;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
-LinkedHashMap<String,Float>DebugWarning=new LinkedHashMap<String,Float>();
+LinkedHashMap<DebugText,Float>DebugWarning=new LinkedHashMap<>();
 ArrayList<Float>updateStatistics=new ArrayList<>();
 ArrayList<Float>collisionStatistics=new ArrayList<>();
 ArrayList<Float>drawStatistics=new ArrayList<>();
@@ -45,13 +45,13 @@ void Debug(){
     }
     commandInput.display();
     commandInput.update();
-    LinkedHashMap<String,Float>NextWarning=new LinkedHashMap<String,Float>();
+    LinkedHashMap<DebugText,Float>NextWarning=new LinkedHashMap<>();
     int[]count={0};
     DebugWarning.forEach((k,v)->{
-      fill(255,0,0);
+      fill(k.isWarning()?#FF0000:#FFFFFF);
       textSize(20);
       textAlign(LEFT);
-      text(k,10,height-(50+25*(DebugWarning.size()-1-count[0])));
+      text(k.getText(),10,height-(50+25*(DebugWarning.size()-1-count[0])));
       if(v<300)NextWarning.put(k,v+vectorMagnification);
       count[0]++;
     });
@@ -210,6 +210,10 @@ class CommandField extends LineTextField{
   }
 }
 
+void addDebugText(String s,boolean b){
+  if(!DebugWarning.containsKey(s))DebugWarning.put(new DebugText(s,b),0f);
+}
+
 void addWarning(String s){
-  if(!DebugWarning.containsKey(s))DebugWarning.put(s,0f);
+  if(!DebugWarning.containsKey(s))DebugWarning.put(new DebugText(s,true),0f);
 }

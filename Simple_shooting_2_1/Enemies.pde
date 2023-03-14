@@ -132,6 +132,7 @@ abstract class Enemy extends Entity implements Cloneable{
     isDead=true;
     spownEntity();
     dead.deadEvent(this);
+    dead=(e)->{};
   }
   
   private void spownEntity(){
@@ -855,7 +856,7 @@ class Boost extends Enemy{
     }
     if(boost){
       if(time<60){
-        maxSpeed=2.2;
+        maxSpeed=3.5;
       }else{
         boost=false;
         maxSpeed=0.5;
@@ -1226,8 +1227,9 @@ class Decoy extends Enemy{
   }
   
   @Override
-  public void BulletHit(Bullet b,boolean p){
-    if(stop)stop=false;
+  public void Hit(Weapon w){
+    super.Hit(w);
+    stop=false;
   }
 }
 

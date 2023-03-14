@@ -113,7 +113,6 @@ abstract class Bullet extends Entity{
     e.Hit(parent);
     e.vel.add(vel.copy().mult(Mass/e.Mass));
     isDead=true;
-    e.BulletHit(this,false);
   }
   
   @Override
@@ -123,13 +122,11 @@ abstract class Bullet extends Entity{
   
   @Override
   public void BulletHit(Bullet b,boolean p){
-    if(!(b instanceof SubBullet)&&(b instanceof Bullet)){
-      if(b.isMine!=isMine){
-        b.isDead=true;
-        isDead=true;
-        NextEntities.add(new Particle(this,4));
-        NextEntities.add(new Particle(b,4));
-      }
+    if(!(b instanceof PlayerBullet)&&(b instanceof Bullet)){
+      b.isDead=true;
+      isDead=true;
+      NextEntities.add(new Particle(this,4));
+      NextEntities.add(new Particle(b,4));
     }
   }
   
@@ -143,7 +140,7 @@ abstract class Bullet extends Entity{
   @Override
   public void MyselfHit(Myself m,boolean b){
     isDead=true;
-    m.Hit(parent.power);
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
   }
   
   @Override
@@ -199,7 +196,7 @@ class PlayerBullet extends Bullet{
   }
 }
 
-class SubBullet extends Bullet{
+class SubBullet extends PlayerBullet{
   float scale=0;
   int through=0;
   
@@ -385,7 +382,6 @@ class GrenadeBullet extends SubBullet{
   
   @Override
   public void EnemyHit(Enemy e,boolean b){
-    e.BulletHit(this,false);
     isDead=true;
     if(!hit){
       HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3f,true,parent));
@@ -552,7 +548,11 @@ class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
     hitPosition.clear();
   }
   
-   public void update(){
+  public void update(){
+    if(!player.attackWeapons.contains(parent)){
+      isDead=true;
+      return;
+    }
     HashMap<Entity,Float>nextCooltimes=new HashMap<Entity,Float>();
     cooltimes.forEach((k,v)->{
       cooltimes.replace(k,v-vectorMagnification);
@@ -589,6 +589,7 @@ class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
         hitPosition.add(e.pos.copy());
       }
     }
+    e.getController().addStatus(this.toString(),new StatusParameter(-0.3f,0.1f,"Attack",p->{return true;}));
   }
   
   @Override
@@ -744,7 +745,7 @@ class LightningBullet extends SubBullet implements ExcludeGPGPU{
     setMass(0);
     pos=player.pos;
     if(nearEnemy.size()>num){
-      rad=atan2(pos,nearEnemy.get(num).pos)+radians(random(-10.10f));
+      rad=atan2(pos,nearEnemy.get(num).pos)+radians(random(-10f,10f));
     }else{
       rad=-HALF_PI+HALF_PI/3*offset+TWO_PI/(float)sum*num;
     }
@@ -970,7 +971,7 @@ class EnemyPoisonBullet extends ThroughBullet{
       if(s.equals("exec"))player.speedMag=0.5;
       if(s.equals("shutdown"))player.speedMag=1;
     }));
-    m.Hit(parent.power);
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
     isDead=true;
   }
 }
@@ -988,7 +989,7 @@ class AntiSkillBullet extends ThroughBullet{
       if(s.equals("exec"))player.useSub=false;
       if(s.equals("shutdown"))player.useSub=true;
     }));
-    m.Hit(parent.power);
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
     isDead=true;
   }
 }
@@ -1003,7 +1004,7 @@ class BoundBullet extends ThroughBullet{
   @Override
   public void MyselfHit(Myself m,boolean b){
     m.vel.add(vel.normalize().copy().mult(m.maxSpeed*10f));
-    m.Hit(parent.power);
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
     isDead=true;
   }
 }
@@ -1185,6 +1186,10 @@ class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   }
   
    public void update(){
+    if(!player.attackWeapons.contains(parent)){
+      isDead=true;
+      return;
+    }
     StatusList.get("power").put(this.getClass().getName(),power*min(1,Source.size()*0.25f)*0.01f);
     Source.clear();
     pos=player.pos;
@@ -1409,7 +1414,7 @@ class IceBullet extends FireBullet{
           cooltimes.replace(e,30f);
         }
       }
-      e.getController().addStatus(this.toString(),new StatusParameter(-0.1f,0.1f,"Speed",p->{return true;}));
+      e.getController().addStatus(this.toString(),new StatusParameter(-0.4f,0.1f,"Speed",p->{return true;}));
     }else{
       e.Hit(parent.power*3);
       age=0;
@@ -1716,6 +1721,158 @@ class TLASBullet extends SubBullet{
     super.update();
     setAABB();
   }
+}
+
+class LinearBullet extends SubBullet{
+  
+  LinearBullet(SubWeapon w,int num){
+    super(w);
+    setNear(round(random(0,nearEnemy.size()-1)));
+    bulletColor=new Color(255,128,0);
+  }
+}
+
+class BiLinearBullet extends LinearBullet{
+  HashSet<Entity>HitEnemy=new HashSet<>();
+  int throughNum=1;
+  
+  BiLinearBullet(SubWeapon w,int num){
+    super(w,num);
+    bulletColor=new Color(255,64,64);
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean p){
+    e.Hit(parent);
+    e.vel.add(vel.copy().mult(Mass/e.Mass));
+    HitEnemy.add(e);
+    if(HitEnemy.size()>throughNum){
+      isDead=true;
+    }
+  }
+}
+
+class TriLinearBullet extends BiLinearBullet{
+  
+  TriLinearBullet(SubWeapon w,int num){
+    super(w,num);
+    bulletColor=new Color(255,0,128);
+  }
+}
+
+class SanctuaryBullet extends PlasmaFieldBullet{
+  
+  private SanctuaryBullet(){
+    super();
+  }
+  
+  @Override public 
+  void display(PGraphics g){
+    g.fill(255,100,100,10);
+    g.stroke(255,50);
+    g.strokeWeight(1);
+    g.ellipse(pos.x,pos.y,scale,scale);
+    g.stroke(255);
+    for(PVector v:hitPosition){
+      int num=(int)random(4+scale*0.02f,8+scale*0.02f);
+      v.sub(pos).div(num);
+      PVector p=pos.copy();
+      for(int i=0;i<num;i++){
+        PVector e=pos.copy().add(v.copy().mult(i+1).add(i==num-1?0:random(scale*0.05f),i==num-1?0:random(scale*0.05f)));
+        g.line(p.x,p.y,e.x,e.y);
+        p=e;
+      }
+    }
+    hitPosition.clear();
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    outEntity.remove(e);
+    if(!cooltimes.containsKey(e)){
+      e.Hit(this.parent);
+      cooltimes.put(e,parent.coolTime);
+      hitPosition.add(e.pos.copy());
+    }else{
+      if(cooltimes.get(e)<=0){
+        e.Hit(this.parent);
+        cooltimes.replace(e,parent.coolTime);
+        hitPosition.add(e.pos.copy());
+      }
+    }
+    e.getController().addStatus(this.toString(),new StatusParameter(-0.6f,0.1f,"Attack",p->{return true;}));
+    e.getController().addStatus(this.toString(),new StatusParameter(-0.4f,0.1f,"Speed",p->{return true;}));
+  }
+}
+
+class AnomalyBullet extends LightningBullet{
+  boolean stop=false;
+  float moveTime=20;
+  
+  AnomalyBullet(SubWeapon w){
+    super(w,1,1,0);
+    setMass(0);
+    pos=player.pos.copy();
+    rad=random(0,TWO_PI);
+    vel.set(7*cos(rad)*random(0.8,1.2),7*sin(rad)*random(0.8,1.2));
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    g.strokeWeight(scale);
+    g.stroke(180,0,255,200);
+    if(stop)g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);else point(pos.x,pos.y);
+  }
+  
+  @Override
+  public void update(){
+    if(moveTime<time){
+      if(!stop)initDirection();
+      stop=true;
+    }else{
+      pos.add(vel);
+      vel.mult(0.95f);
+    }
+    if(duration<time)isDead=true;
+    time+=vectorMagnification;
+    HitEnemy.clear();
+    nextHitEnemy.forEach(e->{HitEnemy.add(e);});
+    nextHitEnemy.clear();
+    setAABB();
+  }
+  
+  void initDirection(){
+    if(!nearEnemy.isEmpty()){
+      rad=atan2(pos,nearEnemy.get(round(random(0,nearEnemy.size()-1))).pos)+radians(random(-5f,5f));
+    }else{
+      rad=random(0,TWO_PI);
+    }
+    int len=width+height;
+    for(int i=0;i<4;i++){
+      switch(i){
+        case 0:vel=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(width,0),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
+        case 1:vel=SegmentCrossPoint(scroll.copy().mult(-1).add(0,height),new PVector(width,0),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
+        case 2:vel=SegmentCrossPoint(scroll.copy().mult(-1),new PVector(0,height),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
+        case 3:vel=SegmentCrossPoint(scroll.copy().mult(-1).add(width,0),new PVector(0,height),pos,new PVector(cos(rad)*len,sin(rad)*len));break;
+      }
+      if(vel!=null){
+        vel.sub(pos);
+        break;
+      }
+    }
+  }
+
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    if(!HitEnemy.contains(e)){
+      e.Hit(parent);
+      e.vel.add(vel.copy().mult(Mass/e.Mass));
+    }
+  }
+  
+  @Override
+  public void WallCollision(WallEntity w){}
 }
 
 interface ExcludeBullet{

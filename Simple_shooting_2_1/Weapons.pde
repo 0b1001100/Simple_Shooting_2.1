@@ -10,6 +10,7 @@ abstract class Weapon implements Equipment,Cloneable{
   boolean empty=false;
   String name="default";
   float power=1;
+  float powerTemp=1;
   float speed=15;
   Float diffuse=0f;
   float coolTime=10;
@@ -46,6 +47,7 @@ abstract class Weapon implements Equipment,Cloneable{
   
    public void setPower(float p){
     power=p;
+    powerTemp=p;
   }
   
    public void setSpeed(float s){
@@ -128,6 +130,7 @@ abstract class Weapon implements Equipment,Cloneable{
   }
   
   public void shot(){
+    power=powerTemp;
     for(int i=0;i<this.bulletNumber;i++){
       addBullet(i);
     }
@@ -399,7 +402,7 @@ abstract class AttackWeapon extends SubWeapon{
   
   public void upgrade(JSONArray a,int level) throws NullPointerException{
     this.level=level;
-    if(level-2>maxLevel)throw new NullPointerException();
+    if(level>maxLevel)throw new NullPointerException();
     JSONObject add=a.getJSONObject(level-2);
     HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).toStringArray()));
     param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
@@ -853,6 +856,89 @@ class TLASWeapon extends AttackWeapon{
   @Override
   protected void addBullet(int i){
     NextEntities.add(new TLASBullet(this,i));
+  }
+}
+
+class LinearWeapon extends AttackWeapon{
+  
+  LinearWeapon(){
+    super();
+  }
+  
+  LinearWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new LinearBullet(this,i));
+  }
+}
+
+class BiLinearWeapon extends LinearWeapon{
+  
+  BiLinearWeapon(){
+    super();
+  }
+  
+  BiLinearWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new BiLinearBullet(this,i));
+  }
+}
+
+class TriLinearWeapon extends BiLinearWeapon{
+  
+  TriLinearWeapon(){
+    super();
+  }
+  
+  TriLinearWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new TriLinearBullet(this,i));
+  }
+}
+
+class SanctuaryWeapon extends PlasmaFieldWeapon{
+  
+  SanctuaryWeapon(){
+    super();
+  }
+  
+  SanctuaryWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override 
+  public void update(){
+    if(bullet==null){
+      bullet=new SanctuaryBullet();
+      bullet.init(this);
+      NextEntities.add(bullet);
+    }else if(!EntitySet.contains(bullet)){
+      bullet.init(this);
+      NextEntities.add(bullet);
+    }
+  }
+}
+
+class AnomalyWeapon extends AttackWeapon{
+  
+  AnomalyWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new AnomalyBullet(this));
   }
 }
 

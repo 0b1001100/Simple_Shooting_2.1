@@ -70,7 +70,7 @@ class SurvivorEnemyController extends Controller{
     if(Float.isNaN(e.Speed)){
       e.Speed=0;
     }
-    float s=applyStatus("Speed",1f);
+    float s=applyStatus("Speed",0.925f);
     e.addVel(e.accelSpeed,false);
     e.vel.x=(abs(e.vel.x)<0.01?0f:e.vel.x)*s;
     e.vel.y=(abs(e.vel.y)<0.01?0f:e.vel.y)*s;

@@ -1113,7 +1113,7 @@ public void ctrl_button_pressed(){
 }
 
 abstract class Entity implements Cloneable{
-  private Controller control;
+  protected Controller control=new VoidController();
   protected DeadEvent dead=(e)->{};
   protected float size=20;
   protected PVector pos=new PVector(0,0);
@@ -1142,9 +1142,6 @@ abstract class Entity implements Cloneable{
   }
   
   Controller getController(){
-    if(control==null){
-      control=new VoidController();
-    }
     return control;
   }
   

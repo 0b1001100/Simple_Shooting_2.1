@@ -48,8 +48,10 @@ class GameProcess{
      Arrays.asList(conf.getJSONArray("Weapons").toStringArray()).forEach(s->{
        playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());
      });
-     playerTable.getAll().forEach(i->{
+     masterTable.getAll().forEach(i->{
        i.reset();
+     });
+     playerTable.getAll().forEach(i->{
        playerTable.addTable(i,i.weight);
      });
      player.attackWeapons.clear();
@@ -387,7 +389,7 @@ class GameProcess{
       }
     }
     if(EventSet.containsKey("addNextWeapon")){
-      String[] src=EventSet.get("addNextWeapon").split("_");println(src);
+      String[] src=EventSet.get("addNextWeapon").split("_");
       for(String s:src){
         Item i=masterTable.get(s);
         playerTable.addTable(i,i.weight);
@@ -405,15 +407,17 @@ class GameProcess{
       upgrade=true;
       menu=false;
       ItemTable copy=playerTable.clone();
-      java.util.List<String> weaponNames=Stream.concat(player.attackWeapons.stream(),player.itemWeapons.stream())
-                                                          .filter(w->masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))!=null
-                                                          ||w.level<masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$","")).upgradeData.size()+1)
-                                                          .map(w->w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))
-                                                          .collect(Collectors.toList());
+      java.util.List<String> weaponNames=player.attackWeapons.stream()
+                                               .filter(w->masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))!=null
+                                               ||w.level<masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$","")).upgradeData.size()+1)
+                                               .map(w->w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))
+                                               .collect(Collectors.toList());
       int num=min(14-(player.attackWeapons.size()-weaponNames.size()),min(playerTable.probSize(),round(random(3,3.55))));
       Item[]list=new Item[num];
       for(int i=0;i<num;i++){
-        if(random(0,1)<0.35&&!weaponNames.isEmpty()){
+        if(random(0,1)<0.2&&playerTable.hasNextWeapon()){
+          list[i]=copy.getRandomNextWeapon();
+        }else if(random(0,1)<0.35&&!weaponNames.isEmpty()){
           String target=weaponNames.get(round(random(0,weaponNames.size()-1)));
           list[i]=copy.get(target);
           weaponNames.remove(target);
@@ -482,9 +486,6 @@ class GameProcess{
           }
           applyStatus();
           --player.levelupNumber;
-          playerTable.table.forEach((k,v)->{
-            v.checkNext();
-          });
           upgrade=false;
           EventSet.put("end_upgrade","");
         });
@@ -568,9 +569,14 @@ class GameProcess{
             }
           }
         }catch(NullPointerException e){
+          e.printStackTrace();
         }finally{
           i.level=constrain(i.level,1,i.upgradeData.size()+1);
           applyStatus();
+          
+          playerTable.table.forEach((k,v)->{
+            v.checkNext();
+          });
         }
       }else if((w instanceof ItemWeapon)&&player.itemWeapons.contains(w)){
         try{
@@ -591,9 +597,13 @@ class GameProcess{
             }
           }
         }catch(NullPointerException e){
+          e.printStackTrace();
         }finally{
           i.level=constrain(i.level,1,i.upgradeData.size()+1);
           applyStatus();
+          playerTable.table.forEach((k,v)->{
+            v.checkNext();
+          });
         }
       }
     }
@@ -606,10 +616,12 @@ class GameProcess{
       if((w instanceof AttackWeapon)&&!player.attackWeapons.contains(w)){
         player.attackWeapons.add((AttackWeapon)w);
         applyStatus();
+        addDebugText("Added "+src,false);
       }else if((w instanceof ItemWeapon)&&!player.itemWeapons.contains(w)){
         player.itemWeapons.add((ItemWeapon)w);
         w.update();
         applyStatus();
+        addDebugText("Added "+src,false);
       }else{
         addWarning("You already have "+src);
       }
