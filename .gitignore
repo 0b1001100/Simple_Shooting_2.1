@@ -11,4 +11,13 @@ out
 
 .antlr
 
+*.jar
+
+Libraries
+natives
 test
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build

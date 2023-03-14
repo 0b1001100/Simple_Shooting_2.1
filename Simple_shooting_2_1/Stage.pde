@@ -183,8 +183,8 @@ class SpownPoint{
     time-=vectorMagnification;
     if(time<0){
       isDead=true;
-      e.init();
       e.setPos(pos);
+      e.init();
       NextEntities.add(e);
       return;
     }
@@ -262,6 +262,8 @@ class SurvivorHUD extends GameHUD{
   }
   
   void display(){
+    pushMatrix();
+    translate(scroll.x,scroll.y);
     stage.display();
     if(!player.isDead)player.display(g);
     if(LensData.size()>0){
@@ -287,6 +289,7 @@ class SurvivorHUD extends GameHUD{
       applyShader(GravityLens);
     }
     LensData.clear();
+    popMatrix();
     displayHUD();
   }
   
@@ -315,8 +318,16 @@ class SurvivorHUD extends GameHUD{
     textFont(font_15);
     textAlign(CENTER);
     text("Time "+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5f,78);
+    textAlign(RIGHT);
     text(Language.getString("ui_kill")+":"+killCount,width-200,78);
+    text(Language.getString("ui_remain")+":"+player.remain,100,78);
+    text(Language.getString("ui_frag")+":"+player.fragment,250,78);
+    //text("weapons:"+player.attackWeapons.size(),400,78);
     pop();
+  }
+  
+  public ComponentSet getComponent(){
+    return PauseSet;
   }
 }
 enum EnemySpown{

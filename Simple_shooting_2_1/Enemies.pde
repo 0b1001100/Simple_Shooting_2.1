@@ -2,12 +2,11 @@ ArrayList<AABBData>EntityDataX=new ArrayList<AABBData>();
 ArrayList<ArrayList<AABBData>>HeapEntityDataX=new ArrayList<ArrayList<AABBData>>();
 AABBData[]SortedDataX;
 
-class Enemy extends Entity implements Cloneable{
+abstract class Enemy extends Entity implements Cloneable{
   HashMap<Class<? extends Weapon>,Float>MultiplyerMap=new HashMap<Class<? extends Weapon>,Float>();
   Weapon useWeapon=null;
   Weapon ShotWeapon=null;
   ItemTable dropTable;
-  boolean inScreen=true;
   boolean hit=false;
   double damage=0;
   float maxAddtionalSpeed=35;
@@ -42,13 +41,9 @@ class Enemy extends Entity implements Cloneable{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
-    g.rotate(-rotate);
+    g.rotate(rotate);
     g.rectMode(CENTER);
     g.strokeWeight(1);
     g.noFill();
@@ -63,7 +58,7 @@ class Enemy extends Entity implements Cloneable{
     g.popMatrix();
   }
   
-  public void update(){
+  public final void update(){
     Process();
     getController().update(this);
     if(!(HP<=0)&&damage>0){
@@ -72,16 +67,17 @@ class Enemy extends Entity implements Cloneable{
     }
   }
   
-  private void addVel(float accel,boolean force){
+  protected void addVel(float accel,boolean force){
+    Speed*=0.95f;
+    vel.mult(0.95f);
     if(!force){
       Speed+=accel*vectorMagnification;
       Speed=min(maxSpeed,Speed);
     }else{
       Speed+=accel*vectorMagnification;
     }
-    vel.mult(0.95);
-    vel.x=abs(cos(-rotate-HALF_PI)*Speed)<abs(vel.x)?vel.x:cos(-rotate-HALF_PI)*Speed;
-    vel.y=abs(sin(-rotate-HALF_PI)*Speed)<abs(vel.y)?vel.y:sin(-rotate-HALF_PI)*Speed;
+    vel.x=abs(cos(rotate)*Speed)>abs(vel.x)?cos(rotate)*Speed:vel.x;
+    vel.y=abs(sin(rotate)*Speed)>abs(vel.y)?sin(rotate)*Speed:vel.y;
   }
   
   public void addMultiplyer(Class<? extends Weapon> c,float f){
@@ -127,16 +123,22 @@ class Enemy extends Entity implements Cloneable{
     }
   }
   
-  public void setExpMag(float m){
+  public void setExpMag(float e){
     expMag=e;
   }
   
   public void Down(){
     killCount.incrementAndGet();
     isDead=true;
+    spownEntity();
+    dead.deadEvent(this);
+    dead=(e)->{};
+  }
+  
+  private void spownEntity(){
     NextEntities.add(new Particle(this,(int)(size*3),1));
     NextEntities.add(new Exp(this,ceil(((float)maxHP)*expMag)));
-    dead.deadEvent(this);
+    if(random(1f)<maxHP*0.01f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.001?random(1)<maxHP*0.0001?100:10:1));
   }
   
   @Override
@@ -178,7 +180,7 @@ class Enemy extends Entity implements Cloneable{
   @Override
   public void EnemyHit(Enemy e,boolean b){
     PVector c=pos.copy().sub(e.pos).normalize();
-    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(-atan2(pos.x-e.pos.x,pos.y-e.pos.y)-PI*0.5);
+    PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(atan2(pos,e.pos));
     vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
     e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
     pos.sub(d);
@@ -198,9 +200,9 @@ class Enemy extends Entity implements Cloneable{
   
   @Override
   public void MyselfHit(Myself m,boolean b){
-    float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+    float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
-    pos.add(new PVector(-cos(r)*d,-sin(r)*d));
+    pos.add(new PVector(cos(r)*d,sin(r)*d));
     m.Hit(1);
   }
   
@@ -212,6 +214,11 @@ class Enemy extends Entity implements Cloneable{
   Enemy clone()throws CloneNotSupportedException{
     Enemy clone=(Enemy)super.clone();
     clone.dropTable=dropTable==null?null:dropTable.clone();
+    try{
+      clone.setController(this.getController().getClass().getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
+    }catch(NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException me){
+      me.printStackTrace();
+    }
     return clone;
   }
   
@@ -284,7 +291,7 @@ class Plus extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(20,170,20));
-    addMultiplyer(EnergyBullet.class,1.1);
+    addMultiplyer(EnergyWeapon.class,1.1);
   }
   
   public void Process(){
@@ -395,7 +402,7 @@ class Slow_G extends Enemy{
   @Override
   public void Process(){
     if(inScreen){
-      if(abs(player.rotate-atan2(pos,player.pos))<radians(50)||abs(player.rotate+TWO_PI-atan2(pos,player.pos))<radians(50)||abs(player.rotate-TWO_PI-atan2(pos,player.pos))<radians(50)){
+      if(abs(player.rotate-atan2(player.pos,pos))<radians(50)||abs(player.rotate+TWO_PI-atan2(player.pos,pos))<radians(50)||abs(player.rotate-TWO_PI-atan2(player.pos,pos))<radians(50)){
         maxSpeed=1;
       }else{
         maxSpeed=3;
@@ -429,8 +436,7 @@ class M_Boss_Y extends Enemy implements BossEnemy{
     addMultiplyer(PlasmaFieldWeapon.class,1.2);
   }
   
-  @Override
-  public void Process(){
+  void backToScreen(){
     if(!inScreen&&moveCoolTime<=0){
       pos.x=player.pos.x+sign(player.pos.x-pos.x)*min(abs(player.pos.x-pos.x),width*0.5);
       pos.y=player.pos.y+sign(player.pos.y-pos.y)*min(abs(player.pos.y-pos.y),height*0.5);
@@ -438,6 +444,11 @@ class M_Boss_Y extends Enemy implements BossEnemy{
       moveCoolTime=180;
     }
     moveCoolTime-=vectorMagnification;
+  }
+  
+  @Override
+  public void Process(){
+    backToScreen();
   }
   
   @Override
@@ -501,7 +512,7 @@ class Plus_S extends Turret_S{
     target=player;
     setColor(new Color(20,170,20));
     setExpMag(0.8);
-    addMultiplyer(EnergyBullet.class,1.2);
+    addMultiplyer(EnergyWeapon.class,1.2);
   }
 }
 
@@ -516,7 +527,7 @@ class Slime extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(20,255,0));
-    addMultiplyer(EnergyBullet.class,1.1);
+    addMultiplyer(EnergyWeapon.class,1.1);
   }
   
   @Override
@@ -637,7 +648,7 @@ class Duplication extends Enemy{
   }
   
   @Override
-  public void update(){
+  public void Process(){
     time+=vectorMagnification;
     if(time>600){
       time=0;
@@ -647,7 +658,6 @@ class Duplication extends Enemy{
       NextEntities.add(new Duplication((float)HP,size).setPos(pos.copy().add(cos(-rotate+PI)*size*0.5,sin(-rotate+PI)*size*0.5)));
       }
     }
-    super.update();
   }
 }
 
@@ -846,7 +856,7 @@ class Boost extends Enemy{
     }
     if(boost){
       if(time<60){
-        maxSpeed=4;
+        maxSpeed=3.5;
       }else{
         boost=false;
         maxSpeed=0.5;
@@ -874,13 +884,9 @@ class Teleport extends Enemy{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
-    g.rotate(-rotate);
+    g.rotate(rotate);
     g.rectMode(CENTER);
     g.strokeWeight(1);
     g.noFill();
@@ -1028,7 +1034,7 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
       if(EntitySet.contains(f))nextChild.add(f);
     }
     child=nextChild;
-    int i=0;//println(child);
+    int i=0;
     for(EnemyShield_Child c:child){
       c.setPos(pos.copy().add(new PVector(80,0).rotate(rad+TWO_PI*((i%12)/12f))));
       c.rotate=atan2(c.pos,pos);
@@ -1188,9 +1194,9 @@ class CollisionEnemy extends Enemy{
   
   @Override
   public void MyselfHit(Myself m,boolean b){
-    float r=-atan2(pos.x-m.pos.x,pos.y-m.pos.y)-PI*0.5;
+    float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
-    pos.add(new PVector(-cos(r)*d,-sin(r)*d));
+    pos.add(new PVector(-cos(r)*d,sin(r)*d));
     hit=true;
   }
   
@@ -1221,8 +1227,9 @@ class Decoy extends Enemy{
   }
   
   @Override
-  public void BulletHit(Bullet b,boolean p){
-    if(stop)stop=false;
+  public void Hit(Weapon w){
+    super.Hit(w);
+    stop=false;
   }
 }
 
@@ -1237,6 +1244,9 @@ class Recover extends Enemy implements BossEnemy{
     setSize(40);
     setMass(35);
     setColor(new Color(255,150,225));
+    dead=(e)->{
+      NextEntities.add(new RecoverItem(this));
+    };
   }
   
   @Override
@@ -1251,22 +1261,12 @@ class Recover extends Enemy implements BossEnemy{
   }
   
   @Override
-  public void BulletCollision(Bullet b){
-    super.BulletCollision(b);
-    if(isDead)NextEntities.add(new RecoverItem(this));
-  }
-  
-  @Override
   public void ExplosionHit(Explosion e,boolean b){
     Hit(10);
   }
   
-  @Override
-  public void BulletHit(Bullet b,boolean p){
-    if(isDead)NextEntities.add(new RecoverItem(this));
-  }
-  
-  private final class RecoverItem extends Exp{
+  public final class RecoverItem extends Exp{
+    boolean recover=true;
     
     RecoverItem(){
       size=5;
@@ -1288,8 +1288,9 @@ class Recover extends Enemy implements BossEnemy{
     }
     
     @Override
-    public void update(){
-      if(inScreen&&qDist(player.pos,pos,player.magnetDist)&&player.canMagnet){
+    public void getProcess(){
+      if(recover){
+        recover=false;
         ++player.remain;
         player.exp+=250;
         isDead=true;
@@ -1350,17 +1351,13 @@ class Barrier extends M_Boss_Y implements BossEnemy{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
     g.strokeWeight(2);
     g.stroke(0,255,255);
     g.noFill();
     if(barrier)g.ellipse(0,0,size,size);
-    g.rotate(-rotate);
+    g.rotate(rotate);
     g.rectMode(CENTER);
     g.strokeWeight(1);
     if(Debug){
@@ -1498,16 +1495,12 @@ class SnipeEnemy extends Turret_S implements BossEnemy{
   
   @Override
   public void display(PGraphics g){
-    if(!inScreen)return;
-    if(Debug){
-      displayAABB(g);
-    }
     g.pushMatrix();
     g.translate(pos.x,pos.y);
-    g.rotate(-rotate);
+    g.rotate(rotate);
     g.strokeWeight(1);
     g.stroke(255,0,0,150);
-    g.line(0,0,0,-150);
+    g.line(0,0,150,0);
     g.noStroke();
     g.fill(255,0,0,150);
     g.ellipse(0,0,3,3);
@@ -1546,7 +1539,7 @@ class Sealed extends M_Boss_Y implements BossEnemy{
       boss=new HUDText("BOSS");
       dead=(e)->{
         StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{conf.setBoolean("clear",true);scene=3;}));
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage6"))stageList.addContent("Stage6");scene=3;}));
         boss.Dispose();
       };
     }
@@ -1562,10 +1555,10 @@ class Sealed extends M_Boss_Y implements BossEnemy{
           next.add(f);
           f.rotate=rotate;
           switch(f.num){
-            case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+QUARTER_PI));break;
-            case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+HALF_PI+QUARTER_PI));break;
-            case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+PI+QUARTER_PI));break;
-            case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+QUARTER_PI-HALF_PI));break;
+            case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI));break;
+            case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+HALF_PI+QUARTER_PI));break;
+            case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+PI+QUARTER_PI));break;
+            case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI-HALF_PI));break;
           }
         }
       }
@@ -1586,10 +1579,10 @@ class Sealed extends M_Boss_Y implements BossEnemy{
     for(int i=0;i<4;i++){
       SealedFrag f=new SealedFrag(i);
       switch(f.num){
-        case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+QUARTER_PI));break;
-        case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+HALF_PI+QUARTER_PI));break;
-        case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+PI+QUARTER_PI));break;
-        case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(-rotate+QUARTER_PI-HALF_PI));break;
+        case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI));break;
+        case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+HALF_PI+QUARTER_PI));break;
+        case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+PI+QUARTER_PI));break;
+        case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI-HALF_PI));break;
       }
       Frags.add(f);
       NextEntities.add(f);
@@ -1651,6 +1644,454 @@ class Sealed extends M_Boss_Y implements BossEnemy{
     public void EnemyCollision(Enemy e){}
   }
 }
+
+class Rare extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(4);
+    setSize(27);
+    setExpMag(1.3);
+    maxSpeed=0.8;
+    rotateSpeed=4;
+    setColor(new Color(203,152,224));
+  }
+}
+
+class Zero extends Turret_S{
+  float bullet_speed=1f;
+  
+  @Override
+  protected void init(){
+    setHP(8);
+    setSize(28);
+    maxSpeed=0.8;
+    rotateSpeed=4;
+    target=player;
+    setExpMag(1.1);
+    setColor(new Color(105,60,255));
+    addMultiplyer(ReflectorWeapon.class,2);
+  }
+  
+  public void Process(){
+    bullet_speed+=vectorMagnification*0.02;
+    useWeapon.setSpeed(bullet_speed);
+    bullet_speed%=10f;
+    super.Process();
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new EnemyWeapon(this));
+    useWeapon.setPower(0.4f);
+    useWeapon.setColor(210,210,0);
+    return this;
+  }
+}
+
+class Blaster extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(12);
+    setSize(28);
+    maxSpeed=0.8;
+    rotateSpeed=3;
+    target=player;
+    setExpMag(0.8);
+    setColor(new Color(250,120,0));
+    addMultiplyer(FireWeapon.class,2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new BlasterWeapon(this));
+    return this;
+  }
+}
+
+class Metal extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(16);
+    setSize(25);
+    maxSpeed=0.8;
+    rotateSpeed=2.5;
+    target=player;
+    setExpMag(1.1);
+    setColor(new Color(125,125,150));
+    addMultiplyer(PlasmaFieldWeapon.class,2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    EnemyWeapon w=new EnemyWeapon(this);
+    w.setBulletNumber(3);
+    w.setPower(0.1f);
+    w.setDiffuse(radians(45f));
+    setWeapon(w);
+    return this;
+  }
+}
+
+class Explosion_B extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(20);
+    setSize(25);
+    maxSpeed=0.8;
+    rotateSpeed=2.5;
+    setExpMag(1.4);
+    setColor(new Color(255,128,0));
+    addMultiplyer(IceWeapon.class,2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    BlasterWeapon w=new BlasterWeapon(this);
+    w.setPower(0.3f);
+    w.setBulletNumber(6);
+    w.setDiffuse(TWO_PI);
+    setWeapon(w);
+    dead=(e)->{
+      useWeapon.shot();
+      NextEntities.add(new Explosion(e,size*2,0.5,5));
+    };
+    return this;
+  }
+  
+  @Override
+  public void ExplosionHit(Explosion e,boolean b){
+    Down();
+  }
+}
+
+class Rotate extends EnemyShield implements BossEnemy{
+  
+  @Override
+  public void init(){
+    setHP(510);
+    maxSpeed=1.85;
+    rotateSpeed=1.2;
+    setSize(30);
+    setMass(30);
+    setColor(new Color(0,150,60));
+    addMultiplyer(SatelliteWeapon.class,1.2);
+  }
+  
+  @Override
+  public void Process(){
+    backToScreen();
+    age+=vectorMagnification;
+    rad+=radians(vectorMagnification*5);
+    ArrayList<EnemyShield_Child>nextChild=new ArrayList<EnemyShield_Child>();
+    for(EnemyShield_Child f:child){
+      if(EntitySet.contains(f))nextChild.add(f);
+    }
+    child=nextChild;
+    int i=0;
+    for(EnemyShield_Child c:child){
+      c.setPos(pos.copy().add(new PVector(40,0).rotate(rad+TWO_PI*((i%12)/12f))));
+      c.rotate=atan2(c.pos,pos);
+      ++i;
+    }
+    if(age>300&&child.size()<12&&!shot){
+      age=0;
+      EnemyShield_Child bullet=(EnemyShield_Child)new Rotate_Child(child.size()).setPos(pos.copy().add(new PVector(80,0).rotate(rad+TWO_PI*((sum%12)/12f))));
+      NextEntities.add(bullet);
+      child.add(bullet);
+      ++sum;
+    }else if(age>300&&(child.size()==12||shot)){
+      shot=true;
+      ArrayList<EnemyShield_Child>list=new ArrayList<EnemyShield_Child>();
+      for(EnemyShield_Child c:child){
+        if(abs(c.rotate-atan2(player.pos,c.pos))<radians(50)||abs(c.rotate+TWO_PI-atan2(player.pos,c.pos))<radians(50)||abs(c.rotate-TWO_PI-atan2(player.pos,c.pos))<radians(50)){
+          list.add(c);
+        }
+      }
+      if(list.size()>0){
+        EnemyShield_Child b=list.get(round(random(0,list.size()-1)));
+        b.shot();
+        if(child.size()==0)shot=false;
+        age=0;
+      }
+    }
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    pos=p;
+    return this;
+  }
+  
+  class Rotate_Child extends EnemyShield.EnemyShield_Child{
+    
+    Rotate_Child(int n){
+      super(n);
+      num=n;
+    }
+  
+    @Override
+    public void init(){
+      setHP(15);
+      maxSpeed=0;
+      rotateSpeed=0;
+      setSize(10);
+      setMass(15);
+      setColor(new Color(0,150,60));
+      addMultiplyer(SatelliteWeapon.class,1.2);
+    }
+  }
+}
+
+class Missile extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(24);
+    setSize(25);
+    maxSpeed=0.8;
+    rotateSpeed=2.5;
+    target=player;
+    setExpMag(1.3);
+    setColor(new Color(200,0,0));
+    addMultiplyer(BLASWeapon.class,2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new MissileWeapon(this));
+    useWeapon.setPower(0.35f);
+    return this;
+  }
+}
+
+class MirrorEnemy extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(28);
+    setSize(25);
+    maxSpeed=0.6;
+    rotateSpeed=0.5;
+    setExpMag(1);
+    setColor(new Color(40,230,230));
+    addMultiplyer(LightningWeapon.class,2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new EnemyMirrorWeapon(this));
+    useWeapon.shot();
+    return this;
+  }
+}
+
+class Defence extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(32);
+    setSize(30);
+    maxSpeed=0.5;
+    rotateSpeed=1.5;
+    setExpMag(1.1);
+    setColor(new Color(155,120,120));
+    addMultiplyer(IceWeapon.class,2);
+  }
+  
+  public void Hit(Weapon w){
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1;
+    HP-=max(0,w.power*mult-5f);
+    damage+=max(0,w.power*mult-5f);
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+  
+  public void Hit(float f){
+    HP-=min(0,f-5f);
+    damage+=min(0,f-5f);
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+}
+
+class Flash extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(36);
+    setSize(23);
+    maxSpeed=0.7;
+    rotateSpeed=0.5;
+    target=player;
+    setExpMag(1.1);
+    setColor(new Color(255,240,110));
+    addMultiplyer(G_ShotWeapon.class,2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new FlashWeapon(this));
+    return this;
+  }
+}
+
+class Missile_B extends M_Boss_Y implements BossEnemy{
+  float maxcool=30;
+  float cooltime=30;
+  int state=0;
+  float stateCooltime=600;
+  
+  @Override
+  public void init(){
+    setHP(3000);
+    maxSpeed=1.85;
+    rotateSpeed=1.2;
+    setSize(58);
+    setMass(37);
+    setColor(new Color(170,0,70));
+    if(StageName.equals("Stage6")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage7")&&STAGE_NUMBER>6)stageList.addContent("Stage7");scene=3;}));
+        boss.Dispose();
+      };
+    }
+    addMultiplyer(IceWeapon.class,2);
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    if(stateCooltime<0){
+      maxSpeed=0.8;
+      cooltime-=vectorMagnification;
+      if(cooltime<0){
+        useWeapon.shot();
+        cooltime=maxcool;
+        state++;
+        if(state>=4){
+          stateCooltime=600;
+          state=0;
+        }
+      }
+    }else{
+      maxSpeed=1.85;
+      stateCooltime-=vectorMagnification;
+    }
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    pos=p;
+    setWeapon(new MissileWeapon(this));
+    useWeapon.setBulletNumber(6);
+    useWeapon.setDiffuse(TWO_PI);
+    if(StageName.equals("Stage6")){
+      boss.setTarget(this);
+      main_game.getHUDComponentSet().add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+}
+
+class Slide extends Turret_S{
+  float slideTime=0f;
+  
+  @Override
+  protected void init(){
+    setHP(4);
+    setSize(23);
+    maxSpeed=1;
+    rotateSpeed=1;
+    target=player;
+    setExpMag(1.1);
+    setColor(new Color(0,190,255));
+    addMultiplyer(G_ShotWeapon.class,2);
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    slideTime+=vectorMagnification;
+    if(slideTime>300f){
+      slideTime=0f;
+      vel.add(Speed*7*cos(rotate),0*sin(rotate));
+    }
+  }
+}
+
+class Slime_F extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(8);
+    setSize(18);
+    maxSpeed=0.7;
+    rotateSpeed=3;
+    setColor(new Color(0,125,255));
+    addMultiplyer(EnergyWeapon.class,1.1);
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      if(e instanceof Slime_F){
+        if(!isDead){
+          e.isDead=true;
+          setSize(size+50f/size);
+          setHP(HP+e.HP*0.5);
+        }
+      }else{
+        EnemyHit(e,false);
+      }
+    }
+  }
+}
+
+//class Slide extends Turret_S{
+//  float slideTime=0f;
+  
+//  @Override
+//  protected void init(){
+//    setHP(4);
+//    setSize(23);
+//    maxSpeed=1;
+//    rotateSpeed=1;
+//    target=player;
+//    setExpMag(1.1);
+//    setColor(new Color(0,190,255));
+//    addMultiplyer(G_ShotWeapon.class,2);
+//  }
+  
+//  @Override
+//  public void Process(){
+//    super.Process();
+//    slideTime+=vectorMagnification;
+//    if(slideTime>300f){
+//      slideTime=0f;
+//      vel.add(Speed*7*cos(rotate),0*sin(rotate));
+//    }
+//  }
+//}
 
 interface BossEnemy{
 }

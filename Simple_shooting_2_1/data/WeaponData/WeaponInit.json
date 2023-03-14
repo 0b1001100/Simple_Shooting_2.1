@@ -2,6 +2,7 @@
   {
     "name":"G_Shot",
     "type":"weapon",
+    "maxLevel":8,
     "weight":45,
     "projectile":1,
     "scale":100,
@@ -11,13 +12,23 @@
     "cooltime":210,
     "through":0,
     "nextWeapon":{
-      "name":"undefined",
-      "need":[]
+      "name":"Void",
+      "need":[
+        {
+          "name":"G_Shot",
+          "type":"use"
+        },
+        {
+          "name":"BLAS",
+          "type":"use"
+        }
+      ]
     }
   },
   {
     "name":"Grenade",
     "type":"weapon",
+    "maxLevel":8,
     "weight":24,
     "projectile":1,
     "scale":70,
@@ -34,6 +45,7 @@
   {
     "name":"Turret",
     "type":"weapon",
+    "maxLevel":8,
     "weight":60,
     "projectile":1,
     "scale":0,
@@ -59,6 +71,7 @@
   {
     "name":"MP5",
     "type":"next_weapon",
+    "maxLevel":1,
     "weight":10,
     "projectile":1,
     "scale":0,
@@ -75,6 +88,7 @@
   {
     "name":"Mirror",
     "type":"weapon",
+    "maxLevel":8,
     "weight":40,
     "projectile":2,
     "scale":15,
@@ -100,6 +114,7 @@
   {
     "name":"InfinityShield",
     "type":"next_weapon",
+    "maxLevel":1,
     "weight":10,
     "projectile":8,
     "scale":35,
@@ -116,6 +131,7 @@
   {
     "name":"PlasmaField",
     "type":"weapon",
+    "maxLevel":8,
     "weight":30,
     "projectile":1,
     "scale":80,
@@ -125,6 +141,58 @@
     "cooltime":50,
     "through":0,
     "nextWeapon":{
+      "name":"Sanctuary",
+      "need":[
+        {
+          "name":"PlasmaField",
+          "type":"use"
+        },
+        {
+          "name":"Absorption",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Absorption",
+    "type":"weapon",
+    "maxLevel":5,
+    "weight":20,
+    "projectile":1,
+    "scale":120,
+    "power":12,
+    "velocity":0,
+    "duration":0,
+    "cooltime":20,
+    "through":0,
+    "nextWeapon":{
+      "name":"Sanctuary",
+      "need":[
+        {
+          "name":"PlasmaField",
+          "type":"use"
+        },
+        {
+          "name":"Absorption",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Sanctuary",
+    "type":"next_weapon",
+    "maxLevel":1,
+    "weight":15,
+    "projectile":1,
+    "scale":350,
+    "power":40,
+    "velocity":0,
+    "duration":0,
+    "cooltime":30,
+    "through":0,
+    "nextWeapon":{
       "name":"undefined",
       "need":[]
     }
@@ -132,11 +200,12 @@
   {
     "name":"Laser",
     "type":"weapon",
+    "maxLevel":8,
     "weight":30,
     "projectile":1,
     "scale":0,
     "power":2,
-    "velocity":4,
+    "velocity":6,
     "duration":240,
     "cooltime":150,
     "through":0,
@@ -157,13 +226,14 @@
   {
     "name":"Electron",
     "type":"next_weapon",
+    "maxLevel":1,
     "weight":7,
     "projectile":7,
     "scale":0,
     "power":10,
-    "velocity":7,
-    "duration":2000,
-    "cooltime":1500,
+    "velocity":9,
+    "duration":600,
+    "cooltime":150,
     "through":0,
     "nextWeapon":{
       "name":"undefined",
@@ -173,6 +243,7 @@
   {
     "name":"Lightning",
     "type":"weapon",
+    "maxLevel":8,
     "weight":27,
     "projectile":1,
     "scale":2,
@@ -182,6 +253,32 @@
     "cooltime":170,
     "through":0,
     "nextWeapon":{
+      "name":"Anomaly",
+      "need":[
+        {
+          "name":"Lightning",
+          "type":"use"
+        },
+        {
+          "name":"TLAS",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Anomaly",
+    "type":"next_weapon",
+    "maxLevel":1,
+    "weight":12,
+    "projectile":5,
+    "scale":5,
+    "power":20,
+    "velocity":1,
+    "duration":30,
+    "cooltime":50,
+    "through":0,
+    "nextWeapon":{
       "name":"undefined",
       "need":[]
     }
@@ -189,6 +286,7 @@
   {
     "name":"Reflector",
     "type":"weapon",
+    "maxLevel":8,
     "weight":19,
     "projectile":1,
     "scale":0,
@@ -214,6 +312,7 @@
   {
     "name":"ShadowReflector",
     "type":"next_weapon",
+    "maxLevel":1,
     "weight":7,
     "projectile":4,
     "scale":0,
@@ -228,24 +327,9 @@
     }
   },
   {
-    "name":"Absorption",
-    "type":"weapon",
-    "weight":20,
-    "projectile":1,
-    "scale":120,
-    "power":40,
-    "velocity":0,
-    "duration":0,
-    "cooltime":50,
-    "through":0,
-    "nextWeapon":{
-      "name":"undefined",
-      "need":[]
-    }
-  },
-  {
     "name":"Fire",
     "type":"weapon",
+    "maxLevel":8,
     "weight":22,
     "projectile":1,
     "scale":120,
@@ -271,7 +355,8 @@
   {
     "name":"Ice",
     "type":"weapon",
-    "weight":22,
+    "maxLevel":8,
+    "weight":20,
     "projectile":1,
     "scale":120,
     "power":1,
@@ -296,6 +381,7 @@
   {
     "name":"Inferno",
     "type":"next_weapon",
+    "maxLevel":1,
     "weight":6,
     "projectile":6,
     "scale":200,
@@ -312,6 +398,7 @@
   {
     "name":"Satellite",
     "type":"weapon",
+    "maxLevel":8,
     "weight":16,
     "projectile":1,
     "scale":5,
@@ -337,6 +424,7 @@
   {
     "name":"Hexite",
     "type":"next_weapon",
+    "maxLevel":1,
     "weight":6,
     "projectile":6,
     "scale":6,
@@ -353,62 +441,180 @@
   {
     "name":"BLAS",
     "type":"weapon",
+    "maxLevel":8,
     "weight":18,
     "projectile":1,
-    "scale":30,
+    "scale":100,
     "power":1,
     "velocity":2,
-    "duration":120,
+    "duration":180,
     "cooltime":150,
     "through":0,
     "nextWeapon":{
-      "name":"ShadowReflector",
+      "name":"Void",
       "need":[
         {
-          "name":"Reflector",
+          "name":"G_Shot",
           "type":"use"
         },
         {
-          "name":"power",
-          "type":"exist"
+          "name":"BLAS",
+          "type":"use"
         }
       ]
     }
   },
   {
+    "name":"Void",
+    "type":"next_weapon",
+    "maxLevel":1,
+    "weight":3,
+    "projectile":1,
+    "scale":300,
+    "power":150,
+    "velocity":3,
+    "duration":120,
+    "cooltime":1800,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
+  },
+  {
+    "name":"TLAS",
+    "type":"weapon",
+    "maxLevel":8,
+    "weight":18,
+    "projectile":1,
+    "scale":0,
+    "power":2,
+    "velocity":3.5,
+    "duration":150,
+    "cooltime":130,
+    "through":0,
+    "nextWeapon":{
+      "name":"Anomaly",
+      "need":[
+        {
+          "name":"Lightning",
+          "type":"use"
+        },
+        {
+          "name":"TLAS",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"Linear",
+    "type":"weapon",
+    "maxLevel":6,
+    "weight":16,
+    "projectile":1,
+    "scale":0,
+    "power":2,
+    "velocity":3,
+    "duration":150,
+    "cooltime":130,
+    "through":0,
+    "nextWeapon":{
+      "name":"BiLinear",
+      "need":[
+        {
+          "name":"Linear",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"BiLinear",
+    "type":"next_weapon",
+    "maxLevel":6,
+    "weight":12,
+    "projectile":3,
+    "scale":0,
+    "power":6,
+    "velocity":5,
+    "duration":180,
+    "cooltime":75,
+    "through":0,
+    "nextWeapon":{
+      "name":"TriLinear",
+      "need":[
+        {
+          "name":"BiLinear",
+          "type":"use"
+        }
+      ]
+    }
+  },
+  {
+    "name":"TriLinear",
+    "type":"next_weapon",
+    "maxLevel":1,
+    "weight":8,
+    "projectile":5,
+    "scale":0,
+    "power":12,
+    "velocity":7,
+    "duration":240,
+    "cooltime":30,
+    "through":0,
+    "nextWeapon":{
+      "name":"undefined",
+      "need":[]
+    }
+  },
+  {
     "name":"projectile",
     "type":"item",
+    "maxLevel":3,
     "value":1,
     "weight":7
   },
   {
     "name":"scale",
     "type":"item",
+    "maxLevel":5,
     "value":10,
     "weight":18
   },
   {
     "name":"power",
     "type":"item",
+    "maxLevel":4,
     "value":10,
     "weight":14
   },
   {
     "name":"speed",
     "type":"item",
+    "maxLevel":5,
     "value":10,
     "weight":18
   },
   {
     "name":"duration",
     "type":"item",
+    "maxLevel":5,
     "value":10,
     "weight":14
   },
   {
     "name":"cooltime",
     "type":"item",
+    "maxLevel":5,
     "value":10,
     "weight":14
+  },
+  {
+    "name":"magnet",
+    "type":"item",
+    "maxLevel":5,
+    "value":10,
+    "weight":12
   }
 ]

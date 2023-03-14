@@ -40,17 +40,24 @@ class Explosion extends Entity{
   }
   
   public void display(PGraphics g){
-    if(Debug){
-      displayAABB(g);
-    }
   }
   
-  public void update(){
+  @Override
+  protected void update(){
     size=p.nowSize;
     isDead=p.isDead;
     Center=pos;
     AxisSize=new PVector(size,size);
-    putOnlyAABB();
+    putAABB();
+  }
+  
+  @Override
+  protected void putAABB(){
+    float x=AxisSize.x*0.5f;
+    float min=Center.x-x;
+    float max=Center.x+x;
+    HeapEntityDataX.get(threadNum).add(new AABBData(min,"s",this));
+    HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
   }
   
   @Override

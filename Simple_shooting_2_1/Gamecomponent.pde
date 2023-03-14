@@ -2,7 +2,7 @@ import java.awt.datatransfer.*;
 
 Color menuRightColor=new Color(0,150,255);
 
-class GameComponent{
+abstract class GameComponent{
   protected FocusEvent Fe=new FocusEvent(){void getFocus(){} void lostFocus(){}};
   protected ResizeEvent re=(p,d)->{};
   protected WindowResizeEvent wre=()->{};
@@ -10,6 +10,7 @@ class GameComponent{
   protected PVector pos;
   protected PVector dist;
   protected PVector center;
+  protected boolean active=true;
   protected boolean focus=false;
   protected boolean pFocus=false;
   protected boolean canFocus=true;
@@ -60,8 +61,14 @@ class GameComponent{
     border=new Color(c.getRed(),c.getGreen(),c.getBlue());
   }
   
-  public void display(){
-    
+  public final void handleDisplay(){
+    if(active)display();
+  }
+  
+  public abstract void display();
+  
+  public final void handleUpdate(){
+    if(active)update();
   }
   
   public void update(){
@@ -241,7 +248,7 @@ class LineTextField extends GameComponent{
     }else{
       removeFocus();
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     super.update();
   }
   
@@ -318,7 +325,7 @@ class LineTextField extends GameComponent{
   }
 }
 
-class ButtonItem extends GameComponent{
+abstract class ButtonItem extends GameComponent{
   protected SelectEvent e=()->{};
   protected boolean pCursor=false;
   protected boolean setCursor=false;
@@ -353,7 +360,7 @@ class ButtonItem extends GameComponent{
     if(mousePress&onMouse){
       executeEvent();
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
     super.update();
   }
@@ -363,7 +370,7 @@ class ButtonItem extends GameComponent{
   }
 }
 
-class CheckBox extends GameComponent{
+abstract class CheckBox extends GameComponent{
   protected SelectEvent e=()->{};
   boolean value=false;
   protected boolean pCursor=false;
@@ -401,7 +408,7 @@ class CheckBox extends GameComponent{
       value=!value;
       executeEvent();
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
     super.update();
   }
@@ -409,6 +416,65 @@ class CheckBox extends GameComponent{
   public void keyProcess(){
     if(focus&&getInputState("enter")){
       value=!value;
+    }
+  }
+  
+  public void executeEvent(){
+    e.selectEvent();
+  }
+}
+
+abstract class ToggleBox extends GameComponent{
+  protected SelectEvent e=()->{};
+  protected HashMap<Integer,String>textMap=new HashMap<>();
+  int value=0;
+  int num=0;
+  protected boolean pCursor=false;
+  protected boolean setCursor=false;
+  protected String text="";
+  
+  {
+    re=(p,d)->{
+      font=createFont("SansSerif.plain",d.y*0.5);
+    };
+  }
+  
+  ToggleBox(int value,int num){
+    this.value=value;
+    this.num=num;
+  }
+  
+  public void addListener(SelectEvent e){
+    this.e=e;
+  }
+  
+  public void update(){
+    mouseProcess();
+    keyProcess();
+  }
+  
+  public void mouseProcess(){
+    onMouse=canFocus&&mouseX>pos.x&&mouseX<pos.x+dist.x&&mouseY>pos.y&&mouseY<pos.y+dist.y;
+    if(onMouse){
+      setCursor=true;
+      requestFocus();
+    }else{
+      setCursor=false;
+    }
+    if(mousePress&onMouse){
+      ++value;
+      value%=num;
+      executeEvent();
+    }
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
+    pCursor=setCursor;
+    super.update();
+  }
+  
+  public void keyProcess(){
+    if(focus&&getInputState("enter")){
+      ++value;
+      value%=num;
     }
   }
   
@@ -479,7 +545,7 @@ class SliderItem extends GameComponent{
     }else {
       move=false;
     }
-    if(focus&&!pFocus)FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
     super.update();
     if(move){
       Xdist=constrain(mouseX,pos.x,pos.x+dist.x)-pos.x;
@@ -518,7 +584,7 @@ class SliderItem extends GameComponent{
   }
 }
 
-class TextBox extends GameComponent{
+abstract class TextBox extends GameComponent{
   boolean Parsed;
   String title="";
   String text="";
@@ -633,7 +699,7 @@ class MultiButton extends GameComponent{
           case LEFT:focusIndex=constrain(focusIndex-1,0,Buttons.size()-1);reloadIndex();break;
           case ENTER:Buttons.get(focusIndex).executeEvent();break;
         }
-      if(!pFocus)FocusEvent=true;else FocusEvent=false;
+      if(!pFocus||mousePress)FocusEvent=true;else FocusEvent=false;
     }
     super.update();
   }
@@ -681,6 +747,7 @@ class ItemList extends GameComponent{
   float keyTime=0;
   int selectedNumber=0;
   int menuNumber=0;
+  int alpha=255;
   
   {
     re=(p,d)->{
@@ -696,6 +763,11 @@ class ItemList extends GameComponent{
     Contents.addAll(Arrays.asList(s));
     changeEvent();
     keyMove=true;
+  }
+  
+  public void setAlpha(int a){
+    alpha=a;
+    background=new Color(background.getRed(),background.getGreen(),background.getBlue(),a);
   }
   
   public void addContent(String... s){
@@ -743,15 +815,15 @@ class ItemList extends GameComponent{
     pg.textFont(font);
     for(String s:Contents){
       if(floor(scroll/Height)<=num&num<=floor((scroll+dist.y)/Height)){
-        pg.fill(0);
-        pg.noStroke();
-        pg.text(s,10,num*Height+Height*0.7-scroll);
         if(selectedNumber==num){
-          pg.fill(0,30);
+          pg.fill(max(0,background.getRed()-30),max(0,background.getGreen()-30),max(0,background.getBlue()-30),alpha);
           pg.rect(0,num*Height-scroll,dist.x,Height);
           pg.stroke(toColor(menuRightColor));
           pg.line(0,num*Height-scroll,0,(num+1)*Height-scroll);
         }
+        pg.fill(0,alpha);
+        pg.noStroke();
+        pg.text(s,10,num*Height+Height*0.7-scroll);
       }
       num++;
     }
@@ -766,9 +838,9 @@ class ItemList extends GameComponent{
       float len=Height*Contents.size();
       float mag=pg.height/len;
       pg.noStroke();
-      pg.fill(255);
+      pg.fill(255,alpha);
       pg.rect(pg.width-10,0,10,pg.height);
-      pg.fill(drag?200:128);
+      pg.fill(drag?200:128,alpha);
       pg.rect(pg.width-10,pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag);
     }
   }
@@ -777,7 +849,7 @@ class ItemList extends GameComponent{
     pushStyle();
     blendMode(BLEND);
     rectMode(CORNER);
-    fill(#707070);
+    fill(#707070,alpha);
     noStroke();
     rect(sPos.x,sPos.y,sDist.x,25);
     fill(toColor(background));
@@ -785,7 +857,7 @@ class ItemList extends GameComponent{
     textSize(15);
     textAlign(CENTER);
     textFont(font);
-    fill(0);
+    fill(0,alpha);
     text(Language.getString("ex"),sPos.x+5+textWidth(Language.getString("ex"))/2,sPos.y+17.5);
     textAlign(LEFT);
     text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
@@ -1431,11 +1503,70 @@ class MenuCheckBox extends CheckBox{
   }
 }
 
+class MenuToggleBox extends ToggleBox{
+  MenuTextBox box=new MenuTextBox();
+  boolean displayBox=false;
+  
+  MenuToggleBox(String text,int value,int num){
+    super(value,num);
+    this.text=text;
+    setBackground(new Color(220,220,220));
+    setForeground(new Color(0,0,0));
+    setSelectBackground(new Color(200,200,200));
+    setSelectForeground(new Color(40,40,40));
+    setBorderColor(new Color(0,0,0,0));
+  }
+  
+  public void setTextBoxBounds(float x,float y,float dx,float dy){
+    box.setBounds(x,y,dx,dy);
+  }
+  
+  public void setExplanation(String s){
+    box.setText(s);
+  }
+  
+  public void display(){
+    pushStyle();
+    blendMode(BLEND);
+    strokeWeight(1);
+    fill(!focus?toColor(background):toColor(selectbackground));
+    stroke(0,0,0,0);
+    rectMode(CORNER);
+    rect(pos.x,pos.y,dist.x,dist.y);
+    stroke(!focus?color(0,0,0,0):toColor(menuRightColor));
+    line(pos.x,pos.y,pos.x,pos.y+dist.y);
+    fill(!focus?toColor(foreground):toColor(selectforeground));
+    textFont(font);
+    textAlign(CENTER);
+    textSize(dist.y*0.5);
+    text(text+":"+(textMap.containsKey(value)?(textMap.get(value)==null?value:textMap.get(value)):value),center.x,center.y+dist.y*0.2);
+    if(displayBox)box.display();
+    popStyle();
+  }
+  
+  public void update(){
+    super.update();
+    if(displayBox)box.update();
+  }
+  
+  public void displayBox(boolean b){
+    displayBox=b;
+  }
+  
+  public MenuToggleBox addCustomizeText(int i,String f){
+    textMap.put(i,f);
+    return this;
+  }
+}
+
 class ComponentSet{
   Layout layout;
+  GameComponent focusComponent;
   ArrayList<GameComponent>components=new ArrayList<GameComponent>();
   boolean keyMove=true;
+  boolean Active=true;
   boolean Focus=true;
+  boolean focussable=true;
   int subSelectButton=-0xFFFFFF;
   int pSelectedIndex=0;
   int selectedIndex=0;
@@ -1462,6 +1593,7 @@ class ComponentSet{
     if(components.size()==1){
       if(val.canFocus&&Focus){
         val.requestFocus();
+        focusComponent=val;
         selectedIndex=0;
       }else{
         val.removeFocus();
@@ -1469,6 +1601,7 @@ class ComponentSet{
     }else if(!components.get(min(selectedIndex,components.size()-2)).canFocus){
       if(val.canFocus){
         val.requestFocus();
+        focusComponent=val;
         selectedIndex=components.size()-1;
       }
     }
@@ -1483,6 +1616,7 @@ class ComponentSet{
       for(int i=0;i<components.size();i++){
         if(components.get(i).canFocus){
           components.get(i).requestFocus();
+          focusComponent=components.get(i);
           selectedIndex=i;
         }
       }
@@ -1523,16 +1657,18 @@ class ComponentSet{
   }
   
   public void display(){
+    if(!Active)return;
     if(components.size()==0)return;
     for(GameComponent c:components){
-      c.display();
+      c.handleDisplay();
     }
   }
   
   public void update(){
+    if(!Active||!focussable)return;
     if(components.size()==0)return;
     for(GameComponent c:components){
-      c.update();
+      c.handleUpdate();
       if(c.FocusEvent){
         for(GameComponent C:components){
           C.removeFocus();
@@ -1542,6 +1678,11 @@ class ComponentSet{
       if(c.focus)selectedIndex=components.indexOf(c);
     }
     if(Focus)keyEvent();
+    int count=0;
+    for(GameComponent c:components){
+      if(count==selectedIndex)c.requestFocus();else c.removeFocus();
+      ++count;
+    }
     if(pSelectedIndex!=selectedIndex){
       if(pSelectedIndex!=-1&&!(pSelectedIndex>=components.size()))components.get(pSelectedIndex).Fe.lostFocus();
       if(selectedIndex!=-1&&!(selectedIndex>=components.size()))components.get(selectedIndex).Fe.getFocus();
@@ -1551,8 +1692,9 @@ class ComponentSet{
   }
   
   public void updateExcludingKey(){
+    if(!Active||!focussable)return;
     for(GameComponent c:components){
-      c.update();
+      c.handleUpdate();
       if(c.FocusEvent){
         for(GameComponent C:components){
           C.removeFocus();
@@ -1606,7 +1748,9 @@ class ComponentSet{
   public void addSelect(){
     if(components.size()==1)return;
     for(GameComponent c:components){
-      c.removeFocus();
+      if(c.focus){
+        c.removeFocus();
+      }
     }
     selectedIndex=selectedIndex>=components.size()-1?0:selectedIndex+1;
     if(!components.get(selectedIndex).focussable){
@@ -1618,7 +1762,9 @@ class ComponentSet{
   public void subSelect(){
     if(components.size()==1)return;
     for(GameComponent c:components){
-      c.removeFocus();
+      if(c.focus){
+        c.removeFocus();
+      }
     }
     selectedIndex=selectedIndex<=0?components.size()-1:selectedIndex-1;
     if(!components.get(selectedIndex).focussable){
@@ -1847,6 +1993,10 @@ class ComponentSetLayer{
     return Layers.get(nowLayer).getDepth();
   }
   
+  ArrayList<ComponentSet> getNowComponents(){
+    return Layers.get(nowLayer).getComponents();
+  }
+  
   public void display(){
     if(nowLayer==null||Layers.get(nowLayer).getComponents().size()==0){
       return;
@@ -1988,7 +2138,7 @@ class ComponentSetLayer{
     if(SubChildshowType==2&&s.equals(nowParent))return;
     for(ComponentSet c:Layers.get(s).getComponents()){
       c.updateExcludingKey();
-      if(!layerChanged&&c.onMouse()&&mousePress){
+      if(!layerChanged&&c.Active&&c.onMouse()&&mousePress){
         String target=s;
         while(!nowLayer.equals(target))toParent();
       }

@@ -36,45 +36,45 @@ class GameProcess{
      mainHUD=new SurvivorHUD(this);
      initStatus();
      Entities=new ArrayList<Entity>();
-    wall=new ArrayList<>();
+     wall=new ArrayList<>();
      nearEnemy.clear();
      player=new Myself();
      stage=new Stage();
      StageFlag.clear();
-    gameOver=animation=upgrade=done=menu=pause=false;
-    killCount.set(0);
-     sumLevel=0;
-     addtionalProjectile=0;
-     addtionalScale=1;
-     addtionalPower=1;
-     addtionalSpeed=1;
-     addtionalDuration=1;
-     reductionCoolTime=1;
+     gameOver=animation=upgrade=done=menu=pause=false;
+     deadTimer=sumLevel=0;
+     killCount.set(0);
      playerTable.clear();
-     Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{
+     Arrays.asList(conf.getJSONArray("Weapons").toStringArray()).forEach(s->{
        playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());
      });
-     playerTable.getAll().forEach(i->{
+     masterTable.getAll().forEach(i->{
        i.reset();
+     });
+     playerTable.getAll().forEach(i->{
        playerTable.addTable(i,i.weight);
      });
-     player.subWeapons.clear();
+     player.attackWeapons.clear();
      switch(StageName){
        case "Tutorial":initTutorial();break;
-       case "Stage1":player.subWeapons.add(masterTable.get("Laser").getWeapon());
-                     player.subWeapons.add(masterTable.get("PlasmaField").getWeapon());
+       case "Stage1":player.attackWeapons.add(masterTable.getWeapon("Laser"));
+                     player.attackWeapons.add(masterTable.getWeapon("PlasmaField"));
                      break;
-       case "Stage2":player.subWeapons.add(masterTable.get("Mirror").getWeapon());
-                     player.subWeapons.add(masterTable.get("Reflector").getWeapon());
+       case "Stage2":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
+                     player.attackWeapons.add(masterTable.getWeapon("Reflector"));
                      break;
-       case "Stage3":player.subWeapons.add(masterTable.get("Turret").getWeapon());
-                    player.subWeapons.add(masterTable.get("Absorption").getWeapon());
+       case "Stage3":player.attackWeapons.add(masterTable.getWeapon("Turret"));
+                     player.attackWeapons.add(masterTable.getWeapon("Absorption"));
                      break;
-       case "Stage4":player.subWeapons.add(masterTable.get("G_Shot").getWeapon());
-                     player.subWeapons.add(masterTable.get("Grenade").getWeapon());
+       case "Stage4":player.attackWeapons.add(masterTable.getWeapon("G_Shot"));
+                     player.attackWeapons.add(masterTable.getWeapon("Grenade"));
                      break;
-       case "Stage5":player.subWeapons.add(masterTable.get("Fire").getWeapon());
-                     player.subWeapons.add(masterTable.get("Lightning").getWeapon());
+       case "Stage5":player.attackWeapons.add(masterTable.getWeapon("Fire"));
+                     player.attackWeapons.add(masterTable.getWeapon("Lightning"));
+                     break;
+       case "Stage6":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
+                     player.attackWeapons.add(masterTable.getWeapon("BLAS"));
+                     player.attackWeapons.add(masterTable.getWeapon("Ice"));
                      break;
      }
   }
@@ -119,7 +119,7 @@ class GameProcess{
     HUDText tu_shot_2=new HUDText(Language.getString("tu_shot_2"));
     tu_shot_2.setTarget(player);
     tu_shot_2.setProcess(()->{
-      if(mousePressed&&mouseButton==LEFT){
+      if((mousePressed&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue())>0.1f)){
         stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot_2.endDisplay()));
         tu_shot_2.setFlag(false);
       }
@@ -140,7 +140,7 @@ class GameProcess{
     HUDText tu_shot=new HUDText(Language.getString("tu_shot"));
     tu_shot.setTarget(player);
     tu_shot.setProcess(()->{
-      if(mousePressed&&mouseButton==LEFT){
+      if((mousePressed&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue())>0.1f)){
         stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot.endDisplay()));
         tu_shot.setFlag(false);
       }
@@ -169,16 +169,6 @@ class GameProcess{
       pause=true;
     }
     done=false;
-    background(0);
-    if(HighQuality){
-      Title_HighShader.set("time",0);
-      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
-      Title_HighShader.set("resolution",width,height);
-      filter(Title_HighShader);
-    }else{
-      backgroundShader.set("offset",player.pos.x,-player.pos.y);
-      filter(backgroundShader);
-    }
     drawShape();
     if(gameOver){
       StageFlag.add("Game_Over");
@@ -209,10 +199,9 @@ class GameProcess{
           return Float.compare(e1.playerDistsq,e2.playerDistsq);
         }
       });
-      applyStaus();
+      applyStatus();
       stage.update();
     }else{
-      EntityTime=0;
       if(player.levelup||upgrade){
         if(player.levelupNumber>0){
           upgrade();
@@ -248,9 +237,10 @@ class GameProcess{
       rect(0,0,width,height);
       popMatrix();
     }
+    if(!upgrade)keyProcess();
     if(!(upgrade||menu)){
-      player.update();
-      EntityUpdateAndCollision(()->{},()->{keyProcess();EventProcess();EventSet.clear();});
+      player.handleUpdate();
+      EntityUpdateAndCollision(()->{},()->{EventProcess();EventSet.clear();});
     }
     HashMap<String,Command>nextQue=new HashMap<String,Command>();
     CommandQue.forEach((k,v)->{
@@ -260,53 +250,53 @@ class GameProcess{
     CommandQue=nextQue;
   }
   
-  public void EntityUpdateAndCollision(Runnable whileUpdate,Runnable whileCollision){
-    EntitySet=new HashSet(Entities);
-      byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
-      float block=Entities.size()/(float)ThreadNumber;
-      for(byte b=0;b<ThreadNumber;b++){
-        UpdateProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
+  public void EntityUpdateAndCollision(Runnable whileUpdate,Runnable whileCollision) throws RejectedExecutionException{
+    byte ThreadNumber=(byte)min(Entities.size(),(int)updateNumber);
+    float block=Entities.size()/(float)ThreadNumber;
+    for(byte b=0;b<ThreadNumber;b++){
+      UpdateProcess.get(b).setData(round(block*b),round(block*(b+1)),b);
+    }
+    try{
+      entityFuture.clear();
+      for(int i=0;i<ThreadNumber;i++){
+        entityFuture.add(exec.submit(UpdateProcess.get(i)));
       }
-      try{
-        entityFuture.clear();
-        for(int i=0;i<ThreadNumber;i++){
-          entityFuture.add(exec.submit(UpdateProcess.get(i)));
-        }
-      }catch(Exception e){println(e);
+    }catch(Exception e){println(e);
+    }
+    whileUpdate.run();
+    for(Future<?> f:entityFuture){
+      try {
+        f.get();
       }
-      whileUpdate.run();
-      for(Future<?> f:entityFuture){
-        try {
-          f.get();
-        }
-        catch(ConcurrentModificationException e) {
-          e.printStackTrace();
-        }
-        catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
-        }
-        catch(NullPointerException g) {
-        }
+      catch(ConcurrentModificationException e) {
+        e.printStackTrace();
       }
-      Entities.clear();
-      HeapEntity.forEach(l->{
-        Entities.addAll(l);
-        l.clear();
+      catch(InterruptedException|ExecutionException F) {F.printStackTrace();
+      }
+      catch(NullPointerException g) {
+      }
+    }
+    Entities.clear();
+    HeapEntity.forEach(l->{
+      Entities.addAll(l);
+      l.clear();
+    });
+    Entities.addAll(NextEntities);
+    NextEntities.clear();
+    exec.execute(()->{EntitySet=new HashSet(Entities);});
+    HeapEntityDataX.forEach(m->{
+      m.forEach(d->{
+        EntityDataX.add(d);
       });
-      Entities.addAll(NextEntities);
-      NextEntities.clear();
-      HeapEntityDataX.forEach(m->{
-        m.forEach(d->{
-          EntityDataX.add(d);
-        });
-        m.clear();
-      });
-      SortedDataX=EntityDataX.toArray(new AABBData[0]);
-      Arrays.parallelSort(SortedDataX,new Comparator<AABBData>(){
-        @Override
-        public int compare(AABBData d1, AABBData d2) {
-          return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
-        }
-      });
+      m.clear();
+    });
+    SortedDataX=EntityDataX.toArray(new AABBData[0]);
+    Arrays.parallelSort(SortedDataX,new Comparator<AABBData>(){
+      @Override
+      public int compare(AABBData d1, AABBData d2) {
+        return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
+      }
+    });
     ThreadNumber=(byte)min(floor(EntityDataX.size()/(float)minDataNumber),(int)collisionNumber);
     if(pEntityNum!=EntityDataX.size()){
       block=EntityDataX.size()/(float)ThreadNumber;
@@ -326,7 +316,7 @@ class GameProcess{
       catch(ConcurrentModificationException e) {
         e.printStackTrace();
       }
-      catch(InterruptedException|ExecutionException F) {println(F);F.printStackTrace();
+      catch(InterruptedException|ExecutionException F) {F.printStackTrace();
       }
       catch(NullPointerException g) {
       }
@@ -334,14 +324,33 @@ class GameProcess{
   }
   
   public void drawShape(){
-    long pTime=System.nanoTime();
+    pProcessTime=System.nanoTime();
+    drawMain();
+    mainHUD.display();
+    DrawTime=(System.nanoTime()-pProcessTime)/1000000f;
+  }
+  
+  public void drawMain(){
+    background(0);
+    if(ShaderQuality==2){
+      Title_HighShader.set("time",0);
+      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      Title_HighShader.set("volsteps",10);
+      filter(Title_HighShader);
+    }else if(ShaderQuality==1){
+      Title_HighShader.set("time",0);
+      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      Title_HighShader.set("volsteps",5);
+      filter(Title_HighShader);
+    }else{
+      backgroundShader.set("offset",player.pos.x,-player.pos.y);
+      filter(backgroundShader);
+    }
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
-    Entities.forEach(e->{e.display(g);});
-    mainHUD.display();
+    Entities.forEach(e->{e.handleDisplay(g);});
     popMatrix();
-    DrawTime=(System.nanoTime()-pTime)/1000000f;
   }
   
    public void keyProcess(){
@@ -373,7 +382,7 @@ class GameProcess{
         JSONArray a=nextDataMap.get(s);
         for(int i=0;i<a.size();i++){
           if(a.getJSONObject(i).getString("type").equals("use")){
-            player.subWeapons.remove(masterTable.get(a.getJSONObject(i).getString("name")).w);
+            player.attackWeapons.remove(masterTable.get(a.getJSONObject(i).getString("name")).w);
           }
         }
         playerTable.addTable(playerTable.get(s),playerTable.get(s).weight);
@@ -396,11 +405,25 @@ class GameProcess{
     if(player.levelup){
       EventSet.put("start_upgrade","");
       upgrade=true;
-      int num=min(playerTable.probSize(),round(random(3,3.55)));
-      Item[]list=new Item[num];
+      menu=false;
       ItemTable copy=playerTable.clone();
+      java.util.List<String> weaponNames=player.attackWeapons.stream()
+                                               .filter(w->masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))!=null
+                                               ||w.level<masterTable.get(w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$","")).upgradeData.size()+1)
+                                               .map(w->w.getClass().getName().replace("Weapon","").replace("Simple_shooting_2_1$",""))
+                                               .collect(Collectors.toList());
+      int num=min(14-(player.attackWeapons.size()-weaponNames.size()),min(playerTable.probSize(),round(random(3,3.55))));
+      Item[]list=new Item[num];
       for(int i=0;i<num;i++){
-        list[i]=copy.getRandomWeapon();
+        if(random(0,1)<0.2&&playerTable.hasNextWeapon()){
+          list[i]=copy.getRandomNextWeapon();
+        }else if(random(0,1)<0.35&&!weaponNames.isEmpty()){
+          String target=weaponNames.get(round(random(0,weaponNames.size()-1)));
+          list[i]=copy.get(target);
+          weaponNames.remove(target);
+        }else if(player.attackWeapons.size()<7){
+          list[i]=copy.getRandomWeapon();
+        }
         switch(i){
           case 0:if((sumLevel>=17&&0.5f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
           case 1:if((sumLevel>=9&&0.5f>random(1))||list[i]==null)list[i]=copy.getRandomItem();break;
@@ -413,13 +436,14 @@ class GameProcess{
       UpgradeSet.removeAll();
       UpgradeButton[]buttons=new UpgradeButton[num];
       for(int i=0;i<num;i++){
-        buttons[i]=(UpgradeButton)new UpgradeButton(list[i].getName()+"  Level"+(player.subWeapons.contains(list[i].getWeapon())?(list[i].level+1):1)).setBounds(width*0.45,100+(height-100)*0.25*i,width*0.5,(height-100)*0.225);
-        if(player.subWeapons.contains(list[i].w)){
+        boolean hasWeapon=player.attackWeapons.contains(list[i].getWeapon())||player.itemWeapons.contains(list[i].getWeapon());
+        buttons[i]=(UpgradeButton)new UpgradeButton(list[i].getName()+"  Level"+(hasWeapon?(list[i].level+1):1)).setBounds(width*0.45,100+(height-100)*0.25*i,width*0.5,(height-100)*0.225);
+        if(hasWeapon){
           if(list[i].type.equals("item")){
             buttons[i].setExplanation(getLanguageText("ex_"+list[i].getName()));
           }else{
             String res="";
-            for(String t:list[i].upgradeData.getJSONObject(list[i].level-1).getJSONArray("name").getStringArray()){
+            for(String t:list[i].upgradeData.getJSONObject(list[i].level-1).getJSONArray("name").toStringArray()){
               if(!t.equals("weight"))res+=getLanguageText("ex_param_"+t)+list[i].upgradeData.getJSONObject(list[i].level-1).getInt(t)+"\n";
             }
             buttons[i].setExplanation(res);
@@ -434,25 +458,34 @@ class GameProcess{
         });
         Item item=list[i];
         buttons[i].addListener(()->{
-          if(player.subWeapons.contains(item.getWeapon())){
+          SubWeapon w=item.getWeapon();
+          if((w instanceof AttackWeapon)&&player.attackWeapons.contains(w)){
             ++item.level;
             item.update();
             ++sumLevel;
-          }else if(item.getType().equals("weapon")){
-            player.subWeapons.add(item.getWeapon());
-            ++sumLevel;
-          }else if(item.getType().equals("item")){
-            player.subWeapons.add(item.getWeapon());
-            item.getWeapon().update();
-          }else if(item.getType().equals("next_weapon")){
+          }else if((w instanceof ItemWeapon)&&player.itemWeapons.contains(w)){
+            ++item.level;
             item.update();
-            player.subWeapons.add(item.getWeapon());
+            w.update();
+            ++sumLevel;
+          }else{
+            switch(item.getType()){
+              case "weapon":{
+                player.attackWeapons.add((AttackWeapon)w);
+                ++sumLevel;
+              }break;
+              case "item":{
+                player.itemWeapons.add((ItemWeapon)w);
+                w.update();
+              }break;
+              case "next_weapon":{
+                item.update();
+                player.attackWeapons.add((AttackWeapon)w);
+              }break;
+            }
           }
-          applyStaus();
+          applyStatus();
           --player.levelupNumber;
-          playerTable.table.forEach((k,v)->{
-            v.checkNext();
-          });
           upgrade=false;
           EventSet.put("end_upgrade","");
         });
@@ -483,9 +516,11 @@ class GameProcess{
     });
     switch(ex_space_tokens.get(0).getText()){
       case "time":command_time(ex_space_tokens);break;
+      case "timescale":command_timescale(ex_space_tokens);break;
       case "level":command_level(ex_space_tokens);break;
       case "give":command_give(ex_space_tokens);break;
       case "kill":command_kill(ex_space_tokens);break;
+      case "parameter":command_parameter(ex_space_tokens);break;
       case "function":command_function(ex_space_tokens);break;
       case "exit":command_exit();break;
     }
@@ -495,6 +530,10 @@ class GameProcess{
     stage.time=max(0,setParameter(stage.time,tokens.get(1).getText(),PApplet.parseFloat(tokens.get(2).getText())*60));
     stage.scheduleUpdate();
     stage.clearSpown();
+  }
+  
+   public void command_timescale(java.util.List<Token>tokens){
+    absoluteMagnification=max(0,PApplet.parseFloat(tokens.get(2).getText()));
   }
   
    public void command_level(java.util.List<Token>tokens){
@@ -510,15 +549,15 @@ class GameProcess{
       player.nextLevel=10+(player.Level-1)*5*ceil(player.Level/10f);
     }else{
       Item i=masterTable.get(tokens.get(1).getText().replace("\"",""));
+      if(i==null)return;
       SubWeapon w=i.getWeapon();
-      if(player.subWeapons.contains(w)){
-        int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),PApplet.parseFloat(tokens.get(3).getText()));
+      int targetLevel=(int)setParameter((float)i.level,tokens.get(2).getText(),PApplet.parseFloat(tokens.get(3).getText()));
+      if((w instanceof AttackWeapon)&&player.attackWeapons.contains(w)){
         try{
           if(i.level<targetLevel){
             while(i.level<targetLevel){
               ++i.level;
               i.update();
-              if(i.getType().equals("item"))w.update();
               ++sumLevel;
             }
           }else{
@@ -526,14 +565,45 @@ class GameProcess{
             while(i.level<targetLevel){
               ++i.level;
               i.update();
-              if(i.getType().equals("item"))w.update();
               ++sumLevel;
             }
           }
         }catch(NullPointerException e){
+          e.printStackTrace();
         }finally{
           i.level=constrain(i.level,1,i.upgradeData.size()+1);
-          applyStaus();
+          applyStatus();
+          
+          playerTable.table.forEach((k,v)->{
+            v.checkNext();
+          });
+        }
+      }else if((w instanceof ItemWeapon)&&player.itemWeapons.contains(w)){
+        try{
+          if(i.level<targetLevel){
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              w.update();
+              ++sumLevel;
+            }
+          }else{
+            i.reset();
+            while(i.level<targetLevel){
+              ++i.level;
+              i.update();
+              w.update();
+              ++sumLevel;
+            }
+          }
+        }catch(NullPointerException e){
+          e.printStackTrace();
+        }finally{
+          i.level=constrain(i.level,1,i.upgradeData.size()+1);
+          applyStatus();
+          playerTable.table.forEach((k,v)->{
+            v.checkNext();
+          });
         }
       }
     }
@@ -543,20 +613,21 @@ class GameProcess{
     String src=tokens.get(1).getText();
     if(tokens.get(1).getText().length()>2&&masterTable.contains(src.replace("\"",""))){
       SubWeapon w=masterTable.get(src.replace("\"","")).getWeapon();
-      if(!player.subWeapons.contains(w)){
-        player.subWeapons.add(w);
-        if(masterTable.get(src.replace("\"","")).getType().equals("item"))w.update();
-        applyStaus();
+      if((w instanceof AttackWeapon)&&!player.attackWeapons.contains(w)){
+        player.attackWeapons.add((AttackWeapon)w);
+        applyStatus();
+        addDebugText("Added "+src,false);
+      }else if((w instanceof ItemWeapon)&&!player.itemWeapons.contains(w)){
+        player.itemWeapons.add((ItemWeapon)w);
+        w.update();
+        applyStatus();
+        addDebugText("Added "+src,false);
       }else{
         addWarning("You already have "+src);
       }
     }else{
       addWarning(src+" doesn't exist");
     }
-  }
-  
-   public void command_weapon(java.util.List<Token>tokens){
-    if(tokens.get(1).getText().length()>2&&masterTable.contains(tokens.get(1).getText().replace("\"",""))&&!player.subWeapons.contains(masterTable.get(tokens.get(1).getText().replace("\"","")).getWeapon())){}
   }
   
    public void command_kill(java.util.List<Token>tokens){
@@ -572,6 +643,20 @@ class GameProcess{
         addWarning("Class "+tokens.get(1).getText()+" doesn't exist");
       }
     }
+  }
+  
+  public void command_parameter(java.util.List<Token>tokens){
+    ItemWeapon w=(ItemWeapon)masterTable.get(tokens.get(1).getText()).getWeapon();
+    switch(tokens.get(1).getText()){
+      case "projectile":w.bulletNumber=(int)setParameter(w.bulletNumber,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "scale":w.scale=(int)setParameter(w.scale,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "power":w.power=(int)setParameter(w.power,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "speed":w.speed=(int)setParameter(w.speed,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "duration":w.duration=(int)setParameter(w.duration,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+      case "cooltime":w.coolTime=(int)setParameter(w.coolTime,tokens.get(2).getText(),Integer.valueOf(tokens.get(3).getText()));break;
+    }
+    w.update();
+    applyStatus();
   }
   
    public void command_function(java.util.List<Token>tokens){
@@ -664,6 +749,52 @@ class Command{
   
   boolean isDead(){
     return isDead;
+  }
+}
+
+class StatusParameter{
+  private String name;
+  private float value=0f;
+  private float duration;
+  private Predicate<StatusParameter>predicate;
+  private boolean apply=true;
+  private boolean end=false;
+  
+  StatusParameter(float v,float d,String n,Predicate<StatusParameter>p){
+    value=v;
+    duration=d;
+    name=n;
+    predicate=p;
+  }
+  
+  void update(){
+    if(end)return;
+    if(duration<=0){
+      end=true;
+    }else{
+      apply=predicate.test(this);
+    }
+    duration-=16f*vectorMagnification;
+  }
+  
+  boolean isEnd(){
+    return end;
+  }
+  
+  boolean isApply(){
+    return apply;
+  }
+  
+  float getDuration(){
+    return duration;
+  }
+  
+  float getValue(){
+    return (end||!apply)?0f:value;
+  }
+  
+  String getName(){
+    return name;
   }
 }
 
@@ -844,7 +975,6 @@ class WallEntity extends Entity{
   
   @Override
   public void display(PGraphics g){
-    if(Debug)displayAABB(g);
     g.strokeWeight(2);
     g.stroke(255);
     g.line(pos.x,pos.y,pos.x+dist.x,pos.y+dist.y);
@@ -855,7 +985,6 @@ class WallEntity extends Entity{
     Center=new PVector(pos.x+dist.x*0.5,pos.y+dist.y*0.5);
     AxisSize=new PVector(max(1,abs(dist.x)),max(1,abs(dist.y)));
     putAABB();
-    super.update();
   }
   
   public void Process(Entity e){
@@ -885,7 +1014,6 @@ class WallEntity extends Entity{
   public void EnemyCollision(Enemy e){
     PVector copy=e.pos.copy();
     e.pos=CircleMovePosition(e.pos,e.size,pos,dist);
-    e.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
   }
   
   @Override
@@ -897,7 +1025,6 @@ class WallEntity extends Entity{
   public void MyselfCollision(Myself m){
     PVector copy=m.pos.copy();
     m.pos=CircleMovePosition(m.pos,m.size,pos,dist);
-    m.vel=new PVector(pos.x-copy.x,pos.y-copy.y);
   }
 }
 

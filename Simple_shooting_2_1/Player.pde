@@ -2,7 +2,8 @@ java.util.List<Enemy>nearEnemy=Collections.synchronizedList(new ArrayList<Enemy>
 
 class Myself extends Entity{
   HashMap<String,StatusManage>effects=new HashMap<String,StatusManage>();
-  ArrayList<SubWeapon>subWeapons=new ArrayList<SubWeapon>();
+  ArrayList<AttackWeapon>attackWeapons=new ArrayList<AttackWeapon>();
+  ArrayList<ItemWeapon>itemWeapons=new ArrayList<ItemWeapon>();
   ArrayList<Weapon>weapons=new ArrayList<Weapon>();
   Weapon selectedWeapon;
   Weapon ShotWeapon;
@@ -13,7 +14,6 @@ class Myself extends Entity{
   boolean useSub=true;
   boolean autoShot=true;
   boolean levelup=false;
-  boolean shield=false;
   boolean hit=false;
   boolean move=false;
   boolean canMagnet=true;
@@ -21,16 +21,18 @@ class Myself extends Entity{
   double absHP;
   double absAttak;
   double absDefence;
+  volatile float exp=0;
   float nextLevel=10;
-  float exp=0;
   float protate=0;
   float diffuse=0;
   float rotateSpeed=10;
   float bulletSpeed=15;
   float coolingTime=0;
   float invincibleTime=0;
+  float initMagnetDist=40;
   float magnetDist=40;
   float speedMag=1;
+  volatile int fragment=0;
   int selectedIndex=0;
   int weaponChangeTime=0;
   int Level=1;
@@ -39,6 +41,7 @@ class Myself extends Entity{
   
   Myself(){
     setMaxSpeed(3);
+    accelSpeed=0.4;
     pos=new PVector(0,0);
     vel=new PVector(0,0);
     HP=new Status(1);
@@ -47,8 +50,8 @@ class Myself extends Entity{
     absHP=HP.getMax().doubleValue();
     absAttak=Attak.getMax().doubleValue();
     absDefence=Defence.getMax().doubleValue();
-    weapons.add(new EnergyBullet(this));
-    weapons.add(new PulseBullet(this));
+    weapons.add(new EnergyWeapon(this));
+    weapons.add(new PulseWeapon(this));
     resetWeapon();
     camera=new Camera();
     camera.setTarget(this);
@@ -62,26 +65,33 @@ class Myself extends Entity{
   public void display(PGraphics g){
     g.pushMatrix();
     g.translate(pos.x,pos.y);
-    g.rotate(-rotate);
+    g.rotate(rotate);
     g.strokeWeight(1);
     g.noFill();
     g.stroke(toColor(c));
     g.ellipse(0,0,size,size);
     g.strokeWeight(3);
     g.arc(0,0,size*1.5,size*1.5,
-        radians(-5)-PI/2-selectedWeapon.diffuse/2,radians(5)-PI/2+selectedWeapon.diffuse/2);
+        radians(-5)-selectedWeapon.diffuse/2,radians(5)+selectedWeapon.diffuse/2);
     g.popMatrix();
     if(!camera.moveEvent){
-      drawUI();
+      drawUI(g);
     }
   }
   
-  public void drawUI(){
-    
+  public void drawUI(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rectMode(CORNER);
+    g.noStroke();
+    g.fill(255,0,0);
+    g.rect(-size*0.5,size,size,4);
+    g.fill(0,255,0);
+    g.rect(-size*0.5,size,size*HP.getPercentage(),4);
+    g.popMatrix();
   }
   
   public void update(){
-    super.update();
     if(isDead)return;
     while(exp>=nextLevel){
       exp-=nextLevel;
@@ -109,7 +119,8 @@ class Myself extends Entity{
       }
       effects=nextEffects;
     }
-    if(useSub)subWeapons.forEach(w->{w.update();});
+    if(useSub)attackWeapons.forEach(w->{w.update();});
+    itemWeapons.forEach(w->{w.update();});
     weaponChangeTime+=4;
     weaponChangeTime=constrain(weaponChangeTime,0,255);
     invincibleTime=max(0,invincibleTime-0.016*vectorMagnification);
@@ -163,25 +174,24 @@ class Myself extends Entity{
     float rad=0;
     float r=0;
     float i=0;
+    if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
+      --i;
+    }
+    if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
+      ++i;
+    }
+    if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
+      ++r;
+    }
+    if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
+      --r;
+    }
     if(useController){
-      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue()*-1:0;
+      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue():0;
       r=abs(ctrl_sliders.get(3).getValue())>0.1?ctrl_sliders.get(3).getValue():0;
-    }else{
-      if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
-        ++i;
-      }
-      if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
-        --i;
-      }
-      if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
-        ++r;
-      }
-      if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
-        --r;
-      }
     }
     move=abs(i)+abs(r)!=0;
-    rad=move?atan2(-r,i):rotate;
+    rad=move?atan2(i,r):rotate;
     if(Float.isNaN(rad))rad=0;
     float nRad=0<rotate?rad+TWO_PI:rad-TWO_PI;
     rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
@@ -192,7 +202,6 @@ class Myself extends Entity{
   }
   
   public void move(){
-    rotate(rotate);
     if(Float.isNaN(Speed)){
       Speed=0;
     }
@@ -201,19 +210,17 @@ class Myself extends Entity{
       if(mag>0.1&&Speed/maxSpeed<mag){
         addVel(accelSpeed*mag,false);
       }else{
-        Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):
-        Speed-max(Speed,-accelSpeed*2*vectorMagnification);
+        addVel(0,false);
       }
     }else if(keyPressed&&move&&containsList(moveKeyCode,PressedKeyCode)){
       addVel(accelSpeed,false);
     }else{
-      Speed=Speed>0?Speed-min(Speed,accelSpeed*2*vectorMagnification):
-      Speed-max(Speed,-accelSpeed*2*vectorMagnification);
+      addVel(0,false);
     }
-    vel=new PVector(0,0);
-    vel.y=-Speed;
-    vel=unProject(vel.x,vel.y);
-    pos.add(vel.mult(vectorMagnification));
+    vel.x=abs(vel.x)<0.01?0f:vel.x;
+    vel.y=abs(vel.y)<0.01?0f:vel.y;
+    Speed=abs(Speed)<0.01?0f:Speed;
+    pos.add(vel.x*vectorMagnification,vel.y*vectorMagnification);
   }
   
   public void move(PVector v){
@@ -223,21 +230,29 @@ class Myself extends Entity{
   }
   
   private void addVel(float accel,boolean force){
+    Speed*=0.9f;
+    vel.mult(0.9f);
     if(!force){
       Speed+=accel*vectorMagnification;
       Speed=min(maxSpeed*speedMag,Speed);
     }else{
       Speed+=accel*vectorMagnification;
     }
+    vel.x=abs(cos(rotate)*Speed)>abs(vel.x)?cos(rotate)*Speed:vel.x;
+    vel.y=abs(sin(rotate)*Speed)>abs(vel.y)?sin(rotate)*Speed:vel.y;
   }
   
   private void subVel(float accel,boolean force){
+    Speed*=0.9f;
+    vel.mult(0.9f);
     if(!force){
       Speed-=accel*vectorMagnification;
       Speed=max(-maxSpeed,Speed);
     }else{
       Speed-=accel*vectorMagnification;
     }
+    vel.x=abs(cos(rotate)*Speed)<abs(vel.x)?vel.x:cos(rotate)*Speed;
+    vel.y=abs(sin(rotate)*Speed)<abs(vel.y)?vel.y:sin(rotate)*Speed;
   }
   
   public void shot(){
@@ -349,7 +364,7 @@ class Satellite extends Entity{
   
   @Override
   public void update(){
-    if(!player.subWeapons.contains(satellite))main_game.CommandQue.put(getClass().getName(),new Command(0,0,0,(e)->Entities.remove(this)));
+    if(!player.attackWeapons.contains(satellite))main_game.CommandQue.put(getClass().getName(),new Command(0,0,0,(e)->Entities.remove(this)));
     cooltime+=vectorMagnification;
     if(attack){
       attackTime+=vectorMagnification;
@@ -369,10 +384,11 @@ class Satellite extends Entity{
     }
     rotate+=radians(vectorMagnification)*2;
     rotate%=TWO_PI;
-    rad=atan2(player.pos,pos);
-    vel=new PVector(2,0).rotate(-rad);
-    vel.add(new PVector(0.01*(dist(pos,player.pos)-140),0).rotate(-rad-HALF_PI));
-    vel.normalize().mult(max(1.7,dist(pos,player.pos)/70));
+    rad=atan2(pos,player.pos);
+    vel.set(cos(rad-HALF_PI),sin(rad-HALF_PI));
+    float dist=0.01*(dist(pos,player.pos)-140);
+    vel.add(dist*cos(rad),dist*sin(rad));
+    vel.normalize().mult(max(0.9,dist(pos,player.pos)/140)*vectorMagnification);
     pos.add(vel);
     Center=pos;
     AxisSize=new PVector(size*2,size*2);

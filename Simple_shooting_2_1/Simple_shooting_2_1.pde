@@ -9,7 +9,9 @@ import java.nio.*;
 import java.nio.file.*;
 
 import java.util.*;
+import java.util.stream.*;
 import java.util.concurrent.*;
+import java.util.function.*;
 import java.util.Map.Entry;
 
 import net.java.games.input.*;
@@ -21,6 +23,8 @@ import com.jogamp.newt.event.*;
 import com.jogamp.opengl.*;
 import com.jogamp.newt.*;
 
+//import jdk.incubator.vector.*;
+
 import static com.jogamp.common.util.IOUtil.ClassResources;
 
 import static com.jogamp.newt.event.KeyEvent.*;
@@ -30,6 +34,8 @@ Simple_shooting_2_1 CopyApplet=this;
 Myself player;
 
 ExecutorService exec;
+
+//VectorSpecies<Float> SPECIES = FloatVector.SPECIES_256;
 
 ArrayList<Future<?>>CollisionFuture=new ArrayList<Future<?>>();
 ArrayList<Future<?>>entityFuture=new ArrayList<Future<?>>();
@@ -109,6 +115,7 @@ ArrayList<String>StageFlag=new ArrayList<String>();
 ArrayList<Entity>Entities=new ArrayList<Entity>(50);
 ArrayList<Entity>NextEntities=new ArrayList<Entity>();
 HashSet<Entity>EntitySet=new HashSet<Entity>();
+ArrayList<String>ArchiveEntity=new ArrayList<>();
 ArrayList<ArrayList<Entity>>HeapEntity=new ArrayList<ArrayList<Entity>>();
 HashSet<String>PressedKeyCode=new HashSet<String>();
 HashSet<String>PressedKey=new HashSet<String>();
@@ -134,6 +141,7 @@ String StageName="";
 float keyPressTime=0;
 float resultTime=0;
 long pTime=0;
+int fragmentCount=0;
 int mouseWheelCount=0;
 int compute_program;
 int compute_shader;
@@ -143,13 +151,15 @@ int pEntityNum=0;
 int pscene=0;
 int scene=0;
 
-boolean HighQuality=false;
+int ShaderQuality=0;
 boolean displayFPS=true;
 boolean colorInverse=false;
 boolean fullscreen=false;
 boolean FXAA=false;
 
-static final String VERSION="1.1.4";
+static final int STAGE_NUMBER=6;
+
+static final String VERSION="1.1.5";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
@@ -190,6 +200,10 @@ void settings(){
 void setup(){
   NewtFactory.setWindowIcons(new ClassResources(new String[]{ImagePath+"icon_16.png",ImagePath+"icon_48.png"},this.getClass().getClassLoader(),this.getClass()));
   hint(DISABLE_OPENGL_ERRORS);
+  hint(DISABLE_DEPTH_SORT);
+  hint(DISABLE_DEPTH_TEST);
+  hint(DISABLE_DEPTH_MASK);
+  hint(DISABLE_TEXTURE_MIPMAPS);
   ((GLWindow)surface.getNative()).addWindowListener(new com.jogamp.newt.event.WindowListener() {
     public void windowDestroyed(com.jogamp.newt.event.WindowEvent e) {
     }
@@ -233,6 +247,12 @@ void setup(){
     public void keyReleased(com.jogamp.newt.event.KeyEvent e){
     }
   });
+  for(int i=0;i<60;i++){
+    updateStatistics.add(-1f);
+    collisionStatistics.add(-1f);
+    drawStatistics.add(-1f);
+    runStatistics.add(-1f);
+  }
   //get controller
   control = ControlIO.getInstance(this);
   for(ControlDevice dev:control.getDevices()){
@@ -240,9 +260,9 @@ void setup(){
        dev.getTypeName().equals(net.java.games.input.Controller.Type.STICK.toString())){
       controller=dev;
       break;
-    }  
+    }
   }
-  if(controller!=null){
+  if(!useController&&controller!=null){
     controller.open();
     useController=true;
     for(int i=0;i<controller.getNumberOfButtons();i++){
@@ -287,8 +307,6 @@ void setup(){
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
-  initGPGPU();
-  if(doGPGPU)try{initMergeGPGPU();}catch(Exception e){e.printStackTrace();}
   LoadData();
   initThread();
   main_game=new GameProcess();
@@ -326,8 +344,6 @@ public void draw(){
 
  public void LoadData(){
   conf=loadJSONObject(SavePath+"config.json");
-  useGPGPU=conf.getBoolean("GPGPU");
-  if(useGPGPU)initGPGPU();
   LoadLanguage();
   LanguageData=loadJSONObject(LanguagePath+"Languages.json");
   UpgradeArray=loadJSONObject(WeaponDataPath+"WeaponUpgrade.json");
@@ -338,14 +354,15 @@ public void draw(){
       JSONObject o=a.getJSONObject(i);
       String name=o.getString("name");
       WeaponConstructor.put(name,Class.forName("Simple_shooting_2_1$"+name+"Weapon").getDeclaredConstructor(Simple_shooting_2_1.class,JSONObject.class));
-      masterTable.addTable(new Item(o,o.getString("type")),o.getFloat("weight"));
+      masterTable.addTable(build(o,o.getString("type")),o.getFloat("weight"));
     }catch(ClassNotFoundException|NoSuchMethodException g){g.printStackTrace();}
   }
-  Arrays.asList(conf.getJSONArray("Weapons").getStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
-  stageList.addContent(conf.getJSONArray("Stage").getStringArray());
+  Arrays.asList(conf.getJSONArray("Weapons").toStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
+  stageList.addContent(conf.getJSONArray("Stage").toStringArray());
   displayFPS=conf.getBoolean("FPS");
   fullscreen=conf.getBoolean("Fullscreen");
-  HighQuality=conf.getBoolean("HighQuality");
+  ShaderQuality=conf.getInt("ShaderQuality");
+  fragmentCount=conf.getInt("Fragment");
   vsync=conf.getBoolean("vsync");
   if(vsync){
     FrameRateConfig=RefleshRate;
@@ -353,6 +370,7 @@ public void draw(){
   }else{
     frameRate(60);
   }
+  ArchiveEntity=new ArrayList<>(Arrays.asList(conf.getJSONArray("Enemy").toStringArray()));
 }
   
  public void initStatus(){
@@ -372,14 +390,14 @@ public void draw(){
   AddtionalStatus.put("cooltime",1f);
 }
 
-void applyStaus(){
+void applyStatus(){
   StatusList.forEach((k1,v1)->{
     AddtionalStatus.put(k1,k1.equals("projectile")?0f:1f);
     v1.forEach((k2,v2)->{
       AddtionalStatus.replace(k1,AddtionalStatus.get(k1)+v2);
     });
   });
-  player.subWeapons.forEach(w->{
+  player.attackWeapons.forEach(w->{
     w.reInit();
   });
 }
@@ -401,6 +419,7 @@ String getLanguageText(String s){
     default:background(230);break;
   }
   starts.display();
+  if(!starts.nowLayer.equals("root"))menu_op_canvas.display();
   starts.update();
   if(colorInverse&&!starts.nowLayer.equals("root")){
     colorInv.set("tex",g);
@@ -429,6 +448,7 @@ String getLanguageText(String s){
     });
     resultButton.requestFocus();
     resultSet=toSet(resultButton);
+    fragmentCount+=player.fragment;
     saveConfig save=new saveConfig();
     exec.submit(save);
   }
@@ -460,7 +480,8 @@ String getLanguageText(String s){
   textSize(20);
   textFont(font_20);
   text(Language.getString("ui_kill")+":"+killCount+"\n"+
-       "Time:"+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+floor((stage.time/60)%60),width*0.5-150,height*0.2+100);
+       Language.getString("ui_frag")+":"+player.fragment+"\n"+
+       "Time:"+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5-150,height*0.2+100);
   resultSet.display();
   resultSet.update();
   if(resultAnimation){
@@ -561,9 +582,22 @@ String getLanguageText(String s){
 
 @Override
 public void exit(){
-  exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
-  exec.shutdown();
-  super.exit();
+  Future f=exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
+  try {
+    f.get();
+  }
+  catch(ConcurrentModificationException e) {
+    e.printStackTrace();
+  }
+  catch(InterruptedException|ExecutionException F) {
+    F.printStackTrace();
+  }
+  catch(NullPointerException g) {
+  }
+  finally{
+    exec.shutdown();
+    super.exit();
+  }
 }
 
  public void updatePreValue() {
@@ -771,6 +805,10 @@ public void exit(){
   line(s.x,s.y,s.x+v.x,s.y+v.y);
 }
 
+public void vertex(PGraphics g,PVector p){
+  g.vertex(p.x,p.y);
+}
+
  public float dist(PVector a, PVector b) {
   return dist(a.x, a.y, b.x, b.y);
 }
@@ -787,8 +825,8 @@ public void exit(){
   return ((s1.x-e1.x)*(s1.x-e1.x)+(s1.y-e1.y)*(s1.y-e1.y))<=((s2.x-e2.x)*(s2.x-e2.x)+(s2.y-e2.y)*(s2.y-e2.y));
 }
 
- public float atan2(PVector s,PVector e){
-  return atan2(e.x-s.x,e.y-s.y);
+ public float atan2(PVector from,PVector to){
+  return atan2(to.y-from.y,to.x-from.x);
 }
 
  public float cross(PVector v1, PVector v2) {
@@ -864,11 +902,11 @@ public void exit(){
     float dist;
     if(lenAX<0){
       if(dist(s.x,s.y,c.x,c.y)>=size*0.5f)return c;
-      float rad=-atan2(c,s)-PI;
+      float rad=atan2(c,s);
       return s.copy().add(new PVector(0,1).rotate(rad).mult(size*0.5f));
     }else if(lenAX>dist(0,0,v.x,v.y)){
       if(dist(s.x+v.x,s.y+v.y,c.x,c.y)>=size*0.5f)return c;
-      float rad=-atan2(c,new PVector(s.x+v.x,s.y+v.y))-PI;
+      float rad=atan2(c,new PVector(s.x+v.x,s.y+v.y));
       return new PVector(s.x+v.x,s.y+v.y).add(new PVector(0,1).rotate(rad).mult(size*0.5f));
     }else{
       dist=cross(normalAB,vecAP);
@@ -955,7 +993,7 @@ public void exit(){
   
   float d=abs((a*C.x+b*C.y+c)/mag(a,b));
   
-  float theta = atan2(b, a);
+  float theta = atan2(a,b);
   
   if(d>r){
     return null;
@@ -1001,6 +1039,10 @@ public void exit(){
 
  public int toRGB(Color c) {
   return color(c.getRed(),c.getGreen(),c.getBlue(),255);
+}
+
+public float grayScale(int c){
+  return ((c>>16)&0xFF)*0.298912f+((c>>8)&0xFF)*0.586611f+(c&0xFF)*0.114478;
 }
 
  public Color toAWTColor(int c) {
@@ -1070,26 +1112,27 @@ public void ctrl_button_pressed(){
   mouseWheelCount+=e.getCount();
 }
 
-class Entity implements Egent,Cloneable{
-  private Controller control;
-  RigidBody r_body;
-  DeadEvent dead=(e)->{};
-  float size=20;
-  PVector pos;
-  PVector vel=new PVector(0,0);
-  PVector Center=new PVector();
-  PVector AxisSize=new PVector();
-  Color c=new Color(0,255,0);
-  float rotate=0;
-  float accelSpeed=0.25f;
-  float maxSpeed=7.5f;
-  float Speed=0;
-  float Mass=10;
-  float e=0.5f;
-  int threadNum=0;
-  boolean isDead=false;
-  boolean pDead=false;
-  boolean inScreen=true;
+abstract class Entity implements Cloneable{
+  protected Controller control=new VoidController();
+  protected DeadEvent dead=(e)->{};
+  protected float size=20;
+  protected PVector pos=new PVector(0,0);
+  protected PVector vel=new PVector(0,0);
+  protected PVector Center=new PVector();
+  protected PVector AxisSize=new PVector();
+  protected Color c=new Color(0,255,0);
+  protected float rotate=0;
+  protected float accelSpeed=0.25f;
+  protected float maxSpeed=7.5f;
+  protected float Speed=0;
+  protected float Mass=10;
+  protected float e=0.5f;
+  public int threadNum=0;
+  protected boolean mark=false;
+  protected boolean displayAABB=true;
+  protected boolean isDead=false;
+  protected boolean pDead=false;
+  protected boolean inScreen=true;
 
   Entity() {
   }
@@ -1099,22 +1142,29 @@ class Entity implements Egent,Cloneable{
   }
   
   Controller getController(){
-    if(control==null){
-      control=new VoidController();
-    }
     return control;
   }
-
-   public void display(PGraphics g){
+  
+  public final void handleDisplay(PGraphics g){
+    if(!inScreen)return;
+    if(Debug&&displayAABB){
+      displayAABB(g);
+    }
+    display(g);
   }
 
-   public void update(){
+  protected abstract void display(PGraphics g);
+  
+  public final void handleUpdate(){
     getController().update(this);
     if(isDead&&!pDead){
       dead.deadEvent(this);
       pDead=isDead;
     }
+    update();
   }
+
+  protected abstract void update();
 
    public void setColor(Color c) {
     this.c=c;
@@ -1138,8 +1188,8 @@ class Entity implements Egent,Cloneable{
 
   public Entity clone()throws CloneNotSupportedException {
     Entity clone=(Entity)super.clone();
-    clone.pos=pos==null?null:pos.copy();
-    clone.vel=vel==null?null:vel.copy();
+    clone.pos=pos.copy();
+    clone.vel=vel.copy();
     clone.c=cloneColor(c);
     return clone;
   }
@@ -1150,14 +1200,6 @@ class Entity implements Egent,Cloneable{
   
   protected void putAABB(){
     inScreen=-scroll.x<Center.x+AxisSize.x/2&&Center.x-AxisSize.x/2<-scroll.x+width&&-scroll.y<Center.y+AxisSize.y/2&&Center.y-AxisSize.y/2<-scroll.y+height;
-    float x=AxisSize.x*0.5f;
-    float min=Center.x-x;
-    float max=Center.x+x;
-    HeapEntityDataX.get(threadNum).add(new AABBData(min,"s",this));
-    HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
-  }
-  
-  protected void putOnlyAABB(){
     float x=AxisSize.x*0.5f;
     float min=Center.x-x;
     float max=Center.x+x;
@@ -1191,81 +1233,14 @@ class Entity implements Egent,Cloneable{
     g.rectMode(CENTER);
     g.noFill();
     g.strokeWeight(1);
-    g.stroke(255);
+    if(mark){
+      g.stroke(255,0,0,200);
+      mark=false;
+    }else{
+      g.stroke(255,200);
+    }
     g.rect(Center.x,Center.y,AxisSize.x,AxisSize.y);
   }
-}
-
-class RigidBody{
-  SolidType s_type;
-  MaterialType m_type;
-  PVector pos,dist;
-  float radius;
-  float rotate;
-  boolean substance=false;
-  
-  RigidBody(SolidType s_t,MaterialType m_t,PVector pos,PVector dist,float ra,float ro){
-    this.s_type=s_t;
-    this.m_type=m_t;
-    this.pos=pos;
-    this.dist=dist;
-    this.radius=ra;
-    this.rotate=ro;
-  }
-}
-
-enum SolidType{
-  Circle,
-  Capsule,
-  Rectangle
-}
-
-enum MaterialType{
-  Bullet,
-  MyBullet,
-  Mirror,
-  Explosion,
-  Solid,
-  Ghost
-}
-
-boolean isHit(MaterialType src,MaterialType t){
-  switch(src){
-    case Bullet:switch(t){
-                  case MyBullet:return true;
-                  case Mirror:return true;
-                  case Explosion:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case MyBullet:switch(t){
-                  case Bullet:return true;
-                  case Explosion:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case Mirror:switch(t){
-                  case Bullet:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case Explosion:switch(t){
-                  case Bullet:return true;
-                  case MyBullet:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    case Solid:switch(t){
-                  case Bullet:return true;
-                  case MyBullet:return true;
-                  case Mirror:return true;
-                  case Explosion:return true;
-                  case Solid:return true;
-                  default:break;
-                }break;
-    default:break;
-  }
-  return false;
 }
 
 class Camera {
@@ -1357,12 +1332,6 @@ class Camera {
 }
 
 interface ExcludeGPGPU{
-}
-
-interface Egent {
-  public void display(PGraphics g);
-
-  public void update();
 }
 
 interface DeadEvent{

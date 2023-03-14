@@ -1,21 +1,16 @@
 HashMap<String,Constructor>WeaponConstructor=new HashMap<String,Constructor>();
-int addtionalProjectile=0;
-float addtionalScale=1;
-float addtionalPower=1;
-float addtionalSpeed=1;
-float addtionalDuration=1;
-float reductionCoolTime=1;
 
 HashMap<String,HashMap<String,Float>>StatusList;
 HashMap<String,Float>AddtionalStatus;
 
-class Weapon implements Equipment,Cloneable{
+abstract class Weapon implements Equipment,Cloneable{
   Entity parent;
   boolean autoShot=true;
   boolean pHeat=false;
   boolean empty=false;
   String name="default";
   float power=1;
+  float powerTemp=1;
   float speed=15;
   Float diffuse=0f;
   float coolTime=10;
@@ -29,7 +24,7 @@ class Weapon implements Equipment,Cloneable{
   int loadedNumber=INFINITY;
   int reloadTime=0;
   int maxReloadTime=60;
-  int type=ATTAK;
+  int type=ATTACK;
   Color bulletColor=new Color(36,224,125);
   
   static final int ENERGY=0;
@@ -52,6 +47,7 @@ class Weapon implements Equipment,Cloneable{
   
    public void setPower(float p){
     power=p;
+    powerTemp=p;
   }
   
    public void setSpeed(float s){
@@ -133,92 +129,29 @@ class Weapon implements Equipment,Cloneable{
     }
   }
   
-   public void shot(){
+  public void shot(){
+    power=powerTemp;
     for(int i=0;i<this.bulletNumber;i++){
-      if(parent instanceof Myself){
-        NextEntities.add(new Bullet((Myself)parent,i));
-      }else{
-        NextEntities.add(new Bullet(parent,this));
-      }
+      addBullet(i);
     }
   }
+  
+  protected abstract void addBullet(int i);
   
    public Weapon clone()throws CloneNotSupportedException{
     return (Weapon)super.clone();
   }
 }
 
-class SubWeapon extends Weapon{
-  String[] params=new String[]{"name","projectile","scale","power","velocity","duration","cooltime","through"};
-  HashMap<String,Float>upgradeStatus;
-  JSONObject obj;
-  float scale=1;
-  int through=0;
-  int level=1;
+class PlayerWeapon extends Weapon{
   
-  protected float time=0;
-  
-  SubWeapon(){
-    super();
+  PlayerWeapon(Entity e){
+    super(e);
   }
   
-  SubWeapon(JSONObject o){
-    init(o);
-  }
-  
-   public void init(JSONObject o){
-    level=1;
-    obj=o;
-    name=o.getString(params[0]);
-    bulletNumber=o.getInt(params[1])+AddtionalStatus.get(params[1]).intValue();
-    scale=o.getFloat(params[2])*AddtionalStatus.get(params[2]);
-    power=o.getFloat(params[3])*AddtionalStatus.get(params[3]);
-    speed=o.getFloat(params[4])*AddtionalStatus.get(params[4]);
-    duration=o.getFloat(params[5])*AddtionalStatus.get(params[5]);
-    coolTime=o.getFloat(params[6])*AddtionalStatus.get(params[6]);
-    through=o.getInt(params[7]);
-    upgradeStatus=new HashMap<String,Float>();
-    for(String s:params)upgradeStatus.put(s,0f);
-    time=coolTime;
-  }
-  
-   public void upgrade(JSONArray a,int level) throws NullPointerException{
-    this.level=level;
-    if(level-2>=a.size())throw new NullPointerException();
-    JSONObject add=a.getJSONObject(level-2);
-    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).getStringArray()));
-    param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
-    bulletNumber=obj.getInt(params[1])+upgradeStatus.get(params[1]).intValue()+AddtionalStatus.get(params[1]).intValue();
-    scale=(obj.getFloat(params[2])+upgradeStatus.get(params[2]))*AddtionalStatus.get(params[2]);
-    power=(obj.getFloat(params[3])+upgradeStatus.get(params[3]))*AddtionalStatus.get(params[3]);
-    speed=(obj.getFloat(params[4])+upgradeStatus.get(params[4]))*AddtionalStatus.get(params[4]);
-    duration=(obj.getFloat(params[5])+upgradeStatus.get(params[5]))*AddtionalStatus.get(params[5]);
-    coolTime=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*AddtionalStatus.get(params[6]);
-    through=obj.getInt(params[7])+upgradeStatus.get(params[7]).intValue();
-  }
-  
-   public void reInit(){
-    if(coolTime!=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*AddtionalStatus.get(params[6]))time=coolTime;
-    updateStatus();
-  }
-  
-  public void updateStatus(){
-    bulletNumber=obj.getInt(params[1])+upgradeStatus.get(params[1]).intValue()+AddtionalStatus.get(params[1]).intValue();
-    scale=(obj.getFloat(params[2])+upgradeStatus.get(params[2]))*AddtionalStatus.get(params[2]);
-    power=(obj.getFloat(params[3])+upgradeStatus.get(params[3]))*AddtionalStatus.get(params[3]);
-    speed=(obj.getFloat(params[4])+upgradeStatus.get(params[4]))*AddtionalStatus.get(params[4]);
-    duration=(obj.getFloat(params[5])+upgradeStatus.get(params[5]))*AddtionalStatus.get(params[5]);
-    coolTime=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*AddtionalStatus.get(params[6]);
-    through=obj.getInt(params[7])+upgradeStatus.get(params[7]).intValue();
-  }
-  
-   public void update(){
-    time+=vectorMagnification;
-    if(time>=coolTime){
-      updateStatus();
-      shot();
-      time=0;
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new PlayerBullet((Myself)parent,i));
   }
 }
 
@@ -232,15 +165,15 @@ class EnemyWeapon extends Weapon{
     setSpeed(3.5f);
     setDuration(120);
     setDiffuse(radians(1));
+    setColor(255,0,0);
     setCoolTime(250);
     setBulletNumber(1);
+    setColor(new Color(255,0,0));
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new ThroughBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new ThroughBullet(parentEnemy,this));
   }
 }
 
@@ -253,13 +186,12 @@ class EnemyPoisonWeapon extends EnemyWeapon{
     setDiffuse(radians(1));
     setCoolTime(250);
     setBulletNumber(1);
+    setColor(new Color(10,130,30));
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new EnemyPoisonBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new EnemyPoisonBullet(parentEnemy,this));
   }
 }
 
@@ -275,10 +207,8 @@ class AntiSkillWeapon extends EnemyWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new AntiSkillBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new AntiSkillBullet(parentEnemy,this));
   }
 }
 
@@ -294,10 +224,8 @@ class BoundWeapon extends EnemyWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new BoundBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new BoundBullet(parentEnemy,this));
   }
 }
 
@@ -316,16 +244,88 @@ class SnipeWeapon extends Weapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-      NextEntities.add(new ThroughBullet(parentEnemy,this));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new ThroughBullet(parentEnemy,this));
   }
 }
 
-class EnergyBullet extends Weapon{
+class BlasterWeapon extends Weapon{
+  Enemy parentEnemy;
   
-  EnergyBullet(Entity e){
+  BlasterWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.6f);
+    setSpeed(3f);
+    setDuration(60);
+    setDiffuse(radians(50));
+    setCoolTime(290);
+    setBulletNumber(5);
+    setColor(230,230,10);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new AntiExplosionBullet(parentEnemy,this));
+  }
+}
+
+class MissileWeapon extends Weapon{
+  Enemy parentEnemy;
+  
+  MissileWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.6f);
+    setSpeed(2f);
+    setDuration(420);
+    setDiffuse(radians(50));
+    setCoolTime(420);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new MissileBullet(parentEnemy,this));
+  }
+}
+
+class EnemyMirrorWeapon extends Weapon{
+  
+  EnemyMirrorWeapon(Enemy e){
+    super();
+    parent=e;
+  }
+  
+  @Override 
+  protected void addBullet(int i){
+    NextEntities.add(new EnemyMirrorBullet(this,i,bulletNumber));
+  }
+}
+
+class FlashWeapon extends Weapon{
+  Enemy parentEnemy;
+  
+  FlashWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.1);
+    setSpeed(15f);
+    setDuration(60);
+    setDiffuse(radians(1));
+    setCoolTime(300);
+    setColor(new Color(255,25,0));
+    setBulletNumber(1);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new ThroughBullet(parentEnemy,this));
+  }
+}
+
+class EnergyWeapon extends PlayerWeapon{
+  
+  EnergyWeapon(Entity e){
     super(e);
     setPower(1.2f);
     setSpeed(15);
@@ -336,9 +336,9 @@ class EnergyBullet extends Weapon{
   }
 }
 
-class PulseBullet extends Weapon{
+class PulseWeapon extends PlayerWeapon{
   
-  PulseBullet(Entity e){
+  PulseWeapon(Entity e){
     super(e);
     setSpeed(20);
     setPower(0.8f);
@@ -351,7 +351,96 @@ class PulseBullet extends Weapon{
   }
 }
 
-class G_ShotWeapon extends SubWeapon{
+abstract class SubWeapon extends Weapon{
+  String[] params=new String[]{"name","projectile","scale","power","velocity","duration","cooltime","through"};
+  HashMap<String,Float>upgradeStatus;
+  JSONObject obj;
+  float scale=1;
+  int through=0;
+  int level=1;
+  int maxLevel=1;
+  
+  protected float time=0;
+  
+  public abstract void init(JSONObject o);
+  
+  public abstract void upgrade(JSONArray a,int level);
+  
+  public abstract void reInit();
+  
+  public abstract void updateStatus();
+  
+  public abstract void update();
+}
+
+abstract class AttackWeapon extends SubWeapon{
+  
+  AttackWeapon(){
+    super();
+  }
+  
+  AttackWeapon(JSONObject o){
+    init(o);
+  }
+  
+  public void init(JSONObject o){
+    level=1;
+    obj=o;
+    name=o.getString(params[0]);
+    bulletNumber=o.getInt(params[1])+AddtionalStatus.get(params[1]).intValue();
+    scale=o.getFloat(params[2])*AddtionalStatus.get(params[2]);
+    power=o.getFloat(params[3])*AddtionalStatus.get(params[3]);
+    speed=o.getFloat(params[4])*AddtionalStatus.get(params[4]);
+    duration=o.getFloat(params[5])*AddtionalStatus.get(params[5]);
+    coolTime=o.getFloat(params[6])*AddtionalStatus.get(params[6]);
+    through=o.getInt(params[7]);
+    maxLevel=o.getInt("maxLevel");
+    upgradeStatus=new HashMap<String,Float>();
+    for(String s:params)upgradeStatus.put(s,0f);
+    time=coolTime;
+  }
+  
+  public void upgrade(JSONArray a,int level) throws NullPointerException{
+    this.level=level;
+    if(level>maxLevel)throw new NullPointerException();
+    JSONObject add=a.getJSONObject(level-2);
+    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).toStringArray()));
+    param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
+    bulletNumber=obj.getInt(params[1])+upgradeStatus.get(params[1]).intValue()+AddtionalStatus.get(params[1]).intValue();
+    scale=(obj.getFloat(params[2])+upgradeStatus.get(params[2]))*AddtionalStatus.get(params[2]);
+    power=(obj.getFloat(params[3])+upgradeStatus.get(params[3]))*AddtionalStatus.get(params[3]);
+    speed=(obj.getFloat(params[4])+upgradeStatus.get(params[4]))*AddtionalStatus.get(params[4]);
+    duration=(obj.getFloat(params[5])+upgradeStatus.get(params[5]))*AddtionalStatus.get(params[5]);
+    coolTime=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*AddtionalStatus.get(params[6]);
+    through=obj.getInt(params[7])+upgradeStatus.get(params[7]).intValue();
+  }
+  
+  public void reInit(){
+    if(coolTime!=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*AddtionalStatus.get(params[6]))time=coolTime;
+    updateStatus();
+  }
+  
+  public void updateStatus(){
+    bulletNumber=obj.getInt(params[1])+upgradeStatus.get(params[1]).intValue()+AddtionalStatus.get(params[1]).intValue();
+    scale=(obj.getFloat(params[2])+upgradeStatus.get(params[2]))*AddtionalStatus.get(params[2]);
+    power=(obj.getFloat(params[3])+upgradeStatus.get(params[3]))*AddtionalStatus.get(params[3]);
+    speed=(obj.getFloat(params[4])+upgradeStatus.get(params[4]))*AddtionalStatus.get(params[4]);
+    duration=(obj.getFloat(params[5])+upgradeStatus.get(params[5]))*AddtionalStatus.get(params[5]);
+    coolTime=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*AddtionalStatus.get(params[6]);
+    through=obj.getInt(params[7])+upgradeStatus.get(params[7]).intValue();
+  }
+  
+  public void update(){
+    time+=vectorMagnification;
+    if(time>=coolTime){
+      updateStatus();
+      shot();
+      time=0;
+    }
+  }
+}
+
+class G_ShotWeapon extends AttackWeapon{
   
   G_ShotWeapon(){
     super();
@@ -362,14 +451,12 @@ class G_ShotWeapon extends SubWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new GravityBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new GravityBullet(this,i));
   }
 }
 
-class TurretWeapon extends SubWeapon{
+class TurretWeapon extends AttackWeapon{
   
   TurretWeapon(){
     super();
@@ -380,10 +467,8 @@ class TurretWeapon extends SubWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new TurretBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new TurretBullet(this,i));
   }
 }
 
@@ -398,14 +483,12 @@ class MP5Weapon extends TurretWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new MP5Bullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new MP5Bullet(this,i));
   }
 }
 
-class GrenadeWeapon extends SubWeapon{
+class GrenadeWeapon extends AttackWeapon{
   
   GrenadeWeapon(){
     super();
@@ -416,14 +499,13 @@ class GrenadeWeapon extends SubWeapon{
   }
   
   @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new GrenadeBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new GrenadeBullet(this,i));
   }
 }
 
-class MirrorWeapon extends SubWeapon{
+class MirrorWeapon extends AttackWeapon{
+  float offset=0;
   
   MirrorWeapon(){
     super();
@@ -433,12 +515,15 @@ class MirrorWeapon extends SubWeapon{
     super(o);
   }
   
-  @Override 
+  @Override
   public void shot(){
-    float offset=random(0,TWO_PI);
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new MirrorBullet(this,i,bulletNumber,offset));
-    }
+    offset=random(0,TWO_PI);
+    super.shot();
+  }
+  
+  @Override 
+  protected void addBullet(int i){
+    NextEntities.add(new MirrorBullet(this,i,bulletNumber,offset));
   }
 }
 
@@ -453,15 +538,12 @@ class InfinityShieldWeapon extends MirrorWeapon{
   }
   
   @Override 
-  public void shot(){
-    float offset=random(0,TWO_PI);
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new InfinityShieldBullet(this,i,bulletNumber,offset));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new InfinityShieldBullet(this,i,bulletNumber,offset));
   }
 }
 
-class PlasmaFieldWeapon extends SubWeapon{
+class PlasmaFieldWeapon extends AttackWeapon{
   PlasmaFieldBullet bullet;
   
   PlasmaFieldWeapon(){
@@ -500,9 +582,12 @@ class PlasmaFieldWeapon extends SubWeapon{
     super.reInit();
     if(bullet!=null)bullet.init(this);
   }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
-class LaserWeapon extends SubWeapon{
+class LaserWeapon extends AttackWeapon{
   
   LaserWeapon(){
     super();
@@ -512,11 +597,9 @@ class LaserWeapon extends SubWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new LaserBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new LaserBullet(this,i));
   }
 }
 
@@ -530,32 +613,33 @@ class ElectronWeapon extends LaserWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new ElectronBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new ElectronBullet(this,i));
   }
 }
 
-class LightningWeapon extends SubWeapon{
+class LightningWeapon extends AttackWeapon{
   int offset=0;
   
   LightningWeapon(JSONObject o){
     super(o);
   }
   
-  @Override 
+  @Override
   public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new LightningBullet(this,i,bulletNumber,offset));
-    }
-    offset++;
+    super.shot();
+    ++offset;
     offset%=12;
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new LightningBullet(this,i,bulletNumber,offset));
   }
 }
 
-class ReflectorWeapon extends SubWeapon{
+class ReflectorWeapon extends AttackWeapon{
   
   ReflectorWeapon(){
     super();
@@ -565,11 +649,9 @@ class ReflectorWeapon extends SubWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new ReflectorBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new ReflectorBullet(this,i));
   }
 }
 
@@ -583,15 +665,13 @@ class ShadowReflectorWeapon extends ReflectorWeapon{
     super(o);
   }
   
-  @Override 
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new ShadowReflectorBullet(this,i));
-    }
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new ShadowReflectorBullet(this,i));
   }
 }
 
-class AbsorptionWeapon extends SubWeapon{
+class AbsorptionWeapon extends AttackWeapon{
   AbsorptionBullet bullet;
   
   AbsorptionWeapon(){
@@ -621,9 +701,12 @@ class AbsorptionWeapon extends SubWeapon{
     super.init(o);
     bullet=null;
   }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
-class FireWeapon extends SubWeapon{
+class FireWeapon extends AttackWeapon{
   
   FireWeapon(){
     super();
@@ -634,14 +717,12 @@ class FireWeapon extends SubWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new FireBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new FireBullet(this,i));
   }
 }
 
-class IceWeapon extends SubWeapon{
+class IceWeapon extends AttackWeapon{
   
   IceWeapon(){
     super();
@@ -652,14 +733,12 @@ class IceWeapon extends SubWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new IceBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new IceBullet(this,i));
   }
 }
 
-class InfernoWeapon extends SubWeapon{
+class InfernoWeapon extends AttackWeapon{
   
   InfernoWeapon(){
     super();
@@ -670,14 +749,12 @@ class InfernoWeapon extends SubWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new InfernoBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new InfernoBullet(this,i));
   }
 }
 
-class SatelliteWeapon extends SubWeapon{
+class SatelliteWeapon extends AttackWeapon{
   Satellite child=null;
   
   SatelliteWeapon(){
@@ -704,6 +781,9 @@ class SatelliteWeapon extends SubWeapon{
     if(child==null)update();
     child.maxCooltime=max(15/bulletNumber,15-bulletNumber*2);
   }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
 class HexiteWeapon extends SatelliteWeapon{
@@ -727,7 +807,7 @@ class HexiteWeapon extends SatelliteWeapon{
   }
 }
 
-class BLASWeapon extends SubWeapon{
+class BLASWeapon extends AttackWeapon{
   
   BLASWeapon(){
     super();
@@ -740,14 +820,28 @@ class BLASWeapon extends SubWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        NextEntities.add(new BLASBullet(this,i));
-    }
+  protected void addBullet(int i){
+    NextEntities.add(new BLASBullet(this,i));
   }
 }
 
-class TLASWeapon extends SubWeapon{
+class VoidWeapon extends AttackWeapon{
+  
+  VoidWeapon(){
+    super();
+  }
+  
+  VoidWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override 
+  protected void addBullet(int i){
+    NextEntities.add(new VoidBullet(this,0));
+  }
+}
+
+class TLASWeapon extends AttackWeapon{
   
   TLASWeapon(){
     super();
@@ -760,20 +854,101 @@ class TLASWeapon extends SubWeapon{
   }
   
   @Override
-  public void shot(){
-    for(int i=0;i<this.bulletNumber;i++){
-        //NextEntities.add(new TLASBullet(this,i));
+  protected void addBullet(int i){
+    NextEntities.add(new TLASBullet(this,i));
+  }
+}
+
+class LinearWeapon extends AttackWeapon{
+  
+  LinearWeapon(){
+    super();
+  }
+  
+  LinearWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new LinearBullet(this,i));
+  }
+}
+
+class BiLinearWeapon extends LinearWeapon{
+  
+  BiLinearWeapon(){
+    super();
+  }
+  
+  BiLinearWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new BiLinearBullet(this,i));
+  }
+}
+
+class TriLinearWeapon extends BiLinearWeapon{
+  
+  TriLinearWeapon(){
+    super();
+  }
+  
+  TriLinearWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new TriLinearBullet(this,i));
+  }
+}
+
+class SanctuaryWeapon extends PlasmaFieldWeapon{
+  
+  SanctuaryWeapon(){
+    super();
+  }
+  
+  SanctuaryWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override 
+  public void update(){
+    if(bullet==null){
+      bullet=new SanctuaryBullet();
+      bullet.init(this);
+      NextEntities.add(bullet);
+    }else if(!EntitySet.contains(bullet)){
+      bullet.init(this);
+      NextEntities.add(bullet);
     }
   }
 }
 
-class itemWeapon extends SubWeapon{
+class AnomalyWeapon extends AttackWeapon{
   
-  itemWeapon(){
+  AnomalyWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new AnomalyBullet(this));
+  }
+}
+
+abstract class ItemWeapon extends SubWeapon{
+  
+  ItemWeapon(){
     super();
   }
   
-  itemWeapon(JSONObject o){
+  ItemWeapon(JSONObject o){
     init(o);
   }
   
@@ -784,6 +959,7 @@ class itemWeapon extends SubWeapon{
     name=o.getString(params[0]);
     switch(name){
       case "projectile":bulletNumber=o.getInt("value");break;
+      case "magnet":
       case "scale":scale=o.getFloat("value");break;
       case "power":power=o.getFloat("value");break;
       case "speed":speed=o.getFloat("value");break;
@@ -799,10 +975,11 @@ class itemWeapon extends SubWeapon{
     this.level=level;
     if(level-2>=a.size())throw new NullPointerException();
     JSONObject add=a.getJSONObject(level-2);
-    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).getStringArray()));
+    HashSet<String>param=new HashSet<String>(Arrays.asList(add.getJSONArray(params[0]).toStringArray()));
     param.forEach(s->{if(upgradeStatus.containsKey(s))upgradeStatus.replace(s,upgradeStatus.get(s)+add.getFloat(s));});
     switch(name){
       case "projectile":bulletNumber=obj.getInt("value")+upgradeStatus.get(params[1]).intValue();break;
+      case "magnet":
       case "scale":scale=obj.getFloat("value")+upgradeStatus.get(params[2]);break;
       case "power":power=obj.getFloat("value")+upgradeStatus.get(params[3]);break;
       case "speed":speed=obj.getFloat("value")+upgradeStatus.get(params[4]);break;
@@ -815,6 +992,7 @@ class itemWeapon extends SubWeapon{
   public void reInit(){
     switch(name){
       case "projectile":bulletNumber=obj.getInt("value")+upgradeStatus.get(params[1]).intValue();break;
+      case "magnet":
       case "scale":scale=obj.getFloat("value")+upgradeStatus.get(params[2]);break;
       case "power":power=obj.getFloat("value")+upgradeStatus.get(params[3]);break;
       case "speed":speed=obj.getFloat("value")+upgradeStatus.get(params[4]);break;
@@ -822,9 +1000,27 @@ class itemWeapon extends SubWeapon{
       case "cooltime":coolTime=obj.getFloat("value")+upgradeStatus.get(params[6]);break;
     }
   }
+  
+  @Override
+  public void updateStatus(){
+    bulletNumber=obj.getInt(params[1])+upgradeStatus.get(params[1]).intValue()+AddtionalStatus.get(params[1]).intValue();
+    scale=(obj.getFloat(params[2])+upgradeStatus.get(params[2]))*AddtionalStatus.get(params[2]);
+    power=(obj.getFloat(params[3])+upgradeStatus.get(params[3]))*AddtionalStatus.get(params[3]);
+    speed=(obj.getFloat(params[4])+upgradeStatus.get(params[4]))*AddtionalStatus.get(params[4]);
+    duration=(obj.getFloat(params[5])+upgradeStatus.get(params[5]))*AddtionalStatus.get(params[5]);
+    coolTime=(obj.getFloat(params[6])-upgradeStatus.get(params[6]))*AddtionalStatus.get(params[6]);
+    through=obj.getInt(params[7])+upgradeStatus.get(params[7]).intValue();
+  }
+  
+  @Override
+  public void update(){
+  }
+  
+  @Override
+  protected void addBullet(int i){}
 }
 
-final class projectileWeapon extends itemWeapon{
+final class projectileWeapon extends ItemWeapon{
   
   projectileWeapon(){
     super();
@@ -840,7 +1036,7 @@ final class projectileWeapon extends itemWeapon{
   }
 }
 
-final class scaleWeapon extends itemWeapon{
+final class scaleWeapon extends ItemWeapon{
   
   scaleWeapon(){
     super();
@@ -856,7 +1052,7 @@ final class scaleWeapon extends itemWeapon{
   }
 }
 
-final class powerWeapon extends itemWeapon{
+final class powerWeapon extends ItemWeapon{
   
   powerWeapon(){
     super();
@@ -872,7 +1068,7 @@ final class powerWeapon extends itemWeapon{
   }
 }
 
-class speedWeapon extends itemWeapon{
+class speedWeapon extends ItemWeapon{
   
   speedWeapon(){
     super();
@@ -888,7 +1084,7 @@ class speedWeapon extends itemWeapon{
   }
 }
 
-class durationWeapon extends itemWeapon{
+class durationWeapon extends ItemWeapon{
   
   durationWeapon(){
     super();
@@ -904,7 +1100,7 @@ class durationWeapon extends itemWeapon{
   }
 }
 
-class cooltimeWeapon extends itemWeapon{
+class cooltimeWeapon extends ItemWeapon{
   
   cooltimeWeapon(){
     super();
@@ -920,7 +1116,23 @@ class cooltimeWeapon extends itemWeapon{
   }
 }
 
+final class magnetWeapon extends ItemWeapon{
+  
+  magnetWeapon(){
+    super();
+  }
+  
+  magnetWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override 
+  public void update(){
+    player.magnetDist=player.initMagnetDist*(1f+scale*0.01f);
+  }
+}
+
 interface Equipment{
-  int ATTAK=1;
+  int ATTACK=1;
   int DIFENCE=2;
 }

@@ -1,7 +1,7 @@
 import java.util.concurrent.atomic.AtomicInteger;
 
 class EntityProcess implements Callable<String>{
-  long pTime=0;
+  long pProcessTime;
   byte number;
   int s;
   int l;
@@ -13,25 +13,32 @@ class EntityProcess implements Callable<String>{
   }
   
   String call(){
-    pTime=System.nanoTime();
+    pProcessTime=System.nanoTime();
     ArrayList<Entity>next=HeapEntity.get(number);
     for(int i=s;i<l;i++){
       Entity e=Entities.get(i);
       e.threadNum=number;
       if(player.isDead){
         if((e instanceof Explosion)||(e instanceof Particle)){
-          e.update();
+          e.handleUpdate();
         }else{
           e.putAABB();
         }
       }else{
-        e.update();
+        e.handleUpdate();
       }
       if(!e.isDead){
         next.add(e);
+      }else if(e instanceof Enemy&&!ArchiveEntity.contains(e.getClass().getName())&&e.getClass().getName().indexOf("$")==e.getClass().getName().lastIndexOf("$")){
+        synchronized(ArchiveEntity){
+          if(!ArchiveEntity.contains(e.getClass().getName())){
+            ArchiveEntity.add(e.getClass().getName());
+            Collections.sort(ArchiveEntity);
+          }
+        }
       }
     }
-    EntityTime=(System.nanoTime()-pTime)/1000000f;
+    EntityTime=(System.nanoTime()-pProcessTime)/1000000f;
     return "";
   }
   
@@ -43,6 +50,7 @@ class EntityProcess implements Callable<String>{
 }
 
 class EntityCollision implements Callable<String>{
+  long pProcessTime;
   float hue;
   byte number;
   int s;
@@ -56,6 +64,7 @@ class EntityCollision implements Callable<String>{
   }
   
   String call(){
+    pProcessTime=System.nanoTime();
     for(int i=s;i<l;i++){
       Entity E=SortedDataX[i].getEntity();
       if((E instanceof Enemy)&&Debug)((Enemy)E).hue=hue;
@@ -64,6 +73,7 @@ class EntityCollision implements Callable<String>{
         case "e":break;
       }
     }
+    CollisionTime=(System.nanoTime()-pProcessTime)/1000000f;
     return "";
   }
   
@@ -105,7 +115,7 @@ class EntityDraw implements Callable<PGraphics>{
     g.translate(scroll.x,scroll.y);
     g.background(0,0);
     for(int i=s;i<l;i++){
-      Entities.get(i).display(g);
+      Entities.get(i).handleDisplay(g);
     }
     g.endDraw();
     return g;
@@ -120,8 +130,10 @@ class EntityDraw implements Callable<PGraphics>{
 class saveConfig implements Runnable{
   
   public void run(){
+    conf.setInt("Fragment",fragmentCount);
     if(!StageFlag.contains("Game_Over")){
       conf.setJSONArray("Stage",parseJSONArray(Arrays.toString(stageList.Contents.toArray(new String[0]))));
+      conf.setJSONArray("Enemy",parseJSONArray(Arrays.toString(ArchiveEntity.toArray(new String[0]))));
       saveJSONObject(conf,SavePath+"config.json");
     }
   }
