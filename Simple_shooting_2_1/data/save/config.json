@@ -26,7 +26,7 @@
   ],
   "vsync": false,
   "Enemy": [],
-  "ShaderQuality": 0,
+  "ShaderQuality": 2,
   "FPS": false,
   "clear": false,
   "Stage": ["Tutorial"],

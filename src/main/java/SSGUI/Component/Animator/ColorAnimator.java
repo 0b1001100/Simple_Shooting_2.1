@@ -21,7 +21,27 @@ public class ColorAnimator extends Animator<Color> {
 
   @Override
   public ColorAnimator buildFromJSON(JSONObject o){
-    //add key frame
+    loop=o.getBoolean("loop",false);
+    mag=o.getFloat("mag", 1f);
+    end=o.getFloat("duration");
+    float keyFrames[]=o.getJSONArray("keyFrames").toFloatArray();
+    for(int i=0;i<keyFrames.length;i+=5){
+      addKeyFrame(keyFrames[i], new Color((int)keyFrames[i+1],(int)keyFrames[i+2],(int)keyFrames[i+3],(int)keyFrames[i+4]));
+    }
     return this;
   }
 }
+
+/*
+ * JSON example
+ * {
+ *   "loop":false,
+ *   "mag":1,
+ *   "duration":150,
+ *   "keyFrames":[
+ *     0  ,0  ,25,255,
+ *     100,125,25,255,
+ *     150,150,25,255
+ *   ]
+ * }
+ */

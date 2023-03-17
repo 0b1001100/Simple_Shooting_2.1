@@ -13,6 +13,7 @@ public enum Direction {
   Left(0b010000),
   Front(0b000010),
   Behind(0b000001),
+  All(0b111111),
   None(0b000000);
 
   /**

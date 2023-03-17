@@ -32,11 +32,17 @@ public abstract class Animator<T> implements Supplier<T>, ConstractibleFromJSON<
   public void update(float deltaTime){
     if(isEnd||!animate)return;
     this.millis+=deltaTime*mag;
-    if((mag<0?this.millis<=0f:this.millis>=end)&&!loop){
-      isEnd=true;
-      int i=0;
-      for(float f:keyFrame.keySet()){
-        if(++i==keyFrame.size())value=keyFrame.get(f);
+    if(mag<0?this.millis<=0f:this.millis>=end){
+      if(loop){
+        rewind();
+      }else{
+        isEnd=true;
+        animate=false;
+        millis=Math.max(0f,Math.min(millis,end));
+        int i=0;
+        for(float f:keyFrame.keySet()){
+          if(++i==(mag<0f?1:keyFrame.size()))value=keyFrame.get(f);
+        }
       }
     }else{
       boolean passage=true;
@@ -64,6 +70,16 @@ public abstract class Animator<T> implements Supplier<T>, ConstractibleFromJSON<
   }
 
   public void animate(){
+    mag=1f;
+    millis=0f;
+    isEnd=false;
+    animate=true;
+  }
+
+  public void reverse(){
+    mag=-1f;
+    millis=end;
+    isEnd=false;
     animate=true;
   }
 
@@ -71,18 +87,30 @@ public abstract class Animator<T> implements Supplier<T>, ConstractibleFromJSON<
     animate=false;
   }
 
+  public void start(){
+    animate=true;
+  }
+
   public void rewind(){
     isEnd=false;
-    millis=0;
+    millis=mag<0f?end:0f;
   }
 
   @Override
   public T get() {
-    return value;
+    return (T)value;
+  }
+
+  public void addKeyFrame(Float key,T value){
+    keyFrame.put(key,value);
   }
 
   public void setPlayTime(float millis){
     end=millis;
+  }
+
+  public boolean isAnimate(){
+    return animate;
   }
 
   public float getPlayTime(){
