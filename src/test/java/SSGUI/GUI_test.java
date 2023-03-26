@@ -17,6 +17,7 @@ public class GUI_test {
     Direction d3=Direction.Horizonal;
     assert d1.matches(d3);
     assert !d2.matches(d3);
+    assert Direction.getAngle(0b111000)==(float)Math.PI*0.5;
   }
 
   @Test

@@ -2,7 +2,7 @@ package SSGUI.Component;
 
 import java.util.HashMap;
 
-import SSGUI.Input;
+import SSGUI.input.Input;
 import processing.data.JSONArray;
 import processing.data.JSONObject;
 import processing.opengl.PGraphicsOpenGL;
@@ -68,7 +68,7 @@ public class ComponentSet extends GameComponent {
   }
 
   public void handleInput(Input i){
-    if(i.mouseMove()){
+    if(i.getMouse().mouseMoved()){
 
     }
   }

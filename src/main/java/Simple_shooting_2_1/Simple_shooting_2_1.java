@@ -1,12 +1,16 @@
 package Simple_shooting_2_1;
 
 import SSGUI.Menu.MenuButton;
+import SSGUI.input.Input;
 import processing.core.PApplet;
 import processing.core.PVector;
 import processing.opengl.PGraphicsOpenGL;
+import processing.opengl.PSurfaceJOGL;
 
 public class Simple_shooting_2_1 extends PApplet{
   PGraphicsOpenGL glpg;
+
+  Input input;
 
   MenuButton button;
 
@@ -24,11 +28,12 @@ public class Simple_shooting_2_1 extends PApplet{
 
   @Override
   public void setup(){
+    input=new Input(this, (PSurfaceJOGL)surface);
     glpg=(PGraphicsOpenGL)g;
   }
 
   @Override
-  public void draw(){
+  public void draw(){println(input.getAttackAngle(),input.getController().isAvariable());
     background(128);
     button.handleDisplay(glpg, false);
     button.handleUpdate(16f);

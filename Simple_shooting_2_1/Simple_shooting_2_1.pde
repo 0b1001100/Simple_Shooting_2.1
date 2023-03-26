@@ -253,31 +253,6 @@ void setup(){
     drawStatistics.add(-1f);
     runStatistics.add(-1f);
   }
-  //get controller
-  control = ControlIO.getInstance(this);
-  for(ControlDevice dev:control.getDevices()){
-    if(dev.getTypeName().equals(net.java.games.input.Controller.Type.GAMEPAD.toString())||
-       dev.getTypeName().equals(net.java.games.input.Controller.Type.STICK.toString())){
-      controller=dev;
-      break;
-    }
-  }
-  if(!useController&&controller!=null){
-    controller.open();
-    useController=true;
-    for(int i=0;i<controller.getNumberOfButtons();i++){
-      String className=controller.getButton(i).getClass().toString();
-      if(className.indexOf("Hat")>-1){
-        ctrl_hat=controller.getHat(i);
-      }else{
-        ctrl_buttons.add(controller.getButton(i));
-        controller.getButton(i).plug(this,"ctrl_button_pressed",ControlIO.ON_PRESS);
-      }
-    }
-    for(int i=0;i<controller.getNumberOfSliders();i++){
-      ctrl_sliders.add(controller.getSlider(i));
-    }
-  }
   mouseImage=loadImage(ImagePath+"mouse.png");
   font_15=createFont("SansSerif.plain",15);
   font_20=createFont("SansSerif.plain",20);
@@ -309,6 +284,31 @@ void setup(){
   localMouse=unProject(mouseX, mouseY);
   LoadData();
   initThread();
+  //get controller
+  control = ControlIO.getInstance(this);
+  for(ControlDevice dev:control.getDevices()){
+    if(dev.getTypeName().equals(net.java.games.input.Controller.Type.GAMEPAD.toString())||
+       dev.getTypeName().equals(net.java.games.input.Controller.Type.STICK.toString())){
+      controller=dev;
+      break;
+    }
+  }
+  if(!useController&&controller!=null){
+    controller.open();
+    useController=true;
+    for(int i=0;i<controller.getNumberOfButtons();i++){
+      String className=controller.getButton(i).getClass().toString();
+      if(className.indexOf("Hat")>-1){
+        ctrl_hat=controller.getHat(i);
+      }else{
+        ctrl_buttons.add(controller.getButton(i));
+        controller.getButton(i).plug(this,"ctrl_button_pressed",ControlIO.ON_PRESS);
+      }
+    }
+    for(int i=0;i<controller.getNumberOfSliders();i++){
+      ctrl_sliders.add(controller.getSlider(i));
+    }
+  }
   main_game=new GameProcess();
 }
 

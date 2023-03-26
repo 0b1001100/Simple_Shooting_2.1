@@ -24,7 +24,7 @@ public abstract class SButton extends GameComponent {
       JSONObject anim=animatorArray.getJSONObject(i);
       String type=anim.getString("type");
       setAnimator(anim.getString("name"), (type=="color"?new ColorAnimator(0f, false):new VectorAnimator(0f, false)).buildFromJSON(anim)
-                  , ComponentEventType.parse(anim.getString("start")), ComponentEventType.parse(anim.getString("end")));
+                  , ComponentEventType.valueOf(anim.getString("start")), ComponentEventType.valueOf(anim.getString("end")));
     }
     //initialize event
     if(o.hasKey("event")){
