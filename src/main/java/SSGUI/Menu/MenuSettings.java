@@ -12,17 +12,20 @@ public enum MenuSettings {
 
   private Theme theme;
 
-  private VectorAnimator focusAnimator;
-
   private Object eventObject;
 
   private MenuSettings(){
     theme=new MenuTheme();
-    focusAnimator=new VectorAnimator(100f, false);
+    getFocusAnimator();
+  }
+
+  public VectorAnimator getFocusAnimator(){
+    VectorAnimator focusAnimator=new VectorAnimator(100f, false);
     focusAnimator.addKeyFrame(0f, new PVector(0f, 25f));
     focusAnimator.addKeyFrame(50f, new PVector(100f, 25f));
     focusAnimator.addKeyFrame(75f, new PVector(140f, 25f));
     focusAnimator.addKeyFrame(100f, new PVector(150f, 25f));
+    return focusAnimator;
   }
 
   public void setEventObject(Object o){
@@ -33,12 +36,8 @@ public enum MenuSettings {
     return theme;
   }
 
-  public VectorAnimator getFocusAnimator(){
-    return focusAnimator;
-  }
-
   public void setFocusAnimator(GameComponent c){
-    c.setAnimator("foreground_animator", focusAnimator, ComponentEventType.GetFocus, ComponentEventType.LostFocus);
+    c.setAnimator("foreground_animator", getFocusAnimator(), ComponentEventType.GetFocus, ComponentEventType.LostFocus);
   }
 
   public Object getEventObject(){

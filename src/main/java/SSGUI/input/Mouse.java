@@ -18,6 +18,8 @@ public class Mouse extends Device {
   private boolean mouseClick=false;
   private boolean mouseMove=false;
 
+  private int latestButton;
+
   public static final String eventNames[]=new String[]{"pressed","released","clicked","dragged","moved","wheelMoved","entered","exited"};
   
   public Mouse(PApplet applet,PSurfaceJOGL surface){
@@ -34,38 +36,46 @@ public class Mouse extends Device {
       public void mousePressed(com.jogamp.newt.event.MouseEvent e) {
         mousePress=true;
         eventMap.get(eventNames[0]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
       @Override
       public void mouseReleased(com.jogamp.newt.event.MouseEvent e) {
         mouseRelease=true;
         eventMap.get(eventNames[1]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
       @Override
       public void mouseClicked(com.jogamp.newt.event.MouseEvent e) {
         mouseClick=true;
         eventMap.get(eventNames[2]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
       @Override
       public void mouseDragged(com.jogamp.newt.event.MouseEvent e) {
         mouseMove=true;
         eventMap.get(eventNames[3]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
       @Override
       public void mouseMoved(com.jogamp.newt.event.MouseEvent e) {
         mouseMove=true;
         eventMap.get(eventNames[4]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
       @Override
       public void mouseWheelMoved(com.jogamp.newt.event.MouseEvent e) {
         eventMap.get(eventNames[5]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
       @Override
       public void mouseEntered(com.jogamp.newt.event.MouseEvent e) {
         eventMap.get(eventNames[6]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
       @Override
       public void mouseExited(com.jogamp.newt.event.MouseEvent e) {
         eventMap.get(eventNames[7]).forEach((k,v)->v.accept(e));
+        latestButton=e.getButton();
       }
     });
   }
@@ -97,6 +107,14 @@ public class Mouse extends Device {
    */
   public boolean mousePress(){
     return mousePress;
+  }
+
+  /**
+   * This method returns true if the left button had pressed.
+   * @return whether the left button had pressed.
+   */
+  public boolean getButtonPress(int button){
+    return mousePress&&latestButton==button;
   }
 
   /**

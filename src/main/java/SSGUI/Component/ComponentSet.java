@@ -27,8 +27,9 @@ public class ComponentSet extends GameComponent {
 
   public ComponentSet add(ComponentNode node){
     nodes.put(node.getId(),node);
-    if(node.getComponent().getFocusable()||node.getComponent().getActive()){
+    if(focusedComponent==null&&(node.getComponent().getFocusable()||node.getComponent().getActive())){
       focusedComponent=node;
+      focusedComponent.getComponent().handleGetFocusProcess();
     }
     setActive(true);
     return this;
@@ -69,7 +70,20 @@ public class ComponentSet extends GameComponent {
 
   public void handleInput(Input i){
     if(i.getMouse().mouseMoved()){
-
+      ComponentNode next=null;
+      for (ComponentNode node : nodes.values()) {
+        if(node.getComponent().onMouse(i.getMouse().getX(),i.getMouse().getY())){
+          next=node;
+          break;
+        }
+      }
+      if(next!=null&&focusedComponent!=next)MoveFocus(next);
+    }else{
+      if(i.getKeyBoard().keyPress())constraintInput(i.getKeyBoard().getDirection());
+      if(i.getController().getControllerMove())constraintInput(i.getController().getDirection());
+    }
+    if(i.isEnterInput()){
+      focusedComponent.getComponent().handleSelectedProcess();
     }
   }
 
@@ -82,9 +96,7 @@ public class ComponentSet extends GameComponent {
       while(true){
         int nextIndex=focusedComponent.get(d);
         if(nodes.containsKey(nextIndex)){
-          focusedComponent.getComponent().handleLostFocusProcess();
-          focusedComponent=nodes.get(nextIndex);
-          focusedComponent.getComponent().handleGetFocusProcess();
+          MoveFocus(nodes.get(nextIndex));
           if(focusedComponent.getComponent().getFocusable()&&
              focusedComponent.getComponent().getActive())break;
         }else{
@@ -93,6 +105,12 @@ public class ComponentSet extends GameComponent {
         }
       }
     }
+  }
+
+  private void MoveFocus(ComponentNode target){
+    focusedComponent.getComponent().handleLostFocusProcess();
+    focusedComponent=target;
+    focusedComponent.getComponent().handleGetFocusProcess();
   }
 
   @Override

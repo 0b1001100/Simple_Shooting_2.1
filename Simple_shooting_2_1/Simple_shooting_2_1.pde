@@ -68,7 +68,11 @@ PShader menuShader;
 PShader backgroundShader;
 PShader titleShader;
 PShader Title_HighShader;
+PShader Oscillo;
+PShader Oscillo_Otsu;
 java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
+
+int oscilloState=0;
 
 ControlIO control;
 ControlDevice controller;
@@ -268,6 +272,8 @@ void setup(){
   backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
   titleShader=loadShader(ShaderPath+"Title.glsl");
   Title_HighShader=loadShader(ShaderPath+"Title_high.glsl");
+  Oscillo=loadShader(ShaderPath+"Oscillo.glsl");
+  Oscillo_Otsu=loadShader(ShaderPath+"Oscillo_Otsu.glsl");
   preg=createGraphics(width,height,P2D);
   titleLight=new float[40];
   for(int i=0;i<20;i++){
@@ -628,6 +634,24 @@ public void exit(){
     }else{
       filter(FXAAShader);
     }
+  }
+  Oscillo.set("resolution",width,height);
+  Oscillo.set("time",second()+millis()*0.001);
+  Oscillo.set("input_texture",g);
+  if(frameCount>10)
+  switch(oscilloState){
+    case 1:
+      Oscillo.set("resolution",width,height);
+      Oscillo.set("time",second()+millis()*0.001);
+      Oscillo.set("input_texture",g);
+      filter(Oscillo);
+      break;
+    case 2:
+      Oscillo_Otsu.set("resolution",width,height);
+      Oscillo_Otsu.set("time",second()+millis()*0.001);
+      Oscillo_Otsu.set("input_texture",g);
+      filter(Oscillo_Otsu);
+      break;
   }
 }
 
@@ -1096,6 +1120,7 @@ public void ctrl_button_pressed(){
   PressedKeyCode.add(str(keyCode));
   nowPressedKey=str(key);
   nowPressedKeyCode=keyCode;
+  if(keyCode==101)oscilloState=(oscilloState+1)%3;
   if(key==ESC)key=255;
 }
 

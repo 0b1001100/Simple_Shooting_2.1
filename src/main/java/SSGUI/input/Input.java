@@ -43,6 +43,29 @@ public class Input {
     return controller;
   }
 
+  public boolean isEnterInput(){
+    if(getMouse().getButtonPress(1)){
+      return true;
+    }
+    if(getKeyBoard().keyPress()&&getKeyBoard().getBindedInput("Enter")){
+      return true;
+    }
+    if(getController().getBindedInput("Enter")){
+      return true;
+    }
+    return false;
+  }
+
+  public boolean isBackInput(){
+    if(getKeyBoard().keyPress()&&getKeyBoard().getBindedInput("Back")){
+      return true;
+    }
+    if(getController().getBindedInput("Back")){
+      return true;
+    }
+    return false;
+  }
+
   public float getMoveAngle(){
     float angle=keyBoard.getAngle();
     if(controller.isAvariable()&&!Float.isNaN(controller.getMoveAngle())){

@@ -3,6 +3,7 @@ package SSGUI.input;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import SSGUI.Component.Direction;
 import SSGUI.input.controller.Controller_Button;
 import SSGUI.input.controller.Controller_Hat;
 import SSGUI.input.controller.Controller_RelativeSlider;
@@ -34,35 +35,35 @@ public class Controller extends Device {
     buttons=new ArrayList<>();
     config=new Dualshock_Configuration(this);
     Thread.ofVirtual().start(()->{
-      while(true){System.out.println("detecting");
+      while(true){
         ArrayList<net.java.games.input.Controller>controllers=new ArrayList<>(Arrays.asList(new DirectAndRawInputEnvironmentPlugin().getControllers()));
-        synchronized(gamePad){
-          gamePad=null;
+        gamePad=null;
+        synchronized(this){
           controllers.forEach(c->{
             if(c.getType().toString().equals("Gamepad")||c.getType().toString().equals("Stick"))gamePad=c;
           });
-          avariable=gamePad!=null;
-        }
-        if(avariable){
-          sliders.clear();
-          buttons.clear();
-          for(Component c:gamePad.getComponents()){
-            if(c.isAnalog()){
-              if(c.isRelative()){
-                sliders.add(new Controller_RelativeSlider(c));
+          avariable=(gamePad!=null);
+          if(avariable){
+            sliders.clear();
+            buttons.clear();
+            for(Component c:gamePad.getComponents()){
+              if(c.isAnalog()){
+                if(c.isRelative()){
+                  sliders.add(new Controller_RelativeSlider(c));
+                }else{
+                  sliders.add(new Controller_Slider(c));
+                }
               }else{
-                sliders.add(new Controller_Slider(c));
-              }
-            }else{
-              if(c.getIdentifier()==Component.Identifier.Axis.POV){
-                hat=new Controller_Hat(c);
-              }else{
-                buttons.add(new Controller_Button(c));
+                if(c.getIdentifier()==Component.Identifier.Axis.POV){
+                  hat=new Controller_Hat(c);
+                }else{
+                  buttons.add(new Controller_Button(c));
+                }
               }
             }
           }
+          config.init();
         }
-        config.init();
         try {
           Thread.sleep(500);
         } catch (InterruptedException e) {
@@ -73,9 +74,14 @@ public class Controller extends Device {
   }
 
   public void update(){
-    hat.update();
-    buttons.forEach(b->b.update());
-    sliders.forEach(s->s.update());
+    synchronized(this){
+     if(gamePad==null)return;
+      gamePad.poll();
+      config.update();
+      hat.update();
+      buttons.forEach(b->b.update());
+      sliders.forEach(s->s.update());
+    }
   }
 
   public boolean isAvariable(){
@@ -97,8 +103,26 @@ public class Controller extends Device {
     return hat;
   }
 
+  public boolean getControllerMove(){
+    if(hat==null)return false;
+    return hat.press()||beginMove();
+  }
+
   public ArrayList<Controller_Slider> getSliders(){
     return sliders;
+  }
+
+  public Direction getDirection(){
+    synchronized(this){
+      if(hat!=null&&hat.press()){
+        return hat.getDirection();
+      }
+      return Direction.None;
+    }
+  }
+
+  public boolean getBindedInput(String bind){
+    return config.getBindedInput(bind);
   }
 
   public float getMoveAngle(){
@@ -109,5 +133,25 @@ public class Controller extends Device {
   public float getAttackAngle(){
     if(!avariable)return Float.NaN;
     return config.getAttackAngle();
+  }
+
+  public boolean beginAttack(){
+    if(!avariable)return false;
+    return config.getBeginAttack();
+  }
+
+  public boolean beginMove(){
+    if(!avariable)return false;
+    return config.getBeginMove();
+  }
+
+  public boolean endAttack(){
+    if(!avariable)return false;
+    return config.getEndAttack();
+  }
+
+  public boolean endMove(){
+    if(!avariable)return false;
+    return config.getEndMove();
   }
 }

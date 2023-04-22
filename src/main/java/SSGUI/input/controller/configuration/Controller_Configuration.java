@@ -26,6 +26,11 @@ public abstract class Controller_Configuration {
    */
   protected Controller_Slider attackSliders[]=new Controller_Slider[2];
 
+  /**
+   * This variable defines edge values which is used to detect slider input.
+   */
+  protected float edge=0.25f;
+
   public Controller_Configuration(Controller controller){
     parent=controller;
     init();
@@ -41,9 +46,21 @@ public abstract class Controller_Configuration {
 
   protected abstract void setButtons(ArrayList<Controller_Button>buttons);
 
+  public abstract void update();
+
   public abstract float getMoveAngle();
 
   public abstract float getAttackAngle();
+
+  public abstract boolean getBeginMove();
+
+  public abstract boolean getBeginAttack();
+
+  public abstract boolean getEndMove();
+
+  public abstract boolean getEndAttack();
+
+  public abstract boolean getBindedInput(String s);
 
   public HashSet<Controller_Button> getButton(String name){
     return buttonBind.get(name);

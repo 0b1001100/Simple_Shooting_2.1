@@ -24,6 +24,10 @@ public class KeyBoard extends Device {
   private short latestKey;
   private boolean keyPress;
   private boolean keyRelease;
+
+  private boolean oldKeyPressed=false;
+
+  private com.jogamp.newt.event.KeyEvent latestEvent;
   
   public static final String eventNames[]=new String[]{"pressed","released"};
 
@@ -48,11 +52,15 @@ public class KeyBoard extends Device {
       }
       @Override
       public void keyReleased(com.jogamp.newt.event.KeyEvent e) {
-        keyRelease=true;
-        if(!applet.keyPressed)pressedKeys.remove((int)e.getKeyCode());
-        eventMap.get(eventNames[1]).forEach((k,v)->v.accept(e));
+        latestEvent=e;
       }
     });
+  }
+
+  private void keyReelasedProcess(com.jogamp.newt.event.KeyEvent e){
+    keyRelease=true;
+    pressedKeys.remove((int)e.getKeyCode());
+    eventMap.get(eventNames[1]).forEach((k,v)->v.accept(e));
   }
 
   private void initKeyBind(){
@@ -73,6 +81,8 @@ public class KeyBoard extends Device {
    */
   public void update(){
     keyPress=keyRelease=false;
+    if(oldKeyPressed&&!applet.keyPressed)keyReelasedProcess(latestEvent);
+    oldKeyPressed=applet.keyPressed;
   }
 
   public void addProcess(String eventName,String name,Consumer<KeyEvent> process){
@@ -107,8 +117,12 @@ public class KeyBoard extends Device {
     return pressedKeys;
   }
 
+  public boolean getBindedInput(String bind){
+    return containsSet(pressedKeys, keyBind.get(bind));
+  }
+
   public Direction getDirection(){
-    if(!keyPressed())return Direction.None;
+    if(!keyPressed()&&!keyPress())return Direction.None;
     return switch((Integer)(int)latestKey){
       case Integer i when keyBind.get("Up").contains(i)->Direction.Up;
       case Integer i when keyBind.get("Down").contains(i)->Direction.Down;
@@ -119,7 +133,7 @@ public class KeyBoard extends Device {
   }
 
   public float getAngle(){
-    if(!keyPressed())return Float.NaN;
+    if(!keyPressed()&&!keyRelease())return Float.NaN;
     int binary=0b000000;
     if(containsSet(keyBind.get("Up"), pressedKeys))binary=binary|0b001000;
     if(containsSet(keyBind.get("Down"), pressedKeys))binary=binary|0b000100;

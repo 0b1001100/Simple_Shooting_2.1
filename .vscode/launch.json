@@ -1,0 +1,22 @@
+{
+  // IntelliSense を使用して利用可能な属性を学べます。
+  // 既存の属性の説明をホバーして表示します。
+  // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Current File",
+      "request": "launch",
+      "mainClass": "${file}",
+      "args": "-Djava.library.path=G:/Simple_Shooting_2.1/natives/jinput-dx8_64.dll"
+    },
+    {
+      "type": "java",
+      "name": "Simple_shooting_2_1",
+      "request": "launch",
+      "mainClass": "Simple_shooting_2_1.Simple_shooting_2_1",
+      "projectName": "Simple_shooting_2.1"
+    }
+  ]
+}

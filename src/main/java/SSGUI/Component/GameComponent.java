@@ -40,7 +40,7 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
   private Consumer<GameComponent>getFocusProcess=(c)->{};
   private Consumer<GameComponent>lostFocusProcess=(c)->{};
 
-  private Direction constraintDirection;
+  private Direction constraintDirection=Direction.None;
 
   private boolean isActive=true;
   private boolean focusable=true;

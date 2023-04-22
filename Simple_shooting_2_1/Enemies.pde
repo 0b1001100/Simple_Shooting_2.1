@@ -2067,31 +2067,21 @@ class Slime_F extends Enemy{
   }
 }
 
-//class Slide extends Turret_S{
-//  float slideTime=0f;
+class Magnet extends Turret_S{
+  float slideTime=0f;
   
-//  @Override
-//  protected void init(){
-//    setHP(4);
-//    setSize(23);
-//    maxSpeed=1;
-//    rotateSpeed=1;
-//    target=player;
-//    setExpMag(1.1);
-//    setColor(new Color(0,190,255));
-//    addMultiplyer(G_ShotWeapon.class,2);
-//  }
-  
-//  @Override
-//  public void Process(){
-//    super.Process();
-//    slideTime+=vectorMagnification;
-//    if(slideTime>300f){
-//      slideTime=0f;
-//      vel.add(Speed*7*cos(rotate),0*sin(rotate));
-//    }
-//  }
-//}
+  @Override
+  protected void init(){
+    setHP(12);
+    setSize(23);
+    maxSpeed=1;
+    rotateSpeed=1;
+    target=player;
+    setExpMag(1.1);
+    setColor(new Color(0,190,255));
+    addMultiplyer(G_ShotWeapon.class,2);
+  }
+}
 
 interface BossEnemy{
 }
