@@ -79,6 +79,20 @@ class SurvivorEnemyController extends Controller{
   }
 }
 
+class TornadeController extends SurvivorEnemyController{
+  
+  void Rotate(Enemy e){
+    float s=applyStatus("Speed",e.rotateSpeed);
+    float rad=atan2(e.pos,player.pos)+HALF_PI*0.25;
+    float nRad=0<e.rotate?rad+TWO_PI:rad-TWO_PI;
+    rad=abs(e.rotate-rad)<abs(e.rotate-nRad)?rad:nRad;
+    rad=sign(rad-e.rotate)*constrain(abs(rad-e.rotate),0,radians(s)*vectorMagnification);
+    e.protate=e.rotate;
+    e.rotate+=rad;
+    e.rotate=e.rotate%TWO_PI;
+  }
+}
+
 class ArchiveEnemyController extends Controller{
   PVector point=new PVector();
   boolean onPoint=true;

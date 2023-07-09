@@ -289,6 +289,25 @@ class MissileWeapon extends Weapon{
   }
 }
 
+class BindWeapon extends EnemyWeapon{
+  BindEnemy parentEnemy;
+  
+  BindWeapon(BindEnemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.6f);
+    setSpeed(6f);
+    setDuration(120);
+    setDiffuse(radians(50));
+    setCoolTime(420);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    if(!parentEnemy.bind)NextEntities.add(new BindBullet(parentEnemy,this));
+  }
+}
+
 class EnemyMirrorWeapon extends Weapon{
   
   EnemyMirrorWeapon(Enemy e){

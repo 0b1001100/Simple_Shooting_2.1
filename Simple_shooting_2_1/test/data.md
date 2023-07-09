@@ -34,14 +34,14 @@
 4. Range
     1. Bound 8 x
     2. AntiBulletField 11 x
-    3. Collision 14 x
+    3. CollisionEnemy 14 x
     4. Decoy 25 x
     5. Recover(M_Boss) 500 x
     6. AntiG_Shot 25 x
     7. Barrier(Boss) 2500 x
 5. Remix
-    1. Gold 100 x
-    2. Snipe(M_Boss) 200 x
+    1. GoldEnemy 100 x
+    2. SnipeEnemy(M_Boss) 200 x
     3. Sealed(Boss) 2750 x
 6. Reprint
     1. Rare 4 x
@@ -51,20 +51,20 @@
     5. Explosion_B 20 x
     6. Rotate(M_Boss) 510 x
     7. Missile 24 x
-    8. Mirror 28 x
+    8. MirrorEnemy 28 x
     9. Defence 32 x
     10. Flash 36 x
     11. Missile_B(Boss) 3000 x
 7. Innovation
     1. Slide 4 x
     2. Slime_F 8 x
-    3. Magnet 12
-    4. Boid 14
-    5. Random 16~22
-    6. Defence_M(M_Boss) 520
-    7. Tornade 24
-    8. Merge 26
-    9. Bind 28
-    10. Absorb(Boss) 2750
+    3. Magnet 12 x
+    4. Boid 14 x
+    5. Random 16~22 x
+    6. Tornade 24 x
+    7. Micro_C 26 x
+    8. LinkEnemy 28 x
+    9. BindEnemy 31 x
+    10. Absorb(Boss) 3250 x
 
 Bullet>Enemy>Myself>Explosion>Wall

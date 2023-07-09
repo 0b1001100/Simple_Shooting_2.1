@@ -76,6 +76,10 @@ class GameProcess{
                      player.attackWeapons.add(masterTable.getWeapon("BLAS"));
                      player.attackWeapons.add(masterTable.getWeapon("Ice"));
                      break;
+       case "Stage7":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
+                     player.attackWeapons.add(masterTable.getWeapon("Absorption"));
+                     player.attackWeapons.add(masterTable.getWeapon("Ice"));
+                     break;
      }
   }
   
@@ -637,7 +641,7 @@ class GameProcess{
       try{
         Class c=Class.forName("Simple_shooting_2_1$"+tokens.get(1).getText().replace("\"",""));
         Entities.forEach(e->{
-          if(c.isInstance(e))e.isDead=true;
+          if(c.isInstance(e))e.destruct(e);
         });
       }catch(ClassNotFoundException e){
         addWarning("Class "+tokens.get(1).getText()+" doesn't exist");

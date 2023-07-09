@@ -26,6 +26,7 @@
   ],
   "vsync": true,
   "Enemy": [
+    "Simple_shooting_2_1$Absorb",
     "Simple_shooting_2_1$Amplification",
     "Simple_shooting_2_1$AntiBullet",
     "Simple_shooting_2_1$AntiBulletField",
@@ -34,6 +35,7 @@
     "Simple_shooting_2_1$AntiPlasmaField",
     "Simple_shooting_2_1$AntiSkill",
     "Simple_shooting_2_1$Barrier",
+    "Simple_shooting_2_1$BindEnemy",
     "Simple_shooting_2_1$Blaster",
     "Simple_shooting_2_1$Boost",
     "Simple_shooting_2_1$Bound",
@@ -53,8 +55,10 @@
     "Simple_shooting_2_1$GoldEnemy",
     "Simple_shooting_2_1$Large_C",
     "Simple_shooting_2_1$Large_R",
+    "Simple_shooting_2_1$LinkEnemy",
     "Simple_shooting_2_1$M_Boss_Y",
     "Simple_shooting_2_1$Metal",
+    "Simple_shooting_2_1$Micro_C",
     "Simple_shooting_2_1$Micro_M",
     "Simple_shooting_2_1$Micro_Y",
     "Simple_shooting_2_1$MirrorEnemy",
@@ -87,8 +91,9 @@
     "Stage3",
     "Stage4",
     "Stage5",
-    "Stage6"
+    "Stage6",
+    "Stage7"
   ],
   "Fullscreen": false,
-  "Fragment": 413
+  "Fragment": 964
 }

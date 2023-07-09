@@ -161,7 +161,7 @@ boolean colorInverse=false;
 boolean fullscreen=false;
 boolean FXAA=false;
 
-static final int STAGE_NUMBER=6;
+static final int STAGE_COUNT=7;//Can release Stage1 to Stage[STAGE_COUNT].
 
 static final String VERSION="1.1.5";
 
@@ -169,6 +169,7 @@ static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
 static final String ShaderPath;
 static final String LanguagePath;
+static final String EnemyPath;
 static final String StageConfPath;
 static final String WeaponDataPath;
 static final String SavePath;
@@ -177,6 +178,7 @@ static final String ImagePath;
 static{
   ShaderPath=Windows?".\\data\\shader\\":"../data/shader/";
   LanguagePath=Windows?".\\data\\lang\\":"../data/lang/";
+  EnemyPath=Windows?".\\data\\enemy\\":"../data/enemy/";
   StageConfPath=Windows?".\\data\\StageConfig\\":"../data/StageConfig/";
   WeaponDataPath=Windows?".\\data\\WeaponData\\":"../data/WeaponData/";
   SavePath=Windows?".\\data\\save\\":"../data/save/";
@@ -1209,6 +1211,10 @@ abstract class Entity implements Cloneable{
   
   public void setSize(float s){
     size=s;
+  }
+  
+  public void destruct(Entity e){
+    isDead=true;
   }
 
   public Entity clone()throws CloneNotSupportedException {

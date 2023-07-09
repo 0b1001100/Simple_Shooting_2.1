@@ -49,10 +49,10 @@ public class Simple_shooting_2_1 extends PApplet{
     button.setLabel(javaVersionName);
     MenuButton button2=new MenuButton();
     button2.setBounds(()->new PVector(100f,150f), ()->new PVector(120f,25f));
-    button2.setLabel("I");
+    button2.setLabel("I'm");
     MenuButton button3=new MenuButton();
     button3.setBounds(()->new PVector(100f,200f), ()->new PVector(120f,25f));
-    button3.setLabel("am");
+    button3.setLabel("a");
     MenuButton button4=new MenuButton();
     button4.setBounds(()->new PVector(100f,250f), ()->new PVector(120f,25f));
     button4.setLabel("new");

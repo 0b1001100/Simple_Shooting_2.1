@@ -329,13 +329,17 @@ public void initMenu(){
       glpg.rectMode(CORNER);
       glpg.noStroke();
       float v=grayScale(get(10,height-30));
+      glpg.fill(int(255-round(v/255)*180));
+      glpg.textSize(15);
+      glpg.rect(10,15,textWidth(getLanguageText("ui_frag")+" : "+fragmentCount)+40,20);
       glpg.fill(int(255-round(v/255)*255));
       glpg.rect(10,height-30,width-20,1);
       glpg.textAlign(LEFT);
-      glpg.textSize(15);
       glpg.textFont(font_15);
       glpg.text(getLanguageText("enter")+" : "+(useController?"〇":"Enter"),30,height-10);
       glpg.text(getLanguageText("back")+" : "+(useController?"×":"Shift"),150,height-10);
+      glpg.fill(int(round(v/255)*255));
+      glpg.text(getLanguageText("ui_frag")+" : "+fragmentCount,30,30);
     });
   //--
   starts.setSubChildDisplayType(1);
@@ -385,6 +389,12 @@ ComponentSet initArchive(ComponentSet parent){
     }
   });
   for(String s:conf.getJSONArray("Enemy").toStringArray())list.addContent(s.replace("Simple_shooting_2_1$",""));
+  list.addExplanation("_","Loading...");
+  exec.execute(()->{
+    JSONObject data=loadJSONObject(EnemyPath+"explanation.json").getJSONObject(conf.getString("Language"));
+    for(String s:list.getContents())if(data.getString(s)!=null)list.addExplanation(s,data.getString(s));
+    list.removeExplanation("_");
+  });
   list.addSelectListener((s)->{
     Entities.clear();
     try{

@@ -129,7 +129,7 @@ abstract class Enemy extends Entity implements Cloneable{
   
   public void Down(){
     killCount.incrementAndGet();
-    isDead=true;
+    destruct(this);
     spownEntity();
     dead.deadEvent(this);
     dead=(e)->{};
@@ -137,7 +137,7 @@ abstract class Enemy extends Entity implements Cloneable{
   
   private void spownEntity(){
     NextEntities.add(new Particle(this,(int)(size*3),1));
-    NextEntities.add(new Exp(this,ceil(((float)maxHP)*expMag)));
+    NextEntities.add(random(0,1)<0.0005?new LargeExp(this,ceil(((float)maxHP)*expMag)):new Exp(this,ceil(((float)maxHP)*expMag)));
     if(random(1f)<maxHP*0.01f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.001?random(1)<maxHP*0.0001?100:10:1));
   }
   
@@ -250,7 +250,7 @@ class DummyEnemy extends Enemy implements BlastResistant{
   @Override
   public void Down(){
     killCount.incrementAndGet();
-    isDead=true;
+    destruct(this);
     NextEntities.add(new Particle(this,(int)(size*3),1));
     NextEntities.add(exp);
   }
@@ -471,7 +471,7 @@ class M_Boss_Y extends Enemy implements BossEnemy{
 class Turret_S extends Enemy{
   Bullet b;
   Entity target;
-  float cooltime=0;
+  float cooltime=random(-30,30);
   
   @Override
   protected void init(){
@@ -945,7 +945,7 @@ class AntiBullet extends Enemy{
   @Override
   public void BulletCollision(Bullet b){
     if(CircleCollision(pos,size,b.pos,b.vel)){
-      b.isDead=true;
+      b.destruct(this);
       vel.add(b.vel.copy().mult(b.Mass/Mass));
       if(b instanceof GravityBullet||b instanceof GrenadeBullet||b instanceof FireBullet||b instanceof PlasmaFieldBullet)Hit(b.parent);
     }
@@ -1179,7 +1179,7 @@ class CollisionEnemy extends Enemy{
       time+=vectorMagnification;
       NextEntities.add(new Particle(this,1,1));
       if(time>180){
-        isDead=true;
+        destruct(this);
         NextEntities.add(new Explosion(this,size*2,0.5,5));
       }
     }
@@ -1196,7 +1196,7 @@ class CollisionEnemy extends Enemy{
   public void MyselfHit(Myself m,boolean b){
     float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
-    pos.add(new PVector(-cos(r)*d,sin(r)*d));
+    pos.add(new PVector(cos(r)*d,sin(r)*d));
     hit=true;
   }
   
@@ -1293,7 +1293,7 @@ class Recover extends Enemy implements BossEnemy{
         recover=false;
         ++player.remain;
         player.exp+=250;
-        isDead=true;
+        destruct(player);
       }
     }
   }
@@ -1970,7 +1970,7 @@ class Missile_B extends M_Boss_Y implements BossEnemy{
       boss=new HUDText("BOSS");
       dead=(e)->{
         StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage7")&&STAGE_NUMBER>6)stageList.addContent("Stage7");scene=3;}));
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage7")&&STAGE_COUNT>6)stageList.addContent("Stage7");scene=3;}));
         boss.Dispose();
       };
     }
@@ -2034,7 +2034,8 @@ class Slide extends Turret_S{
     slideTime+=vectorMagnification;
     if(slideTime>300f){
       slideTime=0f;
-      vel.add(Speed*7*cos(rotate),0*sin(rotate));
+      float r=random(0,TWO_PI);
+      vel.add(Speed*10*cos(r),10*sin(r));
     }
   }
 }
@@ -2045,7 +2046,7 @@ class Slime_F extends Enemy{
   protected void init(){
     setHP(8);
     setSize(18);
-    maxSpeed=0.7;
+    maxSpeed=random(0.5,0.9);
     rotateSpeed=3;
     setColor(new Color(0,125,255));
     addMultiplyer(EnergyWeapon.class,1.1);
@@ -2056,7 +2057,7 @@ class Slime_F extends Enemy{
     if(qDist(pos,e.pos,(size+e.size)*0.5)){
       if(e instanceof Slime_F){
         if(!isDead){
-          e.isDead=true;
+          e.destruct(this);
           setSize(size+50f/size);
           setHP(HP+e.HP*0.5);
         }
@@ -2067,19 +2068,398 @@ class Slime_F extends Enemy{
   }
 }
 
-class Magnet extends Turret_S{
-  float slideTime=0f;
+class Magnet extends Enemy{
+  float magnet_cooltime=0;
+  boolean magnet=true;
   
   @Override
   protected void init(){
     setHP(12);
     setSize(23);
-    maxSpeed=1;
+    maxSpeed=random(1,1.4);
     rotateSpeed=1;
-    target=player;
     setExpMag(1.1);
-    setColor(new Color(0,190,255));
+    setColor(new Color(200,170,170));
     addMultiplyer(G_ShotWeapon.class,2);
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    magnet_cooltime+=vectorMagnification;
+    if(magnet_cooltime>300f){
+      magnet=true;
+    }
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      if(!(e instanceof BossEnemy)&&magnet){
+        if(!isDead){
+          e.destruct(this);
+          float eh_size=e.size*0.5;
+          setColor(mixColor(c,e.c,eh_size/(size+eh_size)));
+          setSize(sqrt(size*size+eh_size*eh_size));
+          setHP(HP+e.HP*0.5);
+          magnet=false;
+          magnet_cooltime=0;
+        }
+      }else{
+        EnemyHit(e,false);
+      }
+    }
+  }
+}
+
+class Boid extends Enemy{
+  float life=1800;
+  
+  @Override
+  protected void init(){
+    setHP(14);
+    setSize(25);
+    maxSpeed=6;
+    rotateSpeed=0;
+    setExpMag(1.1);
+    setColor(new Color(190,170,200));
+    addMultiplyer(G_ShotWeapon.class,2);
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    life-=vectorMagnification;
+    if(life<0)destruct(this);
+  }
+  
+  Enemy setPos(PVector p){
+    pos=p;
+    rotate=atan2(pos,player.pos);
+    int num=round(sq(random(1.4,3.2)));
+    for(int i=0;i<num;i++){
+      BoidChild c=new BoidChild(this);//send direction
+      NextEntities.add(c);
+    }
+    return this;
+  }
+  
+  class BoidChild extends Enemy{
+    float life=1800;
+    
+    BoidChild(Boid parent){
+      pos=parent.pos.copy().add(random(-25,25),random(-25,25));
+      setHP(7);
+      setSize(15);
+      maxSpeed=6;
+      rotateSpeed=0;
+      setExpMag(1.2);
+      rotate=parent.rotate;
+      setColor(new Color(190,170,200));
+    }
+    
+    @Override
+    public void Process(){
+      super.Process();
+      life-=vectorMagnification;
+      if(life<0)destruct(this);
+    }
+  }
+}
+
+class Random extends Turret_S{
+  
+  @Override
+  protected void init(){
+    setHP(random(16,22));
+    setSize(random(20,35));
+    maxSpeed=random(0.5,1.1);
+    rotateSpeed=random(0.8,3);
+    target=player;
+    setExpMag(random(1,2));
+    setColor(new Color((int)random(128,255),(int)random(128,255),(int)random(128,255)));
+  }
+}
+
+class Tornade extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(24);
+    setSize(26);
+    maxSpeed=2;
+    rotateSpeed=3;
+    setExpMag(1.2);
+    setController(new TornadeController());
+    setColor(new Color(0,255,120));
+  }
+}
+
+class Micro_C extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(26);
+    maxSpeed=0.9;
+    rotateSpeed=3;
+    setSize(18);
+    setMass(5);
+    setExpMag(1.2);
+    setColor(new Color(0,255,255));
+  }
+}
+
+class LinkEnemy extends Enemy{
+  HashSet<LinkEnemy>link=new HashSet<>();
+  HashSet<LinkEnemy>nextLink=new HashSet<>();
+  
+  @Override
+  protected void init(){
+    setHP(28);
+    maxSpeed=0.8;
+    rotateSpeed=3;
+    setSize(25);
+    setExpMag(1.2);
+    setColor(new Color(150,180,210));
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    super.display(g);
+    g.strokeWeight(2);
+    g.stroke(255,120);
+    for(LinkEnemy m:link)g.line(pos.x,pos.y,m.pos.x,m.pos.y);
+    if(!link.isEmpty())g.ellipse(pos.x,pos.y,size,size);
+  }
+  
+  @Override
+  public void Process(){
+    link=nextLink;
+    nextLink=new HashSet<>();
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      if(e instanceof LinkEnemy){
+        nextLink.add((LinkEnemy)e);
+      }
+      EnemyHit(e,false);
+    }
+  }
+  
+  public void Hit(Weapon w){
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1;
+    HP-=max(0.5,w.power*mult-link.size());
+    damage+=max(0.5,w.power*mult-link.size());
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+  
+  public void Hit(float f){
+    HP-=max(0.5,f-link.size());
+    damage+=max(0.5,f-link.size());
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+}
+
+class BindEnemy extends Turret_S{
+  boolean bind=false;
+  
+  @Override
+  protected void init(){
+    setHP(31);
+    maxSpeed=0.5;
+    rotateSpeed=1;
+    setSize(24);
+    setExpMag(1.2);
+    setColor(new Color(240,240,255));
+  }
+  
+  public void Process(){
+    if(target!=player&&!EntitySet.contains(target))target=player;
+    cooltime+=vectorMagnification;
+    if(useWeapon.coolTime<cooltime&&!bind){
+      useWeapon.shot();
+      cooltime=0;
+    }
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new BindWeapon(this));
+    return this;
+  }
+}
+
+class Absorb extends M_Boss_Y implements BossEnemy{
+  HashSet<Enemy>link=new HashSet<>();
+  HashSet<Enemy>nextLink=new HashSet<>();
+  
+  Entity target;
+  float cooltime=random(-30,30);
+  
+  float bodySize=58;
+  float colliderSize=400;
+  int pSize=0;
+  
+  @Override
+  public void init(){
+    setHP(3250);
+    maxSpeed=1.5;
+    rotateSpeed=1.3;
+    setSize(400);
+    setMass(37);
+    target=player;
+    setColor(new Color(150,255,160));
+    if(StageName.equals("Stage7")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage8")&&STAGE_COUNT>7)stageList.addContent("Stage8");scene=3;}));
+        boss.Dispose();
+      };
+    }
+    addMultiplyer(IceWeapon.class,2);
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    size=bodySize;
+    super.display(g);
+    size=colliderSize;
+    g.strokeWeight(2);
+    g.stroke(255,120);
+    for(Enemy e:link)g.line(pos.x,pos.y,e.pos.x,e.pos.y);
+    if(!link.isEmpty())g.ellipse(pos.x,pos.y,bodySize,bodySize);
+  }
+  
+  @Override
+  public void Process(){
+    size=bodySize;
+    super.Process();
+    if(target!=player&&!EntitySet.contains(target))target=player;
+    cooltime+=vectorMagnification;
+    if(useWeapon.coolTime<cooltime){
+      useWeapon.shot();
+      cooltime=0;
+    }
+    size=colliderSize;
+    link=nextLink;
+    nextLink=new HashSet<>();
+    if(link.size()>=30&&floor(pSize*0.1)!=3){
+      setWeapon(getMissile());
+    }else if(link.size()>=20&&floor(pSize*0.1)!=2){
+      setWeapon(getFlash());
+    }else if(link.size()>=10&&floor(pSize*0.1)!=1){
+      setWeapon(getPoison());
+    }else if(floor(pSize*0.1)!=0){
+      setWeapon(getBlaster());
+    }
+    pSize=link.size();
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    pos=p;
+    setWeapon(getBlaster());
+    if(StageName.equals("Stage7")){
+      boss.setTarget(this);
+      main_game.getHUDComponentSet().add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+  
+  BlasterWeapon getBlaster(){
+    BlasterWeapon b=new BlasterWeapon(this);
+    b.setCoolTime(90);
+    b.setBulletNumber(8);
+    b.setDiffuse(30f);
+    return b;
+  }
+  
+  EnemyPoisonWeapon getPoison(){
+    EnemyPoisonWeapon b=new EnemyPoisonWeapon(this);
+    b.setCoolTime(60);
+    b.setBulletNumber(8);
+    b.setDiffuse(30f);
+    return b;
+  }
+  
+  FlashWeapon getFlash(){
+    FlashWeapon b=new FlashWeapon(this);
+    b.setDiffuse(15f);
+    b.setCoolTime(120);
+    b.setBulletNumber(6);
+    return b;
+  }
+  
+  MissileWeapon getMissile(){
+    MissileWeapon b=new MissileWeapon(this);
+    b.setDiffuse(15f);
+    b.setCoolTime(90);
+    b.setBulletNumber(6);
+    return b;
+  }
+  
+  @Override
+  public void Collision(Entity e){
+    size=bodySize;
+    if(e instanceof Explosion){
+      ExplosionCollision((Explosion)e);
+    }else if(e instanceof Enemy){
+      size=colliderSize;
+      EnemyCollision((Enemy)e);
+      size=bodySize;
+    }else if(e instanceof Bullet){
+      BulletCollision((Bullet)e);
+    }else if(e instanceof Myself){
+      MyselfCollision((Myself)e);
+    }else if(e instanceof WallEntity){
+      WallCollision((WallEntity)e);
+    }
+    size=colliderSize;
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      nextLink.add(e);
+      if(qDist(pos,e.pos,(bodySize+e.size)*0.5)){
+        size=bodySize;
+        EnemyHit(e,false);
+      }
+    }
+  }
+  
+  public void Hit(Weapon w){
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1;
+    HP-=max(0.5,w.power*mult-link.size());
+    damage+=max(0.5,w.power*mult-link.size());
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+  
+  public void Hit(float f){
+    HP-=max(0.5,f-link.size());
+    damage+=max(0.5,f-link.size());
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
   }
 }
 

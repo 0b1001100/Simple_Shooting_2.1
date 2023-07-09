@@ -776,6 +776,10 @@ class ItemList extends GameComponent{
     changeEvent();
   }
   
+  public final ArrayList<String> getContents(){
+    return Contents;
+  }
+  
   int getSize(){
     return Contents.size();
   }
@@ -786,6 +790,10 @@ class ItemList extends GameComponent{
   
   public void addExplanation(String s,String e){
     Explanation.put(s,e);
+  }
+  
+  public void removeExplanation(String s){
+    Explanation.remove(s);
   }
   
   GameComponent setBounds(float x,float y,float dx,float dy){
@@ -861,7 +869,10 @@ class ItemList extends GameComponent{
     text(Language.getString("ex"),sPos.x+5+textWidth(Language.getString("ex"))/2,sPos.y+17.5);
     textAlign(LEFT);
     text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
-         Explanation.get(selectedItem):"Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45);
+           Explanation.get(selectedItem):
+         Explanation.containsKey("_")?
+           Explanation.get("_"):
+           "Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45,sDist.x-10,sDist.y-90);
     popStyle();
   }
   

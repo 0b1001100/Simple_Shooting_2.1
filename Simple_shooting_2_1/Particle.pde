@@ -23,7 +23,7 @@ class Particle extends Entity{
     for(int i=0;i<num;i++){
       float scala=random(0,0.5);
       float rad=random(0,360);
-      PVector vec=new PVector(cos(radians(rad))*scala,sin(radians(rad))*scala);
+      PVector vec=new PVector(cos(radians(rad))*scala,sin(radians(rad))*scala).add(e.vel);
       Color c=new Color(e.c.getRed(),e.c.getGreen(),e.c.getBlue(),(int)random(16,255));
       particles.add(new particleFragment(e.pos,vec,c,random(min,max)));
     }
@@ -81,7 +81,7 @@ class Particle extends Entity{
     particles=nextParticles;
     time+=2*vectorMagnification;
     if(time>255){
-      isDead=true;
+      destruct(this);
     }
   }
   
@@ -123,7 +123,7 @@ class ExplosionParticle extends Particle{
   public void update(){
     inScreen=-scroll.x<pos.x-size/2&&pos.x+size/2<-scroll.x+width&&-scroll.y<pos.y-size/2&&pos.y+size/2<-scroll.y+height;
     time+=0.016*vectorMagnification;
-    if(time>=maxTime)isDead=true;
+    if(time>=maxTime)destruct(this);
   }
 }
 
@@ -170,7 +170,7 @@ class LineFragment extends particleFragment{
   public void display(PGraphics g){
     if(!inScreen)return;
     if(alpha<=0){
-      isDead=true;
+      destruct(this);
       return;
     }
     g.strokeWeight(1);
@@ -186,6 +186,7 @@ class LineFragment extends particleFragment{
 class particleFragment extends Entity{
   Color pColor;
   float alpha;
+  float rotate=0;
   
   particleFragment(PVector pos,PVector vel,Color c,float size){
     this.pos=pos.copy();
@@ -193,6 +194,7 @@ class particleFragment extends Entity{
     this.pColor=new Color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
     alpha=c.getAlpha();
     this.size=size;
+    rotate=random(0,TWO_PI);
   }
   
   particleFragment setAlpha(float a){
@@ -204,17 +206,22 @@ class particleFragment extends Entity{
   public void display(PGraphics g){
     if(!inScreen)return;
     if(alpha<=0){
-      isDead=true;
+      destruct(this);
       return;
     }
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(rotate);
     g.noStroke();
     g.fill(pColor.getRed(),pColor.getGreen(),pColor.getBlue(),pColor.getAlpha());
     g.rectMode(CENTER);
-    g.rect(pos.x,pos.y,size,size);
+    g.rect(0,0,size,size);
+    g.popMatrix();
   }
   
   public void update(){
     inScreen=-scroll.x<pos.x-size/2&&pos.x+size/2<-scroll.x+width&&-scroll.y<pos.y-size/2&&pos.y+size/2<-scroll.y+height;
+    rotate+=TAU*vectorMagnification*vel.mag()*0.03;
     pos.add(vel.copy().mult(vectorMagnification));
   }
 }

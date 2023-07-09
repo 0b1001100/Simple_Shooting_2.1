@@ -107,7 +107,7 @@ class Myself extends Entity{
         move();
       }
       if(HP.get().floatValue()<=0){
-        isDead=true;
+        destruct(this);
         main_game.EventSet.put("player_dead","");
         return;
       }

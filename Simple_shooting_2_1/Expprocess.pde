@@ -43,7 +43,7 @@ class Exp extends Entity{
     if(magnet){
       if(qDist(pos,player.pos,player.size)){
         getProcess();
-        isDead=true;
+        destruct(player);
         return;
       }
       vel.set(PVector.sub(player.pos,pos).normalize().mult(min(5f,dist(pos,player.pos))));
@@ -76,7 +76,59 @@ class Exp extends Entity{
       Exp ex=(Exp)e;
       ex.setExp(ex.exp+exp);
       ex.pos=pos.add(ex.pos).mult(0.5);
-      isDead=true;
+      destruct(e);
+    }
+  }
+}
+
+class LargeExp extends Exp{
+  
+  LargeExp(){
+    super();
+    size=6;
+  }
+  
+  LargeExp(Entity e){
+    super(e);
+    size=6;
+  }
+  
+  LargeExp(Entity e,float exp){
+    super(e,exp);
+    size=6;
+  }
+  
+  public void getProcess(){
+    player.exp+=this.exp;
+    Entities.forEach(e->{if(e.getClass().getName().equals(Exp.class.getName()))((Exp)e).magnet=true;});
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    g.fill(toColor(c));
+    g.noStroke();
+    g.colorMode(HSB,360,100,100);
+    g.beginShape();
+    g.fill(45,100,100);
+    g.vertex(pos.x-size*0.5,pos.y-size*0.5);
+    g.fill(135,100,100);
+    g.vertex(pos.x+size*0.5,pos.y-size*0.5);
+    g.fill(225,100,100);
+    g.vertex(pos.x+size*0.5,pos.y+size*0.5);
+    g.fill(315,100,100);
+    g.vertex(pos.x-size*0.5,pos.y+size*0.5);
+    g.endShape(CLOSE);
+    g.colorMode(RGB,255,255,255);
+  }
+  
+  @Override
+  public void Collision(Entity e){
+    if(isDead)return;
+    if(!magnet&&e instanceof Myself){
+      Myself m=(Myself)e;
+      if(qDist(m.pos,pos,m.magnetDist+1.5)&&m.canMagnet){
+        magnet=true;
+      }
     }
   }
 }
