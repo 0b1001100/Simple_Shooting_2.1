@@ -2,6 +2,7 @@ class GameProcess{
   private GameHUD mainHUD;
   HashMap<String,String>EventSet;
   HashMap<String,Command>CommandQue=new HashMap<String,Command>();
+  BackgroundShader backgroundShader;
   ComponentSet HUDSet;
   ComponentSet UpgradeSet;
   ArrayList<WallEntity>wall;
@@ -15,6 +16,10 @@ class GameProcess{
   float deadTimer=0;
   int x=16;
   int y=9;
+  
+  int main_cool_rainforce=0;
+  int main_proj_rainforce=0;
+  int main_atk_rainforce=0;
   
   final float maxDeadTime=3;
   
@@ -42,7 +47,7 @@ class GameProcess{
      stage=new Stage();
      StageFlag.clear();
      gameOver=animation=upgrade=done=menu=pause=false;
-     deadTimer=sumLevel=0;
+     deadTimer=sumLevel=main_cool_rainforce=main_proj_rainforce=main_atk_rainforce=0;
      killCount.set(0);
      playerTable.clear();
      Arrays.asList(conf.getJSONArray("Weapons").toStringArray()).forEach(s->{
@@ -54,6 +59,8 @@ class GameProcess{
      playerTable.getAll().forEach(i->{
        playerTable.addTable(i,i.weight);
      });
+     JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
+     if(!StageName.equals(""))backgroundShader=backgrounds.get(ex.getJSONObject(StageName).getString("background","default"));
      player.attackWeapons.clear();
      switch(StageName){
        case "Tutorial":initTutorial();break;
@@ -74,6 +81,10 @@ class GameProcess{
                      break;
        case "Stage6":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
                      player.attackWeapons.add(masterTable.getWeapon("BLAS"));
+                     player.attackWeapons.add(masterTable.getWeapon("Ice"));
+                     break;
+       case "Stage7":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
+                     player.attackWeapons.add(masterTable.getWeapon("Absorption"));
                      player.attackWeapons.add(masterTable.getWeapon("Ice"));
                      break;
      }
@@ -119,7 +130,7 @@ class GameProcess{
     HUDText tu_shot_2=new HUDText(Language.getString("tu_shot_2"));
     tu_shot_2.setTarget(player);
     tu_shot_2.setProcess(()->{
-      if((mousePressed&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue())>0.1f)){
+      if((mousePressed&&mouseButton==LEFT)||main_input.getAttackMag()>0){
         stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot_2.endDisplay()));
         tu_shot_2.setFlag(false);
       }
@@ -140,7 +151,7 @@ class GameProcess{
     HUDText tu_shot=new HUDText(Language.getString("tu_shot"));
     tu_shot.setTarget(player);
     tu_shot.setProcess(()->{
-      if((mousePressed&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue())>0.1f)){
+      if((mousePressed&&mouseButton==LEFT)||main_input.getAttackMag()>0){
         stage.addProcess("Tutorial",new TimeSchedule(stage.time/60+2,s->tu_shot.endDisplay()));
         tu_shot.setFlag(false);
       }
@@ -178,6 +189,20 @@ class GameProcess{
     }
     Debug();
     updateShape();
+    if(StageName.equals("Stage9")||StageName.equals("Stage10")){
+      if(floor((player.score_kill.get()+player.score_tech.get())/100f)>main_cool_rainforce){
+        main_cool_rainforce++;
+        player.weapons.forEach(w->w.coolTime=((PlayerWeapon)w).init_cooltime*max(0.1,1f-main_cool_rainforce*0.01));
+      }
+      if(floor((player.score_kill.get()+player.score_tech.get())/2500f)>main_proj_rainforce){
+        main_proj_rainforce++;
+        player.weapons.forEach(w->w.bulletNumber=((PlayerWeapon)w).init_projectile+min(3,main_proj_rainforce));
+      }
+      if(floor((player.score_kill.get()+player.score_tech.get())/200f)>main_atk_rainforce){
+        main_atk_rainforce++;
+        player.weapons.forEach(w->w.power=((PlayerWeapon)w).init_attack*min(1.5,1f+main_atk_rainforce*0.01));
+      }
+    }
     if(player!=null){
       player.camera.update();
     }
@@ -294,7 +319,7 @@ class GameProcess{
     Arrays.parallelSort(SortedDataX,new Comparator<AABBData>(){
       @Override
       public int compare(AABBData d1, AABBData d2) {
-        return Float.valueOf(d1.getPos()).compareTo(d2.getPos());
+        return Float.valueOf(d1.getPos()).compareTo(d2.getPos())*((frameCount%2==0)?1:-1);
       }
     });
     ThreadNumber=(byte)min(floor(EntityDataX.size()/(float)minDataNumber),(int)collisionNumber);
@@ -332,20 +357,7 @@ class GameProcess{
   
   public void drawMain(){
     background(0);
-    if(ShaderQuality==2){
-      Title_HighShader.set("time",0);
-      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
-      Title_HighShader.set("volsteps",10);
-      filter(Title_HighShader);
-    }else if(ShaderQuality==1){
-      Title_HighShader.set("time",0);
-      Title_HighShader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
-      Title_HighShader.set("volsteps",5);
-      filter(Title_HighShader);
-    }else{
-      backgroundShader.set("offset",player.pos.x,-player.pos.y);
-      filter(backgroundShader);
-    }
+    backgroundShader.display();
     pushMatrix();
     translate(scroll.x,scroll.y);
     localMouse=unProject(mouseX,mouseY);
@@ -354,16 +366,9 @@ class GameProcess{
   }
   
    public void keyProcess(){
-    if(useController){
-      if(ctrl_button_press&&controllerBinding.getControllerState("menu")){
-        menu=!menu;
-        if(!upgrade)pause=menu;
-      }
-    }else{
-      if(keyPress&&keyCode==CONTROL){
-        menu=!menu;
-        if(!upgrade)pause=menu;
-      }
+    if(main_input.isMenuInput()){
+      menu=!menu;
+      if(!upgrade)pause=menu;
     }
   }
   
@@ -510,19 +515,34 @@ class GameProcess{
   }
   
    public void commandProcess(java.util.List<Token>tokens){
-    java.util.List<Token>ex_space_tokens=new ArrayList<Token>();
-    tokens.forEach(t->{
-      if(!t.getText().matches(" +"))ex_space_tokens.add(t);
-    });
-    switch(ex_space_tokens.get(0).getText()){
-      case "time":command_time(ex_space_tokens);break;
-      case "timescale":command_timescale(ex_space_tokens);break;
-      case "level":command_level(ex_space_tokens);break;
-      case "give":command_give(ex_space_tokens);break;
-      case "kill":command_kill(ex_space_tokens);break;
-      case "parameter":command_parameter(ex_space_tokens);break;
-      case "function":command_function(ex_space_tokens);break;
-      case "exit":command_exit();break;
+    java.util.List<java.util.List<Token>>ex_single_tokens=new ArrayList<java.util.List<Token>>();
+    ex_single_tokens.add(new ArrayList<>());
+    int index=0;
+    for(Token t:tokens){
+      if(!t.getText().matches(";")){
+        ex_single_tokens.get(index).add(t);
+      }else{
+        index++;
+        ex_single_tokens.add(new ArrayList<>());
+      }
+    }
+    for(java.util.List<Token> token_list:ex_single_tokens){
+      java.util.List<Token>ex_space_tokens=new ArrayList<Token>();
+      token_list.forEach(t->{
+        if(!t.getText().matches(" +"))ex_space_tokens.add(t);
+      });
+      switch(ex_space_tokens.get(0).getText()){
+        case "time":command_time(ex_space_tokens);break;
+        case "timescale":command_timescale(ex_space_tokens);break;
+        case "level":command_level(ex_space_tokens);break;
+        case "give":command_give(ex_space_tokens);break;
+        case "kill":command_kill(ex_space_tokens);break;
+        case "parameter":command_parameter(ex_space_tokens);break;
+        case "function":command_function(ex_space_tokens);break;
+        case "invincible":command_invincible(ex_space_tokens);break;
+        case "summon":command_summon(ex_space_tokens);break;
+        case "exit":command_exit();break;
+      }
     }
   }
   
@@ -637,7 +657,7 @@ class GameProcess{
       try{
         Class c=Class.forName("Simple_shooting_2_1$"+tokens.get(1).getText().replace("\"",""));
         Entities.forEach(e->{
-          if(c.isInstance(e))e.isDead=true;
+          if(c.isInstance(e))e.destruct(e);
         });
       }catch(ClassNotFoundException e){
         addWarning("Class "+tokens.get(1).getText()+" doesn't exist");
@@ -678,6 +698,27 @@ class GameProcess{
     }
   }
   
+  public void command_invincible(java.util.List<Token>tokens){
+    if(tokens.get(1).getText().equals("true")){
+      player.invincibleTime=6000000;
+    }else{
+      player.invincibleTime=0;
+    }
+  }
+  
+  public void command_summon(java.util.List<Token>tokens){
+    int type=1;//relative
+    if(tokens.size()>4){
+      type=tokens.get(5).getText().equals("relative")?1:0;
+    }
+    try{
+      stage.addSpown(new PVector(Float.valueOf(tokens.get(2).getText()),Float.valueOf(tokens.get(3).getText())).add(type==1?player.pos:new PVector(0,0)),
+                     (Enemy)Class.forName("Simple_shooting_2_1$"+tokens.get(1).getText().replace("\"","")).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
+    }catch(Exception e){
+      e.printStackTrace();
+    }
+  }
+  
    public void command_exit(){
     scene=0;
     done=true;
@@ -692,6 +733,62 @@ class GameProcess{
       return data-num;
     }
     return data;
+  }
+}
+
+abstract class BackgroundShader{
+  PShader shader;
+  
+  abstract BackgroundShader load();
+  
+  abstract void display();
+}
+
+class DefaultBackgroundShader extends BackgroundShader{
+  
+  BackgroundShader load(){
+    shader=Title_HighShader;
+    return this;
+  }
+  
+  void display(){
+    if(ShaderQuality==2){
+      shader.set("time",0);
+      shader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      shader.set("volsteps",10);
+      filter(shader);
+    }else if(ShaderQuality==1){
+      shader.set("time",0);
+      shader.set("mouse",-scroll.x/4096f,scroll.y/4096f);
+      shader.set("volsteps",5);
+      filter(shader);
+    }else{
+      backgroundShader.set("offset",player.pos.x,-player.pos.y);
+      filter(backgroundShader);
+    }
+  }
+}
+
+class PixelBackgroundShader extends BackgroundShader{
+  
+  BackgroundShader load(){
+    shader=loadShader(ShaderPath+"Pixel_high.glsl");
+    return this;
+  }
+  
+  void display(){
+    if(ShaderQuality==2){
+      shader.set("offset",-scroll.x/512f,scroll.y/512f);
+      shader.set("count",10f);
+      filter(shader);
+    }else if(ShaderQuality==1){
+      shader.set("offset",-scroll.x/512f,scroll.y/512f);
+      shader.set("count",3f);
+      filter(shader);
+    }else{
+      backgroundShader.set("offset",player.pos.x,-player.pos.y);
+      filter(backgroundShader);
+    }
   }
 }
 
@@ -796,164 +893,6 @@ class StatusParameter{
   String getName(){
     return name;
   }
-}
-
-class KeyBinding{
-  private HashMap<Integer,String>list;
-  private int type=0;
-  
-  public final int KEY=0;
-  public final int CONTROLLER=1;
-  
-  KeyBinding(){
-    initKey();
-    type=0;
-  }
-  
-  KeyBinding(int type){
-    switch(type){
-      case 0:initKey();break;
-      case 1:initController();break;
-    }
-    this.type=type;
-  }
-  
-  void initKey(){
-    list=new HashMap<>();
-    addBinding((int)ENTER,"enter");
-    addBinding((int)SHIFT,"back");
-    addBinding((int)CONTROL,"menu");
-    addBinding((int)TAB,"change");
-    addBinding((int)UP,"up");
-    addBinding((int)LEFT,"left");
-    addBinding((int)RIGHT,"right");
-    addBinding((int)DOWN,"down");
-  }
-  
-  void initController(){
-    list=new HashMap<>();
-    addBinding(2,"enter");
-    addBinding(1,"back");
-    addBinding(3,"menu");
-    addBinding(0,"change");
-    addBinding(-3,"up");
-    addBinding(-9,"left");
-    addBinding(-5,"right");
-    addBinding(-7,"down");
-  }
-  
-  int getType(){
-    return type;
-  }
-  
-  void addBinding(int i,String s){
-    list.put(i,s);
-  }
-  
-  void replaceBinding(int i,String s,int next){
-    list.remove(i);
-    list.put(next,s);
-  }
-  
-  HashMap<Integer,String> getDefaultBindings(){
-    return getBindings("enter","back","menu","change");
-  }
-  
-  HashMap<Integer,String> getBindings(String... name){
-    HashSet<String>names=new HashSet<>(Arrays.asList(name));
-    HashMap<Integer,String>ret=new HashMap<>();
-    list.forEach((k,v)->{
-      if(names.contains(v))ret.put(k,v);
-    });
-    return ret;
-  }
-  
-  ArrayList<String> getState(){
-    ArrayList<String>ret=new ArrayList<>();
-    if(type==1){
-      for(int i:list.keySet()){
-        if(ctrl_buttons.get(i).pressed())ret.add(list.get(i));
-      }
-      if(list.containsKey(-(int)ctrl_hat.getValue()-1))ret.add(list.get(-(int)ctrl_hat.getValue()-1));
-    }else{
-      for(String s:PressedKeyCode){
-        ret.add(list.get(Integer.parseInt(s)));
-      }
-    }
-    return ret;
-  }
-  
-  String getKeyState(int i){
-    return list.get(i);
-  }
-  
-  String getButtonState(int i){
-    return list.get(i);
-  }
-  
-  boolean getControllerState(String s){
-    int binding=getButtonBinding(s);
-    if(type==1&&list.containsValue(s)){
-      if(binding>=0){
-        return ctrl_buttons.get(binding).pressed();
-      }else{
-        return ctrl_hat.getValue()==-binding-1;
-      }
-    }
-    return false;
-  }
-  
-  boolean getKeyInputState(String s){
-    int binding=getButtonBinding(s);
-    if(type==0&&list.containsValue(s)){
-      return PressedKeyCode.contains(str(binding));
-    }
-    return false;
-  }
-  
-  int getButtonBinding(String s){
-    for(int i:list.keySet()){
-      if(s.equals(list.get(i))){
-        return i;
-      }
-    }
-    return -1024;
-  }
-  
-  String getButtonState(){
-    if(type==0)return null;
-    for(int i=0;i<ctrl_buttons.size();i++){
-      if(ctrl_buttons.get(i).pressed()&&list.get(i)!=null)return list.get(i);
-    }
-    return null;
-  }
-  
-  String getHatState(){
-    return type==1?list.get(-(int)ctrl_hat.getValue()-1):null;
-  }
-  
-  String getKeyState(){
-    return type==0?(keyPressed?list.get(nowPressedKeyCode):null):null;
-  }
-}
-
-boolean getInputState(String s){
-  return (keyPress&&keyboardBinding.getKeyInputState(s))||(useController&&(ctrl_button_press||ctrl_hat_press)&&controllerBinding.getControllerState(s));
-}
-
-boolean isInput(){
-  return keyPress||ctrl_button_press||ctrl_hat_press;
-}
-
-String getInputState(){
-  if(useController){
-    String btn=controllerBinding.getButtonState();
-    if(btn!=null)return btn;
-    String hat=controllerBinding.getHatState();
-    if(hat!=null)return hat;
-  }
-  String Key=keyboardBinding.getKeyState();
-  return Key==null?"":Key;
 }
 
 class WallEntity extends Entity{

@@ -45,9 +45,10 @@ abstract class Weapon implements Equipment,Cloneable{
     type=t;
   }
   
-   public void setPower(float p){
+   public Weapon setPower(float p){
     power=p;
     powerTemp=p;
+    return this;
   }
   
    public void setSpeed(float s){
@@ -144,9 +145,35 @@ abstract class Weapon implements Equipment,Cloneable{
 }
 
 class PlayerWeapon extends Weapon{
+  float init_cooltime;
+  float init_attack;
+  int init_projectile;
+  
+  {
+    init_cooltime=coolTime;
+    init_attack=power;
+    init_projectile=bulletNumber;
+  }
   
   PlayerWeapon(Entity e){
     super(e);
+  }
+  
+  @Override
+  public void setCoolTime(float t){
+    init_cooltime=coolTime=t;
+  }
+  
+  @Override
+  public void setBulletNumber(int n){
+    init_projectile=bulletNumber=n;
+  }
+  
+  @Override
+  public Weapon setPower(float p){
+    init_attack=power=p;
+    powerTemp=p;
+    return this;
   }
   
   @Override
@@ -174,6 +201,18 @@ class EnemyWeapon extends Weapon{
   @Override
   protected void addBullet(int i){
     NextEntities.add(new ThroughBullet(parentEnemy,this));
+  }
+}
+
+class WallBounseWeapon extends BarrageWeapon{
+  
+  WallBounseWeapon(Enemy e){
+    super(e);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new WallBounseBullet(parentEnemy,this,bulletNumber,i));
   }
 }
 
@@ -289,6 +328,25 @@ class MissileWeapon extends Weapon{
   }
 }
 
+class BindWeapon extends EnemyWeapon{
+  BindEnemy parentEnemy;
+  
+  BindWeapon(BindEnemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(0.6f);
+    setSpeed(6f);
+    setDuration(120);
+    setDiffuse(radians(50));
+    setCoolTime(420);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    if(!parentEnemy.bind)NextEntities.add(new BindBullet(parentEnemy,this));
+  }
+}
+
 class EnemyMirrorWeapon extends Weapon{
   
   EnemyMirrorWeapon(Enemy e){
@@ -323,11 +381,58 @@ class FlashWeapon extends Weapon{
   }
 }
 
-class EnergyWeapon extends PlayerWeapon{
+class BarrageWeapon extends Weapon{
+  Enemy parentEnemy;
   
-  EnergyWeapon(Entity e){
+  BarrageWeapon(Enemy e){
     super(e);
-    setPower(1.2f);
+    parentEnemy=e;
+    setPower(0.6f);
+    setSpeed(2f);
+    setDuration(420);
+    setDiffuse(radians(50));
+    setCoolTime(420);
+  }
+  
+  public void shot(){
+    power=powerTemp;
+    for(int i=0;i<this.bulletNumber;i++){
+      addBullet(i);
+    }
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new Barrage(parentEnemy,this,bulletNumber,i));
+  }
+}
+
+class EnemyLaserWeapon extends Weapon{
+  Enemy parentEnemy;
+  
+  EnemyLaserWeapon(Enemy e){
+    super(e);
+    parentEnemy=e;
+    setPower(3);
+    setSpeed(15f);
+    setDuration(120);
+    setDiffuse(0f);
+    setCoolTime(180);
+    setColor(new Color(255,25,0));
+    setBulletNumber(1);
+  }
+  
+  @Override
+  protected void addBullet(int i){
+    NextEntities.add(new EnemyLaserBullet(parentEnemy,this));
+  }
+}
+
+class QuarkCanon extends PlayerWeapon{
+  
+  QuarkCanon(Entity e){
+    super(e);
+    setPower(1.2f+getItemCount("attack")*0.25);
     setSpeed(15);
     setDuration(40);
     setDiffuse(0f);
@@ -336,12 +441,24 @@ class EnergyWeapon extends PlayerWeapon{
   }
 }
 
-class PulseWeapon extends PlayerWeapon{
+class TauBlaster extends PlayerWeapon{
   
-  PulseWeapon(Entity e){
+  TauBlaster(Entity e){
+    super(e);
+    setPower(1.2f+getItemCount("attack")*0.25);
+    setBulletNumber(4);
+    setColor(new Color(255,105,20));
+    setCoolTime(30);
+    setDiffuse(radians(20));
+  }
+}
+
+class PhotonPulse extends PlayerWeapon{
+  
+  PhotonPulse(Entity e){
     super(e);
     setSpeed(20);
-    setPower(0.8f);
+    setPower(0.8f+getItemCount("attack")*0.25);
     setDuration(40);
     setAutoShot(true);
     setColor(new Color(0,255,255));
@@ -587,6 +704,50 @@ class PlasmaFieldWeapon extends AttackWeapon{
   protected void addBullet(int i){}
 }
 
+class AbsorptionWeapon extends AttackWeapon{
+  AbsorptionBullet bullet;
+  
+  AbsorptionWeapon(){
+    super();
+  }
+  
+  AbsorptionWeapon(JSONObject o){
+    super(o);
+  }
+  
+  @Override
+  public void update(){
+    if(bullet==null){
+      bullet=new AbsorptionBullet();
+      bullet.init(this);
+      NextEntities.add(bullet);
+    }else if(!EntitySet.contains(bullet)){
+      bullet.init(this);
+      NextEntities.add(bullet);
+    }
+  }
+  
+   public void upgrade(JSONArray a,int level){
+    super.upgrade(a,level);
+    if(bullet!=null)bullet.init(this);
+  }
+  
+  @Override
+  public void init(JSONObject o){
+    super.init(o);
+    bullet=null;
+  }
+  
+  @Override
+  public void reInit(){
+    super.reInit();
+    if(bullet!=null)bullet.init(this);
+  }
+  
+  @Override
+  protected void addBullet(int i){}
+}
+
 class LaserWeapon extends AttackWeapon{
   
   LaserWeapon(){
@@ -669,41 +830,6 @@ class ShadowReflectorWeapon extends ReflectorWeapon{
   protected void addBullet(int i){
     NextEntities.add(new ShadowReflectorBullet(this,i));
   }
-}
-
-class AbsorptionWeapon extends AttackWeapon{
-  AbsorptionBullet bullet;
-  
-  AbsorptionWeapon(){
-    super();
-  }
-  
-  AbsorptionWeapon(JSONObject o){
-    super(o);
-  }
-  
-  @Override
-  public void update(){
-    if(bullet==null){
-      bullet=new AbsorptionBullet();
-      bullet.init(this);
-      NextEntities.add(bullet);
-    }
-  }
-  
-   public void upgrade(JSONArray a,int level){
-    super.upgrade(a,level);
-    if(bullet!=null)bullet.init(this);
-  }
-  
-  @Override
-  public void init(JSONObject o){
-    super.init(o);
-    bullet=null;
-  }
-  
-  @Override
-  protected void addBullet(int i){}
 }
 
 class FireWeapon extends AttackWeapon{

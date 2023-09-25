@@ -6,9 +6,11 @@ package com.parser.command;
 
 options{tokenVocab=command_lexer;}
 
-command:(command_list|(command_list SPACE SEMICOLON)+) EOF;
+command:(command_list)+ EOF;
 
-command_list:(settime|timescale|setlevel|giveitem|kill|paramsetting|function|exit);
+command_list:(SPACE)* (settime|timescale|setlevel|giveitem|kill|paramsetting|function|invincible|summon|exit) (SPACE)* (SEMICOLON)?;
+
+coord_type:(ABSOLUTE|RELATIVE);
 
 settime:TIME SPACE setparamtype SPACE NUM (BOOL)?;
 
@@ -27,5 +29,9 @@ paramsetting:PARAM SPACE param_name SPACE setparamtype SPACE NUM;
 param_name:(PROJECTILE|SCALE|POWER|SPEED|DURATION|COOLTIME);
 
 function:FUNCTION SPACE STRING;
+
+invincible:INVINCIBLE SPACE BOOL;
+
+summon:SUMMON SPACE STRING SPACE FLOAT SPACE FLOAT (SPACE OPTIONAL coord_type)*;
 
 exit:EXIT;

@@ -248,7 +248,7 @@ class LineTextField extends GameComponent{
     }else{
       removeFocus();
     }
-    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||main_input.getMouse().mousePress()))FocusEvent=true;else FocusEvent=false;
     super.update();
   }
   
@@ -285,7 +285,7 @@ class LineTextField extends GameComponent{
         }catch(UnsupportedFlavorException|IOException e){
         }
       }else{
-        if(nowPressedKeyCode==8||nowPressedKey.equals(str((char)-1)))if(nowPressedKeyCode!=0)return;
+        if(nowPressedKeyCode==8||((int)nowPressedKey.toCharArray()[0])==65535||((int)nowPressedKey.toCharArray()[0])==27)if(nowPressedKeyCode!=0)return;
         if(index==text.length()){
           text.append(nowPressedKeyCode==0?(PressedKeyCode.contains("16")?'_':"\\"):nowPressedKey);
         }else{
@@ -345,8 +345,18 @@ abstract class ButtonItem extends GameComponent{
     text=s;
   }
   
+  public void setLabel(String s){
+    text=s;
+  }
+  
   public void addListener(SelectEvent e){
     this.e=e;
+  }
+  
+  public void update(){
+    mouseProcess();
+    keyProcess();
+    super.update();
   }
   
   public void mouseProcess(){
@@ -357,15 +367,22 @@ abstract class ButtonItem extends GameComponent{
     }else{
       setCursor=false;
     }
-    if(mousePress&onMouse){
+    if(main_input.getMouse().mousePress()&onMouse){
       executeEvent();
     }
-    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||main_input.getMouse().mousePress()))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
     super.update();
   }
   
+  public void keyProcess(){
+    if(focus&&main_input.isEnterButtonInput()){
+      executeEvent();
+    }
+  }
+  
   public void executeEvent(){
+    soundManager.play("select");
     e.selectEvent();
   }
 }
@@ -404,22 +421,24 @@ abstract class CheckBox extends GameComponent{
     }else{
       setCursor=false;
     }
-    if(mousePress&onMouse){
+    if(main_input.getMouse().mousePress()&onMouse){
       value=!value;
       executeEvent();
     }
-    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||main_input.getMouse().mousePress()))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
     super.update();
   }
   
   public void keyProcess(){
-    if(focus&&getInputState("enter")){
+    if(focus&&main_input.isEnterButtonInput()){
       value=!value;
+      executeEvent();
     }
   }
   
   public void executeEvent(){
+    soundManager.play("select");
     e.selectEvent();
   }
 }
@@ -451,6 +470,7 @@ abstract class ToggleBox extends GameComponent{
   public void update(){
     mouseProcess();
     keyProcess();
+    super.update();
   }
   
   public void mouseProcess(){
@@ -461,24 +481,25 @@ abstract class ToggleBox extends GameComponent{
     }else{
       setCursor=false;
     }
-    if(mousePress&onMouse){
+    if(main_input.getMouse().mousePress()&onMouse){
       ++value;
       value%=num;
       executeEvent();
     }
-    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||main_input.getMouse().mousePress()))FocusEvent=true;else FocusEvent=false;
     pCursor=setCursor;
-    super.update();
   }
   
   public void keyProcess(){
-    if(focus&&getInputState("enter")){
+    if(focus&&main_input.isEnterButtonInput()){
       ++value;
       value%=num;
+      executeEvent();
     }
   }
   
   public void executeEvent(){
+    soundManager.play("select");
     e.selectEvent();
   }
 }
@@ -534,7 +555,7 @@ class SliderItem extends GameComponent{
   }
   
   public void mouseProcess(){
-    if(mousePress){
+    if(main_input.getMouse().mousePress()){
       if(pos.x+Xdist-dist.y/6<mouseX&mouseX<pos.x+Xdist+dist.y/6&
          pos.y-dist.y/2<mouseY&mouseY<pos.y+dist.y/2){
         move=true;
@@ -545,7 +566,7 @@ class SliderItem extends GameComponent{
     }else {
       move=false;
     }
-    if(focus&&(!pFocus||mousePress))FocusEvent=true;else FocusEvent=false;
+    if(focus&&(!pFocus||main_input.getMouse().mousePress()))FocusEvent=true;else FocusEvent=false;
     super.update();
     if(move){
       Xdist=constrain(mouseX,pos.x,pos.x+dist.x)-pos.x;
@@ -699,7 +720,7 @@ class MultiButton extends GameComponent{
           case LEFT:focusIndex=constrain(focusIndex-1,0,Buttons.size()-1);reloadIndex();break;
           case ENTER:Buttons.get(focusIndex).executeEvent();break;
         }
-      if(!pFocus||mousePress)FocusEvent=true;else FocusEvent=false;
+      if(!pFocus||main_input.getMouse().mousePress())FocusEvent=true;else FocusEvent=false;
     }
     super.update();
   }
@@ -776,6 +797,16 @@ class ItemList extends GameComponent{
     changeEvent();
   }
   
+  void clearContent(){
+    Contents.clear();
+    selectedNumber=0;
+    changeEvent();
+  }
+  
+  public final ArrayList<String> getContents(){
+    return Contents;
+  }
+  
   int getSize(){
     return Contents.size();
   }
@@ -786,6 +817,14 @@ class ItemList extends GameComponent{
   
   public void addExplanation(String s,String e){
     Explanation.put(s,e);
+  }
+  
+  public void removeExplanation(String s){
+    Explanation.remove(s);
+  }
+  
+  void clearExplanation(){
+    Explanation.clear();
   }
   
   GameComponent setBounds(float x,float y,float dx,float dy){
@@ -861,7 +900,10 @@ class ItemList extends GameComponent{
     text(Language.getString("ex"),sPos.x+5+textWidth(Language.getString("ex"))/2,sPos.y+17.5);
     textAlign(LEFT);
     text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
-         Explanation.get(selectedItem):"Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45);
+           Explanation.get(selectedItem):
+         Explanation.containsKey("_")?
+           Explanation.get("_"):
+           "Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45,sDist.x-10,sDist.y-90);
     popStyle();
   }
   
@@ -879,7 +921,7 @@ class ItemList extends GameComponent{
   public void mouseProcess(){
     float len=Height*Contents.size();
     float mag=pg.height/len;
-    if(dist.y<len&&onMouse(pos.x+pg.width-10,pos.y+pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag)&&mousePress){
+    if(dist.y<len&&onMouse(pos.x+pg.width-10,pos.y+pg.height*(1-mag)*scroll/(len-pg.height),10,pg.height*mag)&&main_input.getMouse().mousePress()){
         drag=true;
     }
     if(!mousePressed){
@@ -892,7 +934,7 @@ class ItemList extends GameComponent{
       scroll+=mouseWheelCount*16;
       scroll=constrain(scroll,0,len-dist.y);
     }
-    if(mousePress&&onMouse(pos.x,pos.y,dist.x-(dist.y<len?10:0),max(len-scroll,0))){
+    if(main_input.getMouse().mousePress()&&onMouse(pos.x,pos.y,dist.x-(dist.y<len?10:0),max(len-scroll,0))){
       if(selectedNumber==floor((mouseY-pos.y+scroll)/Height)){
         Select();
       }else{
@@ -903,33 +945,33 @@ class ItemList extends GameComponent{
   }
   
   public void keyProcess(){
-    if(isInput()){
-      switch(getInputState()){
-        case "up":subSelect();break;
-        case "down":addSelect();break;
+    if(main_input.isInputDetected()){
+      switch(main_input.getDirection()){
+        case Up:subSelect();break;
+        case Down:addSelect();break;
+        default:;
       }
       scroll();
     }
-    if(getInputState("enter")||getInputState("right"))Select();
-    if(!moving&&(getInputState().equals("up")||getInputState().equals("down"))){
+    if(main_input.isEnterButtonInput())Select();
+    if(main_input.getDirection().matches(Direction.Vertical)){
       keyTime+=vectorMagnification;
     }
     if(!moving&keyTime>=30){
       moving=true;
       keyTime=0;
     }
-    if(moving){
-      keyTime+=vectorMagnification;
-    }
     if(moving&&keyTime>=5){
-      switch(getInputState()){
-        case "up":subSelect();break;
-        case "down":addSelect();break;
+      switch(main_input.getDirection()){
+        case Up:subSelect();break;
+        case Down:addSelect();break;
+        default:;
       }
+      scroll();
       keyTime=0;
       scroll();
     }
-    if(!(getInputState().equals("up")||getInputState().equals("down"))){
+    if(!main_input.getDirection().matches(Direction.Vertical)){
       moving=false;
       keyTime=0;
     }
@@ -941,6 +983,7 @@ class ItemList extends GameComponent{
       for(String s:Contents){
         if(i==selectedNumber){
           selectedItem=s;
+          soundManager.play("cursor_move");
           return;
         }
         i++;
@@ -972,6 +1015,7 @@ class ItemList extends GameComponent{
   }
   
   public void Select(){
+    soundManager.play("select");
     s.itemSelect(selectedItem);
   }
   
@@ -981,6 +1025,140 @@ class ItemList extends GameComponent{
   
   public void addSelectListener(ItemSelect s){
     this.s=s;
+  }
+}
+
+class ShopItemList extends ItemList{
+  HashMap<String,ShopItem>Items=new HashMap<>();
+  Predicate<Integer>pred=i->true;
+  
+  public void addContent(ShopItem item){
+    Items.put(item.name,item);
+    addContent(item.name);
+  }
+  
+  void clearContent(){
+    super.clearContent();
+    Items.clear();
+  }
+  
+  public void addExplanation(String s,String e){
+    Explanation.put(s,e);
+  }
+  
+  @Override
+  GameComponent setBounds(float x,float y,float dx,float dy){
+    pg=createGraphics(round(dx),round(dy),P2D);
+    pg.beginDraw();
+    pg.textFont(createFont("SansSerif.plain",15));
+    pg.endDraw();
+    return super.setBounds(x,y,dx,dy);
+  }
+  
+  public void display(){
+    blendMode(BLEND);
+    int num=0;
+    pg.beginDraw();
+    pg.background(toColor(background));
+    pg.textSize(15);
+    pg.textFont(font);
+    for(String s:Contents){
+      if(floor(scroll/Height)<=num&num<=floor((scroll+dist.y)/Height)){
+        if(selectedNumber==num){
+          pg.fill(max(0,background.getRed()-(canSelect(s)?30:0)),max(0,background.getGreen()-30),max(0,background.getBlue()-30),alpha);
+          pg.rect(0,num*Height-scroll,dist.x,Height);
+          pg.stroke(toColor(menuRightColor));
+          pg.line(0,num*Height-scroll,0,(num+1)*Height-scroll);
+        }
+        pg.fill(0,int(alpha*(canSelect(s)?1:0.5)));
+        pg.noStroke();
+        pg.textAlign(LEFT);
+        pg.text(Items.get(s).locName,10,num*Height+Height*0.7-scroll);
+        pg.textAlign(RIGHT);
+        pg.text("x"+Items.get(s).getRemain(),dist.x-10,num*Height+Height*0.7-scroll);
+        pg.text("x"+Items.get(s).stock,dist.x-max(50,textWidth("x"+Items.get(s).getRemain()))-50,num*Height+Height*0.7-scroll);
+      }
+      num++;
+    }
+    sideBar();
+    pg.endDraw();
+    noStroke();
+    fill(0x70,alpha);
+    rect(pos.x,pos.y-Height,dist.x,Height);
+    textAlign(LEFT);
+    fill(0,alpha);
+    textSize(15);
+    textFont(font);
+    text(getLanguageText("name"),pos.x+10,pos.y+Height*(0.7-1));
+    textAlign(RIGHT);
+    text(getLanguageText("stock"),pos.x+dist.x-10,pos.y+Height*(0.7-1));
+    text(getLanguageText("possession"),pos.x+dist.x-100,pos.y+Height*(0.7-1));
+    image(pg,pos.x,pos.y);
+    if(showSub&selectedItem!=null)subDraw();
+  }
+  
+  public void subDraw(){
+    pushStyle();
+    blendMode(BLEND);
+    rectMode(CORNER);
+    fill(#707070,alpha);
+    noStroke();
+    rect(sPos.x,sPos.y,sDist.x,25);
+    fill(toColor(background));
+    rect(sPos.x,sPos.y+25,sDist.x,sDist.y-25);
+    textSize(15);
+    textAlign(CENTER);
+    textFont(font);
+    fill(0,alpha);
+    text(Language.getString("ex"),sPos.x+5+textWidth(Language.getString("ex"))/2,sPos.y+17.5);
+    textAlign(LEFT);
+    text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
+           Explanation.get(selectedItem):
+         Explanation.containsKey("_")?
+           Explanation.get("_"):
+           "Error : no_data\nError number : 0x2DA62C9",sPos.x+5,sPos.y+45+Height*4,sDist.x-10,sDist.y-90);
+    if(!s.equals("_")){
+      fill(getAvailableColor(pred.test(Items.get(selectedItem).price)));
+      String price="";
+      price=getLanguageText("ui_frag")+" : "+Items.get(selectedItem).price;
+      text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
+             price:"",sPos.x+5,sPos.y+45,sDist.x-10,sDist.y-90);
+      fill(getAvailableColor(Items.get(selectedItem).getRemain()>0));
+      String remain="";
+      remain=getLanguageText("stock")+" : "+Items.get(selectedItem).getRemain();
+      text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
+             remain:"",sPos.x+5,sPos.y+45+Height,sDist.x-10,sDist.y-90);
+      fill(getAvailableColor(Items.get(selectedItem).progress()));
+      String progress="";
+      progress="Stage : "+Items.get(selectedItem).progress;
+      text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
+             progress:"",sPos.x+5,sPos.y+45+Height*2,sDist.x-10,sDist.y-90);
+    }
+    popStyle();
+  }
+  
+  int getAvailableColor(boolean available){
+    return available?color(0x00,0xA0,0xFF,alpha):color(0xD0,0x70,0x70,alpha);
+  }
+  
+  boolean canSelect(String s){
+    ShopItem item=Items.get(s);
+    return pred.test(item.price)&&item.getRemain()>0&&item.progress();
+  }
+  
+  public void Select(){
+    if(canSelect(selectedItem)){
+      soundManager.play("select");
+      s.itemSelect(selectedItem);
+    }
+  }
+  
+  public ShopItem getItem(String s){
+    return Items.get(s);
+  }
+  
+  void setPredicate(Predicate<Integer>predicate){
+    pred=predicate;
   }
 }
 
@@ -1209,11 +1387,6 @@ class TextButton extends ButtonItem{
     textSize(dist.y*0.5);
     text(text,center.x,center.y+dist.y*0.2);
     blendMode(ADD);
-  }
-  
-  public void update(){
-    mouseProcess();
-    super.update();
   }
   
   TextButton setText(String s){
@@ -1727,26 +1900,25 @@ class ComponentSet{
   }
   
   public void keyEvent(){
-    if(selectedIndex!=-1&&!components.get(selectedIndex).keyMove&&isInput()){
+    if(selectedIndex!=-1&&!components.get(selectedIndex).keyMove&&main_input.isInputDetected()){
       if(type==0|type==1){
-        switch(getInputState()){
-          case "down":if(type==0)addSelect();else subSelect();break;
-          case "up":if(type==0)subSelect();else addSelect();break;
+        switch(main_input.getDirection()){
+          case Down:if(type==0)addSelect();else subSelect();break;
+          case Up:if(type==0)subSelect();else addSelect();break;
+          default:;
         }
       }else if(type==2|type==3){
-        switch(getInputState()){
-          case "right":break;
-          case "left":break;
+        switch(main_input.getDirection()){
+          case Right:break;
+          case Left:break;
+          default:;
         }
-      }
-      if(getInputState("enter")){
-        components.get(selectedIndex).executeEvent();
       }
     }
   }
   
-  public void addSelect(){
-    if(components.size()==1)return;
+  public ComponentSet addSelect(){
+    if(components.size()==1)return this;
     for(GameComponent c:components){
       if(c.focus){
         c.removeFocus();
@@ -1754,13 +1926,15 @@ class ComponentSet{
     }
     selectedIndex=selectedIndex>=components.size()-1?0:selectedIndex+1;
     if(!components.get(selectedIndex).focussable){
-      addSelect();
+      return addSelect();
     }
     components.get(selectedIndex).requestFocus();
+    if(selectedIndex!=pSelectedIndex)soundManager.play("cursor_move");
+    return this;
   }
   
-  public void subSelect(){
-    if(components.size()==1)return;
+  public ComponentSet subSelect(){
+    if(components.size()==1)return this;
     for(GameComponent c:components){
       if(c.focus){
         c.removeFocus();
@@ -1768,9 +1942,11 @@ class ComponentSet{
     }
     selectedIndex=selectedIndex<=0?components.size()-1:selectedIndex-1;
     if(!components.get(selectedIndex).focussable){
-      subSelect();
+      return subSelect();
     }
     components.get(selectedIndex).requestFocus();
+    if(selectedIndex!=pSelectedIndex)soundManager.play("cursor_move");
+    return this;
   }
   
   GameComponent getSelected(){
@@ -1788,6 +1964,7 @@ class ComponentSet{
 class Layout{
   WindowResizeEvent e=()->{};
   ArrayList<GameComponent>list;
+  Supplier<PVector>pos_supplier=null;
   PVector pos;
   PVector dist;
   PVector nextPos;
@@ -1875,10 +2052,60 @@ class Y_AxisLayout extends Layout{
   @Override
   public void resized(){
     e.Event();
-    nextPos=pos.copy();
+    if(pos_supplier!=null){
+      nextPos=pos_supplier.get();
+    }else{
+      nextPos=pos.copy();
+    }
     for(int i=0;i<list.size();i++){
       list.get(i).setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
       nextPos=nextPos.add(0,dist.y+Space);
+    }
+  }
+}
+
+class X_AxisLayout extends Layout{
+  
+  X_AxisLayout(){
+    super();
+  }
+  
+  X_AxisLayout(float x,float y,float dx,float dy,float space){
+    super(x,y,dx,dy,space);
+  }
+  
+  @Override
+  public void alignment(GameComponent c){
+    if(!list.contains(c)){
+      c.setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+      nextPos.add(dist.x+Space,0);
+      list.add(c);
+    }
+  }
+  
+  @Override
+  public void alignment(GameComponent[] c){
+    for(int i=0;i<c.length;i++){
+      if(!list.contains(c[i])){
+        c[i].setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+        nextPos.add(dist.x+Space,0);
+        list.add(c[i]);
+      }
+    }
+  }
+  
+  @Override
+  public void resized(){
+    e.Event();
+    if(pos_supplier!=null){
+      nextPos=pos_supplier.get();
+    }else{
+      nextPos=pos.copy();
+    }
+    nextPos=pos.copy();
+    for(int i=0;i<list.size();i++){
+      list.get(i).setBounds(nextPos.copy().x,nextPos.copy().y,dist.x,dist.y);
+      nextPos=nextPos.add(dist.y+Space,0);
     }
   }
 }
@@ -2005,6 +2232,9 @@ class ComponentSetLayer{
         Layers.forEach((k,v)->v.Components.forEach(cs->{cs.resized();}));
         resizeNumber=resizedNumber;
       }
+      if(SubChildshowType==1&&!Layers.get(nowLayer).isSub()){}else{
+        displaySub(nowLayer);
+      }
       int count=0;
       for(ComponentSet c:Layers.get(nowLayer).getComponents()){
         if(c==null)continue;
@@ -2016,8 +2246,6 @@ class ComponentSetLayer{
         }
         ++count;
       }
-      if(SubChildshowType==1&&!Layers.get(nowLayer).isSub())return;
-      displaySub(nowLayer);
     }
   }
   
@@ -2044,7 +2272,8 @@ class ComponentSetLayer{
   }
   
   public void keyProcess(){
-    if(getInputState("back")){
+    if(main_input.isBackInput()){
+      soundManager.play("cursor_move");
       toParent();
     }
   }
@@ -2138,7 +2367,7 @@ class ComponentSetLayer{
     if(SubChildshowType==2&&s.equals(nowParent))return;
     for(ComponentSet c:Layers.get(s).getComponents()){
       c.updateExcludingKey();
-      if(!layerChanged&&c.Active&&c.onMouse()&&mousePress){
+      if(!layerChanged&&c.Active&&c.onMouse()&&main_input.getMouse().mousePress()){
         String target=s;
         while(!nowLayer.equals(target))toParent();
       }

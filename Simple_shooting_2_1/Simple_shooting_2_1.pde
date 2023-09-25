@@ -1,3 +1,5 @@
+//You must add "--enable-preview" option (when you compie this program).
+
 import processing.awt.*;
 
 import java.awt.*;
@@ -13,15 +15,19 @@ import java.util.stream.*;
 import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.Map.Entry;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import net.java.games.input.*;
-import org.gamecontrolplus.*;
 
 import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.newt.opengl.*;
 import com.jogamp.newt.event.*;
 import com.jogamp.opengl.*;
 import com.jogamp.newt.*;
+
+import SSGUI.input.*;
+import SSGUI.Component.*;
 
 //import jdk.incubator.vector.*;
 
@@ -60,6 +66,7 @@ PGraphics preg;
 float[] titleLight;
 float[] titleLightSpeed;
 
+HashMap<String,BackgroundShader>backgrounds=new HashMap<>();
 PShader FXAAShader;
 PShader colorInv;
 PShader Lighting;
@@ -68,20 +75,14 @@ PShader menuShader;
 PShader backgroundShader;
 PShader titleShader;
 PShader Title_HighShader;
+PShader Oscillo;
+PShader Oscillo_Otsu;
 java.util.List<GravityBullet>LensData=Collections.synchronizedList(new ArrayList<GravityBullet>());
+HashMap<String,PImage>confImage=new HashMap<>();
 
-ControlIO control;
-ControlDevice controller;
-ArrayList<ControlSlider>ctrl_sliders=new ArrayList<>();
-ArrayList<ControlButton>ctrl_buttons=new ArrayList<>();
-ControlButton ctrl_hat;
-float pHat=0;
-boolean useController=false;
-boolean ctrl_button_press=false;
-boolean ctrl_hat_press=false;
+int oscilloState=0;
 
-KeyBinding controllerBinding=new KeyBinding(1);
-KeyBinding keyboardBinding=new KeyBinding();
+Input main_input;
 
 AtomicInteger killCount=new AtomicInteger(0);
 GameProcess main_game;
@@ -102,7 +103,6 @@ JSONObject LanguageData;
 JSONObject Language;
 JSONObject conf;
 
-PImage mouseImage;
 PFont font_70;
 PFont font_50;
 PFont font_30;
@@ -125,7 +125,6 @@ PVector pscreen=new PVector(1280, 720);
 PVector localMouse;
 boolean mouseWheel=false;
 boolean pmousePress=false;
-boolean mousePress=false;
 boolean keyRelease=false;
 boolean keyPress=false;
 boolean changeScene=true;
@@ -134,6 +133,7 @@ boolean windowResized=false;
 boolean resultAnimation=false;
 boolean launched=false;
 boolean ESCDown=false;
+boolean confImageLoaded=false;
 String nowPressedKey;
 String nowMenu="Main";
 String pMenu="Main";
@@ -157,26 +157,34 @@ boolean colorInverse=false;
 boolean fullscreen=false;
 boolean FXAA=false;
 
-static final int STAGE_NUMBER=6;
+SoundManager soundManager;
 
-static final String VERSION="1.1.5";
+static final int STAGE_COUNT=10;//Can release Stage1 to Stage[STAGE_COUNT].
+
+static final String VERSION="1.1.6";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
 static final String ShaderPath;
+static final String ItemPath;
 static final String LanguagePath;
+static final String EnemyPath;
 static final String StageConfPath;
 static final String WeaponDataPath;
 static final String SavePath;
 static final String ImagePath;
+static final String SoundPath;
 
 static{
   ShaderPath=Windows?".\\data\\shader\\":"../data/shader/";
+  ItemPath=Windows?".\\data\\item\\":"../data/item/";
   LanguagePath=Windows?".\\data\\lang\\":"../data/lang/";
+  EnemyPath=Windows?".\\data\\enemy\\":"../data/enemy/";
   StageConfPath=Windows?".\\data\\StageConfig\\":"../data/StageConfig/";
   WeaponDataPath=Windows?".\\data\\WeaponData\\":"../data/WeaponData/";
   SavePath=Windows?".\\data\\save\\":"../data/save/";
   ImagePath=Windows?".\\data\\images\\":"../data/images/";
+  SoundPath=Windows?".\\data\\sound\\":"../data/sound/";
 }
 
 boolean vsync=false;
@@ -190,6 +198,7 @@ int FrameRateConfig=60;
 void settings(){
   size(1280,720,P2D);
   pixelDensity(displayDensity());
+  noSmooth();
   try{
     Field icon=PJOGL.class.getDeclaredField("icons");
     icon.setAccessible(true);
@@ -253,32 +262,6 @@ void setup(){
     drawStatistics.add(-1f);
     runStatistics.add(-1f);
   }
-  //get controller
-  control = ControlIO.getInstance(this);
-  for(ControlDevice dev:control.getDevices()){
-    if(dev.getTypeName().equals(net.java.games.input.Controller.Type.GAMEPAD.toString())||
-       dev.getTypeName().equals(net.java.games.input.Controller.Type.STICK.toString())){
-      controller=dev;
-      break;
-    }
-  }
-  if(!useController&&controller!=null){
-    controller.open();
-    useController=true;
-    for(int i=0;i<controller.getNumberOfButtons();i++){
-      String className=controller.getButton(i).getClass().toString();
-      if(className.indexOf("Hat")>-1){
-        ctrl_hat=controller.getHat(i);
-      }else{
-        ctrl_buttons.add(controller.getButton(i));
-        controller.getButton(i).plug(this,"ctrl_button_pressed",ControlIO.ON_PRESS);
-      }
-    }
-    for(int i=0;i<controller.getNumberOfSliders();i++){
-      ctrl_sliders.add(controller.getSlider(i));
-    }
-  }
-  mouseImage=loadImage(ImagePath+"mouse.png");
   font_15=createFont("SansSerif.plain",15);
   font_20=createFont("SansSerif.plain",20);
   font_30=createFont("SansSerif.plain",30);
@@ -293,6 +276,8 @@ void setup(){
   backgroundShader=loadShader(ShaderPath+"2Dnoise.glsl");
   titleShader=loadShader(ShaderPath+"Title.glsl");
   Title_HighShader=loadShader(ShaderPath+"Title_high.glsl");
+  Oscillo=loadShader(ShaderPath+"Oscillo.glsl");
+  Oscillo_Otsu=loadShader(ShaderPath+"Oscillo_Otsu.glsl");
   preg=createGraphics(width,height,P2D);
   titleLight=new float[40];
   for(int i=0;i<20;i++){
@@ -307,16 +292,67 @@ void setup(){
   scroll=new PVector(0, 0);
   pTime=System.currentTimeMillis();
   localMouse=unProject(mouseX, mouseY);
+  try{
+  soundManager=new SoundManager();
+  }catch(Exception e){e.printStackTrace();}
   LoadData();
   initThread();
+  exec.execute(()->{
+    confImage.put("mouse",loadImage(ImagePath+"mouse.png"));
+    confImage.put("w",loadImage(ImagePath+"key_w.png"));
+    confImage.put("a",loadImage(ImagePath+"key_a.png"));
+    confImage.put("s",loadImage(ImagePath+"key_s.png"));
+    confImage.put("d",loadImage(ImagePath+"key_d.png"));
+    confImage.put("up",loadImage(ImagePath+"key_up.png"));
+    confImage.put("down",loadImage(ImagePath+"key_down.png"));
+    confImage.put("right",loadImage(ImagePath+"key_right.png"));
+    confImage.put("left",loadImage(ImagePath+"key_left.png"));
+    confImage.put("ctrl",loadImage(ImagePath+"key_Ctrl.png"));
+    confImage.put("shift",loadImage(ImagePath+"key_Shift.png"));
+    confImage.put("tab",loadImage(ImagePath+"key_Tab.png"));
+    confImage.put("enter",loadImage(ImagePath+"key_Enter.png"));
+    confImage.put("w_p",loadImage(ImagePath+"key_w_p.png"));
+    confImage.put("a_p",loadImage(ImagePath+"key_a_p.png"));
+    confImage.put("s_p",loadImage(ImagePath+"key_s_p.png"));
+    confImage.put("d_p",loadImage(ImagePath+"key_d_p.png"));
+    confImage.put("up_p",loadImage(ImagePath+"key_up_p.png"));
+    confImage.put("down_p",loadImage(ImagePath+"key_down_p.png"));
+    confImage.put("right_p",loadImage(ImagePath+"key_right_p.png"));
+    confImage.put("left_p",loadImage(ImagePath+"key_left_p.png"));
+    confImage.put("ctrl_p",loadImage(ImagePath+"key_Ctrl_p.png"));
+    confImage.put("shift_p",loadImage(ImagePath+"key_Shift_p.png"));
+    confImage.put("tab_p",loadImage(ImagePath+"key_Tab_p.png"));
+    confImage.put("enter_p",loadImage(ImagePath+"key_Enter_p.png"));
+    confImageLoaded=true;
+  });
+  exec.execute(()->{
+    JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
+    JSONArray Stages=conf.getJSONArray("Stage");
+    for(int i=0;i<Stages.size();i++){
+      if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
+        JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
+        float time=o.getInt("time");
+        stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language"))+
+          "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
+          "\n  Score: "+o.getInt("score"));
+      }else{
+        stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")));
+      }
+    }
+  });
+  //get controller
+  main_input=new Input(this,(PSurfaceJOGL)surface);
   main_game=new GameProcess();
+  exec.execute(()->{
+    soundManager.loadSound();
+  });
+  exec.execute(()->{
+    backgrounds.put("default",new DefaultBackgroundShader().load());
+    backgrounds.put("pixel",new PixelBackgroundShader().load());
+  });
 }
 
 public void draw(){
-  if(useController){
-    mouseX=-1;
-    mouseY=-1;
-  }
   if(frameCount==2){
     noLoop();
     ((GLWindow)surface.getNative()).setFullscreen(fullscreen);
@@ -339,11 +375,13 @@ public void draw(){
   Shader();
   if(displayFPS)printFPS();
   updatePreValue();
+  main_input.update();
   updateFPS();
 }
 
- public void LoadData(){
+public void LoadData(){
   conf=loadJSONObject(SavePath+"config.json");
+  ErrorCorrect();
   LoadLanguage();
   LanguageData=loadJSONObject(LanguagePath+"Languages.json");
   UpgradeArray=loadJSONObject(WeaponDataPath+"WeaponUpgrade.json");
@@ -358,6 +396,7 @@ public void draw(){
     }catch(ClassNotFoundException|NoSuchMethodException g){g.printStackTrace();}
   }
   Arrays.asList(conf.getJSONArray("Weapons").toStringArray()).forEach(s->{playerTable.addTable(masterTable.get(s),masterTable.get(s).getWeight());});
+  stageList.clearContent();
   stageList.addContent(conf.getJSONArray("Stage").toStringArray());
   displayFPS=conf.getBoolean("FPS");
   fullscreen=conf.getBoolean("Fullscreen");
@@ -371,6 +410,21 @@ public void draw(){
     frameRate(60);
   }
   ArchiveEntity=new ArrayList<>(Arrays.asList(conf.getJSONArray("Enemy").toStringArray()));
+}
+
+public void ErrorCorrect(){
+  JSONObject conf_base=loadJSONObject(SavePath+"config_base.json");
+  CorrectJSON(conf_base,conf);
+}
+
+public void CorrectJSON(JSONObject src,JSONObject target){
+  src.keys().forEach(k->{
+    if(!target.hasKey((String)k)){
+      target.put((String)k,src.get((String)k));
+    }else if(src.get((String)k) instanceof JSONObject){
+      CorrectJSON(src.getJSONObject((String)k),target.getJSONObject((String)k));
+    }
+  });
 }
   
  public void initStatus(){
@@ -412,19 +466,26 @@ String getLanguageText(String s){
 
  public void Menu() {
   if (changeScene){
+    absoluteMagnification=1;
     initMenu();
   }
   switch(starts.nowLayer){
     case "root":background(0);break;
     default:background(230);break;
   }
+  menu_animation.update();
+  menu_animation.display();
   starts.display();
   if(!starts.nowLayer.equals("root"))menu_op_canvas.display();
   starts.update();
   if(colorInverse&&!starts.nowLayer.equals("root")){
     colorInv.set("tex",g);
     colorInv.set("resolution",width,height);
-    filter(colorInv);
+    try{
+      filter(colorInv);
+    }catch(Exception e){
+      e.printStackTrace();
+    }
   }
 }
 
@@ -433,11 +494,17 @@ String getLanguageText(String s){
   scene=2;
 }
 
- public void Result(){
+String resultText;
+
+public void Result(){
   if(changeScene){
     resetMatrix();
     resultAnimation=true;
     resultTime=0;
+    resultText=Language.getString("ui_kill")+": "+killCount+"\n"+
+               Language.getString("ui_frag")+": "+player.fragment+"\n"+
+               "Time: "+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0)+"\n"+
+               "Score: "+(player.score_kill.get()+player.score_tech.get());
     MenuButton resultButton=new MenuButton("OK");
     resultButton.setBounds(width*0.5f-60,height*0.7f,120,25);
     resultButton.addWindowResizeEvent(()->{
@@ -445,10 +512,39 @@ String getLanguageText(String s){
     });
     resultButton.addListener(()->{
       scene=0;
+      exec.execute(()->{
+        stageList.clearExplanation();
+        JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
+        JSONArray Stages=conf.getJSONArray("Stage");
+        for(int i=0;i<Stages.size();i++){
+          if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
+            JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
+            float time=o.getInt("time");
+            stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language"))+
+              "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
+              "\n  Score: "+o.getInt("score"));
+          }else{
+            stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")));
+          }
+        }
+      });
     });
     resultButton.requestFocus();
     resultSet=toSet(resultButton);
     fragmentCount+=player.fragment;
+    if(!StageFlag.contains("Game_Over")){
+      JSONObject rec=conf.getJSONObject("Record");
+      if(rec.hasKey(StageName)){
+        JSONObject data=rec.getJSONObject(StageName);
+        data.setInt("time",min(data.getInt("time"),floor(stage.time/60f)));
+        data.setInt("score",max(player.score_kill.get()+player.score_tech.get(),data.getInt("score")));
+      }else{
+        JSONObject data=new JSONObject();
+        data.setInt("time",floor(stage.time/60f));
+        data.setInt("score",player.score_kill.get()+player.score_tech.get());
+        rec.setJSONObject(StageName,data);
+      }
+    }
     saveConfig save=new saveConfig();
     exec.submit(save);
   }
@@ -479,9 +575,7 @@ String getLanguageText(String s){
   textAlign(LEFT);
   textSize(20);
   textFont(font_20);
-  text(Language.getString("ui_kill")+":"+killCount+"\n"+
-       Language.getString("ui_frag")+":"+player.fragment+"\n"+
-       "Time:"+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0),width*0.5-150,height*0.2+100);
+  text(resultText,width*0.5-150,height*0.2+100);
   resultSet.display();
   resultSet.update();
   if(resultAnimation){
@@ -533,8 +627,14 @@ String getLanguageText(String s){
       }else if(config.getString("type").equals("add")){
         stage.addProcess(StageName,new TimeSchedule(config.getFloat("time"),s->{
           try{
-            s.addSpown(param.getInt("number"),param.getFloat("dist"),param.getFloat("offset"),
-            (Enemy)Class.forName("Simple_shooting_2_1$"+param.getString("name")).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
+            String option=param.getString("option","");
+            if(option.equals("")){
+              s.addSpown(param.getInt("number"),param.getFloat("dist"),param.getFloat("offset"),
+              (Enemy)Class.forName("Simple_shooting_2_1$"+param.getString("name")).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
+            }else if(option.equals("center")){
+              s.addSpown_Center(param.getInt("number"),param.getFloat("dist"),param.getFloat("offset"),
+              (Enemy)Class.forName("Simple_shooting_2_1$"+param.getString("name")).getDeclaredConstructor(Simple_shooting_2_1.class).newInstance(CopyApplet));
+            }
           }catch(ClassNotFoundException|NoSuchMethodException|InstantiationException|IllegalAccessException|InvocationTargetException g){g.printStackTrace();}
         }));
       }else if(config.getString("type").equals("setting")){
@@ -551,11 +651,6 @@ String getLanguageText(String s){
 }
 
  public void eventProcess() {
-  if (!pmousePress&&mousePressed) {
-    mousePress=true;
-  } else {
-    mousePress=false;
-  }
   if (scene!=pscene) {
     changeScene=true;
   } else if (!nowMenu.equals(pMenu)) {
@@ -568,7 +663,11 @@ String getLanguageText(String s){
   }else{
     keyPressTime=0;
   }
-  if(!keyPressed)PressedKey.clear();
+  if(!keyPressed){
+    PressedKey.clear();
+    PressedKeyCode.clear();
+    keyPressTime=0;
+  }
 }
 
  public void updateFPS() {
@@ -605,11 +704,6 @@ public void exit(){
   windowResized=false;
   keyRelease=false;
   keyPress=false;
-  if(useController){
-    ctrl_button_press=false;
-    ctrl_hat_press=(ctrl_hat.getValue()>0&&pHat==0);
-    pHat=ctrl_hat.getValue();
-  }
   mouseWheel=false;
   mouseWheelCount=0;
   pmousePress=mousePressed;
@@ -628,6 +722,24 @@ public void exit(){
     }else{
       filter(FXAAShader);
     }
+  }
+  Oscillo.set("resolution",width,height);
+  Oscillo.set("time",second()+millis()*0.001);
+  Oscillo.set("input_texture",g);
+  if(frameCount>10)
+  switch(oscilloState){
+    case 1:
+      Oscillo.set("resolution",width,height);
+      Oscillo.set("time",second()+millis()*0.001);
+      Oscillo.set("input_texture",g);
+      filter(Oscillo);
+      break;
+    case 2:
+      Oscillo_Otsu.set("resolution",width,height);
+      Oscillo_Otsu.set("time",second()+millis()*0.001);
+      Oscillo_Otsu.set("input_texture",g);
+      filter(Oscillo_Otsu);
+      break;
   }
 }
 
@@ -798,7 +910,7 @@ public void exit(){
 }
 
  public int sign(float f) {
-  return f==0?0:f>0?1:-1;
+  return f>0?1:f<0?-1:0;
 }
 
  public void line(PVector s,PVector v){
@@ -1084,27 +1196,24 @@ public boolean isParent(Entity e,Entity f){
   return true;
 }
 
-public void ctrl_button_pressed(){
-  ctrl_button_press=true;
-}
-
- public void keyPressed(){
+ public void keyPressed(processing.event.KeyEvent e){
   keyPressTime=0;
   keyPress=true;
-  ModifierKey=keyCode;
-  PressedKey.add(str(key).toLowerCase());
-  PressedKeyCode.add(str(keyCode));
-  nowPressedKey=str(key);
-  nowPressedKeyCode=keyCode;
+  ModifierKey=e.getKeyCode();
+  PressedKey.add(str(e.getKey()).toLowerCase());
+  PressedKeyCode.add(str(e.getKeyCode()));
+  nowPressedKey=str(e.getKey());
+  nowPressedKeyCode=e.getKeyCode();
+  if(keyCode==101)oscilloState=(oscilloState+1)%3;
   if(key==ESC)key=255;
 }
 
- public void keyReleased(){
+ public void keyReleased(processing.event.KeyEvent e){
   keyPressTime=0;
-  keyRelease=false;
+  keyRelease=true;
   ModifierKey=-1;
-  PressedKeyCode.remove(str(keyCode));
-  PressedKey.remove(str(key).toLowerCase());
+  PressedKeyCode.remove(str(e.getKeyCode()));
+  PressedKey.remove(str(e.getKey()).toLowerCase());
 }
 
  public void mouseWheel(processing.event.MouseEvent e){
@@ -1146,7 +1255,7 @@ abstract class Entity implements Cloneable{
   }
   
   public final void handleDisplay(PGraphics g){
-    if(!inScreen)return;
+    if(!inScreen||isDead)return;
     if(Debug&&displayAABB){
       displayAABB(g);
     }
@@ -1184,6 +1293,10 @@ abstract class Entity implements Cloneable{
   
   public void setSize(float s){
     size=s;
+  }
+  
+  public void destruct(Entity e){
+    isDead=true;
   }
 
   public Entity clone()throws CloneNotSupportedException {

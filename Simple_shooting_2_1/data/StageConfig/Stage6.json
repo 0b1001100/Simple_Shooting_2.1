@@ -4,7 +4,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.02,
       "data":[
         {
           "name":"Poison",
@@ -26,7 +26,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.025,
       "data":[
         {
           "name":"Poison",
@@ -68,7 +68,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.025,
       "data":[
         {
           "name":"Zero",
@@ -90,7 +90,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.03,
       "data":[
         {
           "name":"Zero",
@@ -128,7 +128,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.035,
       "data":[
         {
           "name":"Blaster",
@@ -150,7 +150,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.035,
       "data":[
         {
           "name":"AntiPlasmaField",
@@ -188,7 +188,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.045,
       "data":[
         {
           "name":"CollisionEnemy",
@@ -210,7 +210,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.055,
       "data":[
         {
           "name":"Decoy",
@@ -248,7 +248,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.055,
       "data":[
         {
           "name":"GoldEnemy",
@@ -270,7 +270,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.06,
       "data":[
         {
           "name":"GoldEnemy",
@@ -322,7 +322,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.07,
       "data":[
         {
           "name":"GoldEnemy",
@@ -344,7 +344,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.015,
+      "freq":0.085,
       "data":[
         {
           "name":"Missile",
@@ -382,7 +382,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.07,
       "data":[
         {
           "name":"GoldEnemy",
@@ -404,7 +404,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.08,
       "data":[
         {
           "name":"MirrorEnemy",
@@ -442,7 +442,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.095,
       "data":[
         {
           "name":"Defence",
@@ -464,7 +464,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.11,
       "data":[
         {
           "name":"Defence",
@@ -502,7 +502,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.12,
       "data":[
         {
           "name":"Explosion_B",
@@ -524,7 +524,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.13,
       "data":[
         {
           "name":"Amplification",
@@ -562,7 +562,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.14,
       "data":[
         {
           "name":"Flash",
@@ -580,7 +580,7 @@
     "type":"auto",
     "param":{
       "disp":false,
-      "freq":0.02,
+      "freq":0.07,
       "data":[
         {
           "name":"Blaster",

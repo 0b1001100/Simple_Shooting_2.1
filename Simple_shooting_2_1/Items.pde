@@ -402,6 +402,46 @@ class ItemTable implements Cloneable{
   }
 }
 
+int getItemCount(String name){
+  return shopItemList.Items.containsKey(name)?shopItemList.Items.get(name).stock:0;
+}
+
+class ShopItem{
+  String name;
+  String locName;
+  int price;
+  
+  int progress=0;
+  
+  int maxStock;
+  int stock;
+  
+  ShopItem(JSONObject obj,String name,int price,int maxStock){
+    this.name=name;
+    this.locName=obj.getString(name);
+    this.price=price;
+    this.maxStock=maxStock;
+  }
+  
+  ShopItem setStock(int stock){
+    this.stock=stock;
+    return this;
+  }
+  
+  ShopItem setProgress(int progress){
+    this.progress=progress;
+    return this;
+  }
+  
+  int getRemain(){
+    return maxStock-stock;
+  }
+  
+  boolean progress(){
+    return conf.getJSONArray("Stage").size()>progress;
+  }
+}
+
 interface ItemUseEvent{
   public void ItemUse(Myself m);
 }

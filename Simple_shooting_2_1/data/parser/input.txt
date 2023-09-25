@@ -1,1 +1,1 @@
-parameter projectile add 1
+invincible true;time set 90;summon "Worm" 10.0 100.0 --relative

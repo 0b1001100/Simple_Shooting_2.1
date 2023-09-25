@@ -1,9 +1,16 @@
 package SSGUI.Component;
 
+import java.util.HashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import SSGUI.Component.Animator.Animator;
+import SSGUI.Component.Animator.ColorAnimator;
+import SSGUI.Component.Animator.VectorAnimator;
+import SSGUI.Trio;
+import SSGUI.Theme.Color;
 import SSGUI.Theme.Theme;
+import processing.core.PFont;
 import processing.core.PVector;
 import processing.opengl.PGraphicsOpenGL;
 
@@ -27,43 +34,54 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
 
   protected Theme theme;
 
-  private Consumer<GameComponent>selectedProcess;
-  private Consumer<GameComponent>getFocusProcess;
-  private Consumer<GameComponent>lostFocusProcess;
+  protected HashMap<String,Trio<Animator<?>,ComponentEventType,ComponentEventType>>animatorMap=new HashMap<>();
 
-  private Direction constraintDirection;
+  private Consumer<GameComponent>selectedProcess=(c)->{};
+  private Consumer<GameComponent>getFocusProcess=(c)->{};
+  private Consumer<GameComponent>lostFocusProcess=(c)->{};
+
+  private Direction constraintDirection=Direction.None;
 
   private boolean isActive=true;
   private boolean focusable=true;
 
-  private String Label;
-  
-  public GameComponent(){}
+  private Language language=Language.ja_jp;
 
-  public void HandleUpdate(float deltaTime){
-    if(isActive)update(deltaTime);
+  private PFont font;
+
+  private String Label;
+  private String Explanation;
+  
+  public GameComponent(){
+    init();
+  }
+
+  protected abstract void init();
+
+  public void handleUpdate(float deltaTime){
+    if(isActive){
+      animatorMap.forEach((k,v)->{v.getKey().update(deltaTime);});
+      update(deltaTime);
+    }
   }
 
   protected abstract void update(float deltaTime);
 
-  public void HandleDisplay(PGraphicsOpenGL g,boolean focus){
+  public void handleDisplay(PGraphicsOpenGL g,boolean focus){
     if(isActive){
-      g.fill(theme.getColor((focus?"selectedB":"b")+"ackground").intValue());
-      g.stroke(theme.getColor((focus?"selectedB":"b")+"order").intValue());
-      displayBackground(g);
-      g.fill(theme.getColor((focus?"selectedF":"f")+"oreground").intValue());
-      g.stroke(theme.getColor((focus?"selectedB":"b")+"order").intValue());
-      displayForeground(g);
+      displayBackground(g,focus);
+      displayForeground(g,focus);
     }
   }
 
-  protected abstract void displayBackground(PGraphicsOpenGL g);
+  protected abstract void displayBackground(PGraphicsOpenGL g,boolean focus);
 
-  protected abstract void displayForeground(PGraphicsOpenGL g);
+  protected abstract void displayForeground(PGraphicsOpenGL g,boolean focus);
 
-  public void setBounds(Supplier<PVector>position,Supplier<PVector>size){
+  public GameComponent setBounds(Supplier<PVector>position,Supplier<PVector>size){
     this.position=position;
     this.size=size;
+    return this;
   }
 
   public PVector getPosition(){
@@ -76,6 +94,38 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
 
   protected void setTheme(Theme theme){
     this.theme=theme;
+  }
+
+  public Color getBackgroundColor(boolean focus){
+    return theme.getColor((focus?"selectedB":"b")+"ackground");
+  }
+
+  public Color getForegroundColor(boolean focus){
+    return theme.getColor((focus?"selectedF":"f")+"oreground");
+  }
+
+  public Color getBorderColor(boolean focus){
+    return theme.getColor((focus?"selectedB":"b")+"order");
+  }
+
+  public void setAnimator(String name, Animator<?> anim, ComponentEventType startType, ComponentEventType endType){
+    switch(anim){
+      case VectorAnimator v:
+        switch(name){
+          case "position":position=v;break;
+          case "size":size=v;break;
+        }
+        break;
+
+      case ColorAnimator c:theme.putColor(name, c);
+
+      default :break;
+    }
+    animatorMap.put(name,new Trio<>(anim,startType,endType));
+  }
+
+  public Animator<?> getAnimator(String name){
+    return animatorMap.get(name).getKey();
   }
 
   public void setSelectedProcess(Consumer<GameComponent> process){
@@ -91,6 +141,16 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
     return selectedProcess;
   }
 
+  protected void handleSelectedProcess(){
+    if(!(isActive||focusable))return;
+    animatorMap.forEach((k,v)->{
+      if(v.getValue1()==ComponentEventType.Selected)v.getKey().animate();
+      else
+      if(v.getValue2()==ComponentEventType.Selected)v.getKey().reverse();
+    });
+    selectedProcess.accept(this);
+  }
+
   public void setGetFocusProcess(Consumer<GameComponent> process){
     this.getFocusProcess=process;
   }
@@ -99,12 +159,32 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
     return getFocusProcess;
   }
 
+  protected void handleGetFocusProcess(){
+    if(!(isActive||focusable))return;
+    animatorMap.forEach((k,v)->{
+      if(v.getValue1()==ComponentEventType.GetFocus)v.getKey().animate();
+      else
+      if(v.getValue2()==ComponentEventType.GetFocus)v.getKey().reverse();
+    });
+    getFocusProcess.accept(this);
+  }
+
   public void setLostFocusProcess(Consumer<GameComponent> process){
     this.lostFocusProcess=process;
   }
 
   public Consumer<GameComponent> getLostFocusProcess(){
     return lostFocusProcess;
+  }
+
+  protected void handleLostFocusProcess(){
+    if(!(isActive||focusable))return;
+    animatorMap.forEach((k,v)->{
+      if(v.getValue1()==ComponentEventType.LostFocus)v.getKey().animate();
+      else
+      if(v.getValue2()==ComponentEventType.LostFocus)v.getKey().reverse();
+    });
+    lostFocusProcess.accept(this);
   }
 
   /**
@@ -117,6 +197,12 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
 
   public Direction getConstraintDirection(){
     return constraintDirection;
+  }
+
+  public void handleConstraintInput(Direction d){
+    if(isActive&&focusable){
+      constraintInput(d);
+    }
   }
 
   /**
@@ -147,13 +233,22 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
     return focusable;
   }
 
+  protected PFont getFont(PGraphicsOpenGL g){
+    if(font==null){
+      font=g.parent.createFont("SansSerif.plain",getSize().y*0.5f);
+    }
+    return font;
+  }
+
   /**
    * This method sets the label of this component.<br>
    * a label used to display text such as Button name.
    * @param name The label of this component.
+   * @return This Object.
    */
-  public void setLabel(String name){
+  public GameComponent setLabel(String name){
     Label=name;
+    return this;
   }
 
   /**
@@ -163,5 +258,29 @@ public abstract class GameComponent implements ConstractibleFromJSON<GameCompone
    */
   public String getLabel(){
     return Label;
+  }
+
+  public GameComponent setExplanation(String ex){
+    Explanation=ex;
+    return this;
+  }
+
+  public String getExplanation(){
+    return Explanation;
+  }
+
+  public GameComponent setLanguage(Language language){
+    this.language=language;
+    return this;
+  }
+
+  public Language getLanguage(){
+    return language;
+  }
+
+  public boolean onMouse(int mouseX,int mouseY){
+    PVector pos=getPosition();
+    PVector size=getSize();
+    return pos.x<=mouseX&&pos.y<=mouseY&&mouseX<=pos.x+size.x&&mouseY<=pos.y+size.y;
   }
 }

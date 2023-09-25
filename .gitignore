@@ -15,7 +15,6 @@ out
 
 Libraries
 natives
-test
 # Ignore Gradle project-specific cache directory
 .gradle
 

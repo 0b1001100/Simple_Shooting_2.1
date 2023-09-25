@@ -21,7 +21,27 @@ public class VectorAnimator extends Animator<PVector> {
 
   @Override
   public VectorAnimator buildFromJSON(JSONObject o){
-    //add key frame
+    loop=o.getBoolean("loop",false);
+    mag=o.getFloat("mag", 1f);
+    end=o.getFloat("duration");
+    float keyFrames[]=o.getJSONArray("keyFrames").toFloatArray();
+    for(int i=0;i<keyFrames.length;i+=4){
+      addKeyFrame(keyFrames[i], new PVector(keyFrames[i+1],keyFrames[i+2],keyFrames[i+3]));
+    }
     return this;
   }
 }
+
+/*
+ * JSON example
+ * {
+ *   "loop":false,
+ *   "mag":1,
+ *   "duration":150,
+ *   "keyFrames":[
+ *     0  ,0  ,25,
+ *     100,125,25,
+ *     150,150,25
+ *   ]
+ * }
+ */

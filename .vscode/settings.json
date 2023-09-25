@@ -10,8 +10,8 @@
   ],
   "java.configuration.runtimes": [
     {
-      "name": "JavaSE-19",
-      "path": "C:\\Program Files\\Java\\jdk-19.0.2",
+      "name": "JavaSE-20",
+      "path": "C:\\Program Files\\Java\\jdk-20",
       "default": true
     },
   ],

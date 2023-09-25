@@ -15,7 +15,6 @@ class Myself extends Entity{
   boolean autoShot=true;
   boolean levelup=false;
   boolean hit=false;
-  boolean move=false;
   boolean canMagnet=true;
   double damage=0;
   double absHP;
@@ -38,20 +37,24 @@ class Myself extends Entity{
   int Level=1;
   int levelupNumber=0;
   int remain=3;
+  AtomicInteger score_kill=new AtomicInteger(0);
+  AtomicInteger score_tech=new AtomicInteger(0);
   
   Myself(){
     setMaxSpeed(3);
     accelSpeed=0.4;
     pos=new PVector(0,0);
     vel=new PVector(0,0);
-    HP=new Status(1);
+    remain=3+getItemCount("revive");
+    HP=new Status(1+getItemCount("hp"));
     Attak=new Status(1);
-    Defence=new Status(0);
+    Defence=new Status(getItemCount("defence")*0.05);
     absHP=HP.getMax().doubleValue();
     absAttak=Attak.getMax().doubleValue();
     absDefence=Defence.getMax().doubleValue();
-    weapons.add(new EnergyWeapon(this));
-    weapons.add(new PulseWeapon(this));
+    weapons.add(new QuarkCanon(this));
+    weapons.add(new PhotonPulse(this));
+    weapons.add(new TauBlaster(this));
     resetWeapon();
     camera=new Camera();
     camera.setTarget(this);
@@ -107,7 +110,7 @@ class Myself extends Entity{
         move();
       }
       if(HP.get().floatValue()<=0){
-        isDead=true;
+        destruct(this);
         main_game.EventSet.put("player_dead","");
         return;
       }
@@ -119,6 +122,7 @@ class Myself extends Entity{
       }
       effects=nextEffects;
     }
+    HP.add(HP.getReset().floatValue()*getItemCount("auto_recover")*0.02/60*vectorMagnification);
     if(useSub)attackWeapons.forEach(w->{w.update();});
     itemWeapons.forEach(w->{w.update();});
     weaponChangeTime+=4;
@@ -172,30 +176,11 @@ class Myself extends Entity{
   
   public void Rotate(){
     float rad=0;
-    float r=0;
-    float i=0;
-    if(PressedKey.contains("w")||PressedKeyCode.contains(str(UP))){
-      --i;
-    }
-    if(PressedKey.contains("s")||PressedKeyCode.contains(str(DOWN))){
-      ++i;
-    }
-    if(PressedKey.contains("d")||PressedKeyCode.contains(str(RIGHT))){
-      ++r;
-    }
-    if(PressedKey.contains("a")||PressedKeyCode.contains(str(LEFT))){
-      --r;
-    }
-    if(useController){
-      i=abs(ctrl_sliders.get(2).getValue())>0.1?ctrl_sliders.get(2).getValue():0;
-      r=abs(ctrl_sliders.get(3).getValue())>0.1?ctrl_sliders.get(3).getValue():0;
-    }
-    move=abs(i)+abs(r)!=0;
-    rad=move?atan2(i,r):rotate;
-    if(Float.isNaN(rad))rad=0;
-    float nRad=0<rotate?rad+TWO_PI:rad-TWO_PI;
-    rad=abs(rotate-rad)<abs(rotate-nRad)?rad:nRad;
-    rad=sign(rad-rotate)*constrain(abs(rad-rotate),0,radians(rotateSpeed*(useController?dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue()):1))*vectorMagnification);
+    rad=main_input.getMoveMag()>0?main_input.getMoveAngle():rotate;
+    if(Float.isNaN(rad))rad=rotate;
+    PVector dir=new PVector(cos(rotate),sin(rotate));
+    PVector t_dir=new PVector(cos(rad),sin(rad));
+    rad=constrain(PVector.angleBetween(dir,t_dir),0,radians(rotateSpeed*main_input.getMoveMag()))*sign(cross(dir,t_dir))*vectorMagnification;
     protate=rotate;
     rotate+=rad;
     rotate=rotate%TWO_PI;
@@ -205,18 +190,7 @@ class Myself extends Entity{
     if(Float.isNaN(Speed)){
       Speed=0;
     }
-    if(useController){
-      float mag=dist(0,0,ctrl_sliders.get(2).getValue(),ctrl_sliders.get(3).getValue());
-      if(mag>0.1&&Speed/maxSpeed<mag){
-        addVel(accelSpeed*mag,false);
-      }else{
-        addVel(0,false);
-      }
-    }else if(keyPressed&&move&&containsList(moveKeyCode,PressedKeyCode)){
-      addVel(accelSpeed,false);
-    }else{
-      addVel(0,false);
-    }
+    addVel(accelSpeed*main_input.getMoveMag(),false);
     vel.x=abs(vel.x)<0.01?0f:vel.x;
     vel.y=abs(vel.y)<0.01?0f:vel.y;
     Speed=abs(Speed)<0.01?0f:Speed;
@@ -256,7 +230,7 @@ class Myself extends Entity{
   }
   
   public void shot(){
-    if(coolingTime>selectedWeapon.coolTime&&((((mousePressed&&autoShot)||(mousePress&&!autoShot))&&mouseButton==LEFT)||(useController&&dist(0,0,ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue())>0.1)
+    if(coolingTime>selectedWeapon.coolTime&&((((mousePressed&&autoShot)||(main_input.getMouse().mousePress()&&!autoShot))&&mouseButton==LEFT)||main_input.getAttackMag()>0
       )&&!selectedWeapon.empty){
       selectedWeapon.shot();
       coolingTime=0;
@@ -267,7 +241,7 @@ class Myself extends Entity{
   }
   
   public void keyEvent(){
-    if(getInputState("change")){
+    if(main_input.isChangeInput()){
       changeWeapon();
     }
   }
@@ -305,7 +279,7 @@ class Myself extends Entity{
   @Override
   public void ExplosionHit(Explosion e,boolean b){
     if(!e.myself){
-      Hit(e.power);
+      Hit(e.power,this);
     }
   }
   
@@ -324,10 +298,11 @@ class Myself extends Entity{
     w.MyselfCollision(this);
   }
   
-  protected void Hit(float d){
+  protected void Hit(float d,Entity e){
     if(invincibleTime<=0.0){
-      HP.sub(d);
-      damage+=d;
+      if(!LensData.isEmpty()&&(e instanceof Enemy))d*=0.01;
+      HP.sub(d-Defence.get().floatValue());
+      damage+=d-Defence.get().floatValue();
     }
     hit=true;
   }

@@ -180,7 +180,7 @@ class CommandField extends LineTextField{
   }
   
   public void update(){
-    if(mousePress)mousePress();
+    if(main_input.getMouse().mousePress())mousePress();
     keyProcess();
     if(keyPress&&!nowPressedKey.equals(str((char)-1)))memoryOffset=0;
     super.update();

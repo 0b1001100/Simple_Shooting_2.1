@@ -127,6 +127,27 @@ class BulletExplosion extends Explosion{
   }
 }
 
+class AsteroidExplosion extends Explosion{
+  
+  AsteroidExplosion(Asteroid a){
+    super(a,a.size*5,0.5);
+    myself=true;
+  }
+  
+  @Override
+  public void MyselfCollision(Myself m){
+    m.ExplosionHit(this,true);
+  }
+  
+  public void Hit(Weapon w){
+    return;
+  }
+  
+  public void Down(){
+    isDead=false;
+  }
+}
+
 void addExplosion(Entity e,float size){
   HeapEntity.get(0).add(new Explosion(e,size));
 }

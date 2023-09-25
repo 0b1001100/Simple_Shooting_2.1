@@ -30,6 +30,8 @@
   "FPS": false,
   "clear": false,
   "Stage": ["Tutorial"],
+  "Record": {},
   "Fullscreen": false,
+  "Items": {},
   "Fragment": 0
 }

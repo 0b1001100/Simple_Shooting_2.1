@@ -7,7 +7,7 @@
   "settings": {
     "java.project.referencedLibraries": [
       "lib/**/*.jar",
-      "antlr-4.10.1-complete.jar"
+      "antlr-4.12.0-complete.jar"
     ]
   }
 }

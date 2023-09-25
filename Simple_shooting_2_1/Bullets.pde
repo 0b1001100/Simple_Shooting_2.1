@@ -2,7 +2,7 @@ abstract class Bullet extends Entity{
   Weapon parent;
   boolean isMine=false;
   Color bulletColor;
-  float bulletRadius=0.5;
+  float bulletRadius=3;
   float rotate=0;
   float speed=7;
   float power;
@@ -15,11 +15,8 @@ abstract class Bullet extends Entity{
   protected void init(Myself m,int num){
     float rad=0;
     int n=m.selectedWeapon.bulletNumber;
-    float r=n>1?radians(20)/(n/2):0;
-    if(num==-1){
-      rad=n>1?r*(n-1):0;
-    }
-    rotate=(useController?atan2(ctrl_sliders.get(0).getValue(),ctrl_sliders.get(1).getValue()):atan2(m.pos,localMouse))+random(-m.diffuse/2,m.diffuse/2)+(n>1?+rad/2-num*r:0);
+    float r=n>1?radians(20)/(n-1):0;
+    rotate=main_input.getAttackAngle()+random(-m.diffuse/2,m.diffuse/2)+(n>1?radians(10)-num*r:0);
     speed=m.selectedWeapon.speed;
     bulletColor=cloneColor(m.selectedWeapon.bulletColor);
     pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y+sin(rotate)*m.size*0.5f);
@@ -63,7 +60,7 @@ abstract class Bullet extends Entity{
   
    protected void update(){
     pos.add(vel.copy().mult(vectorMagnification));
-    if(age>duration)isDead=true;
+    if(age>duration)destruct(this);
     age+=vectorMagnification;
     setAABB();
   }
@@ -98,12 +95,12 @@ abstract class Bullet extends Entity{
   
   @Override
   public void ExplosionHit(Explosion e,boolean p){
-    isDead=true;
+    destruct(e);
   }
   
   @Override
   public void EnemyCollision(Enemy e){
-    if(isMine&&CircleCollision(e.pos,e.size+bulletRadius*2,pos,vel.copy().mult(max(1,vectorMagnification)))){
+    if(isMine&&CircleCollision(e.pos,e.size+bulletRadius*2,pos,vel.copy().mult(max(1,vectorMagnification)))&&e!=parent.parent){
       EnemyHit(e,true);
     }
   }
@@ -112,19 +109,23 @@ abstract class Bullet extends Entity{
   public void EnemyHit(Enemy e,boolean p){
     e.Hit(parent);
     e.vel.add(vel.copy().mult(Mass/e.Mass));
-    isDead=true;
+    destruct(e);
+    e.BulletHit(this,false);
   }
   
   @Override
   public void BulletCollision(Bullet b){
-    b.BulletHit(this,true);
+    if(CapsuleCollision(pos,vel,b.pos,b.vel,bulletRadius+b.bulletRadius)){
+      b.BulletHit(this,true);
+    }
   }
   
   @Override
   public void BulletHit(Bullet b,boolean p){
-    if(!(b instanceof PlayerBullet)&&(b instanceof Bullet)){
-      b.isDead=true;
-      isDead=true;
+    if(!(b instanceof PlayerBullet)&&isMine){
+      player.score_tech.incrementAndGet();
+      b.destruct(this);
+      destruct(b);
       NextEntities.add(new Particle(this,4));
       NextEntities.add(new Particle(b,4));
     }
@@ -132,15 +133,15 @@ abstract class Bullet extends Entity{
   
   @Override
   public void MyselfCollision(Myself m){
-    if(!isMine&&CircleCollision(m.pos,m.size,pos,vel)){
+    if(!isMine&&!isDead&&CircleCollision(m.pos,m.size,pos,vel)){
       MyselfHit(m,true);
     }
   }
   
   @Override
   public void MyselfHit(Myself m,boolean b){
-    isDead=true;
-    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
+    destruct(m);
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power),this);
   }
   
   @Override
@@ -152,7 +153,7 @@ abstract class Bullet extends Entity{
   
   @Override
   public void WallHit(WallEntity e,boolean b){
-    isDead=true;
+    destruct(e);
     NextEntities.add(new Particle(this,5));
   }
   
@@ -280,7 +281,7 @@ class GravityBullet extends SubBullet{
     if(count>damageCoolTime){
       count=0;
     }
-    if(duration<0)isDead=true;
+    if(duration<0)destruct(this);
     if(stop){
       duration-=vectorMagnification;
       count+=vectorMagnification;
@@ -372,7 +373,7 @@ class GrenadeBullet extends SubBullet{
    public void update(){
     pos.add(vel.copy().mult(vectorMagnification));
     if(age>duration){
-      isDead=true;
+      destruct(this);
       HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3f,true,parent));
       return;
     }
@@ -382,7 +383,7 @@ class GrenadeBullet extends SubBullet{
   
   @Override
   public void EnemyHit(Enemy e,boolean b){
-    isDead=true;
+    destruct(e);
     if(!hit){
       HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3f,true,parent));
       hit=true;
@@ -391,7 +392,7 @@ class GrenadeBullet extends SubBullet{
   
   @Override
   public void WallHit(WallEntity w,boolean b){
-    isDead=true;
+    destruct(w);
     if(!hit){
       HeapEntity.get(0).add(new BulletExplosion(this,scale,0.3f,true,parent));
       hit=true;
@@ -460,7 +461,7 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
     nextHitEnemy.forEach(e->{HitEnemy.add(e);});
     nextHitEnemy.clear();
     if(duration<0){
-      isDead=true;
+      destruct(this);
       return;
     }
     axis+=TWO_PI/(scale*10*PI/(speed*vectorMagnification));
@@ -550,7 +551,7 @@ class PlasmaFieldBullet extends SubBullet implements ExcludeGPGPU{
   
   public void update(){
     if(!player.attackWeapons.contains(parent)){
-      isDead=true;
+      destruct(this);
       return;
     }
     HashMap<Entity,Float>nextCooltimes=new HashMap<Entity,Float>();
@@ -643,7 +644,7 @@ class LaserBullet extends SubBullet implements ExcludeGPGPU{
   
    public void update(){
     if(age>duration){
-      isDead=true;
+      destruct(this);
       return;
     }
     age+=vectorMagnification;
@@ -764,7 +765,7 @@ class LightningBullet extends SubBullet implements ExcludeGPGPU{
   
   @Override
   public void update(){
-    if(duration<time)isDead=true;
+    if(duration<time)destruct(this);
     time+=vectorMagnification;
     HitEnemy.clear();
     nextHitEnemy.forEach(e->{HitEnemy.add(e);});
@@ -913,19 +914,19 @@ class ThroughBullet extends Bullet{
   
   @Override
   public void ExplosionCollision(Explosion e){
-    isDead=true;
+    destruct(e);
   }
   
   @Override
   public void EnemyCollision(Enemy e){
-    if((isMine||parent.parent!=e)&&CircleCollision(e.pos,e.size,pos,vel)){
+    if(parent.parent!=e&&CircleCollision(e.pos,e.size,pos,vel)){
       EnemyHit(e,true);
     }
   }
   
   @Override
   public void ExplosionHit(Explosion e,boolean b){
-    isDead=true;
+    destruct(e);
   }
   
   @Override
@@ -939,9 +940,7 @@ class ThroughBullet extends Bullet{
   
   @Override
   public void WallHit(WallEntity w,boolean b){
-    nextHitEnemy.add(w);
-    reflectFromNormal(w.norm);
-    NextEntities.add(new Particle(this,5));
+    destruct(w);
   }
 }
 
@@ -953,7 +952,7 @@ class EnemyPoisonBullet extends ThroughBullet{
   
   @Override
   public void ExplosionHit(Explosion e,boolean b){
-    isDead=true;
+    destruct(e);
   }
   
   @Override
@@ -971,8 +970,8 @@ class EnemyPoisonBullet extends ThroughBullet{
       if(s.equals("exec"))player.speedMag=0.5;
       if(s.equals("shutdown"))player.speedMag=1;
     }));
-    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
-    isDead=true;
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power),this);
+    destruct(m);
   }
 }
 
@@ -989,8 +988,8 @@ class AntiSkillBullet extends ThroughBullet{
       if(s.equals("exec"))player.useSub=false;
       if(s.equals("shutdown"))player.useSub=true;
     }));
-    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
-    isDead=true;
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power),this);
+    destruct(m);
   }
 }
 
@@ -1004,8 +1003,8 @@ class BoundBullet extends ThroughBullet{
   @Override
   public void MyselfHit(Myself m,boolean b){
     m.vel.add(vel.normalize().copy().mult(m.maxSpeed*10f));
-    m.Hit(parent.parent.control.applyStatus("Attack",parent.power));
-    isDead=true;
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power),this);
+    destruct(m);
   }
 }
 
@@ -1042,7 +1041,7 @@ class AntiBulletFieldBullet extends Bullet{
   @Override
   public void update(){
     if(!EntitySet.contains(parentEnemy)){
-      isDead=true;
+      destruct(this);
       return;
     }
     Center=pos;
@@ -1056,7 +1055,7 @@ class AntiBulletFieldBullet extends Bullet{
       if(!((e instanceof PlasmaFieldBullet)||(e instanceof FireBullet)||
          (e instanceof GrenadeBullet)||(e instanceof GravityBullet)||
          (e instanceof AbsorptionBullet))){
-        if(((Bullet)e).isMine)e.isDead=true;
+        if(((Bullet)e).isMine)e.destruct(this);
       }
     }
   }
@@ -1072,7 +1071,7 @@ class AntiBulletFieldBullet extends Bullet{
     if(!((b instanceof PlasmaFieldBullet)||(b instanceof FireBullet)||
        (b instanceof GrenadeBullet)||(b instanceof GravityBullet)||
        (b instanceof AbsorptionBullet))){
-      if(b.isMine)b.isDead=true;
+      if(b.isMine)b.destruct(this);
     }
   }
   
@@ -1122,7 +1121,7 @@ class EnemyMirrorBullet extends MirrorBullet{
   @Override public 
   void update(){
     if(!EntitySet.contains(parent.parent)){
-      isDead=true;
+      destruct(this);
       return;
     }
     axis=parent.parent.rotate;
@@ -1187,7 +1186,7 @@ class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
   
    public void update(){
     if(!player.attackWeapons.contains(parent)){
-      isDead=true;
+      destruct(this);
       return;
     }
     StatusList.get("power").put(this.getClass().getName(),power*min(1,Source.size()*0.25f)*0.01f);
@@ -1224,13 +1223,14 @@ class AbsorptionBullet extends SubBullet implements ExcludeGPGPU{
 }
 
 class MissileBullet extends Bullet{
-  float mag=0.05f;
+  float mag=0.025f;
   int num;
   
   MissileBullet(Enemy e,Weapon w){
     super(e,w);
     setNear(num);
     bulletColor=new Color(255,220,150);
+    mag*=2f/w.speed*random(0.9,1.1);
   }
   
   public void setNear(int num){
@@ -1308,7 +1308,7 @@ class FireBullet extends SubBullet{
     if(count>damageCoolTime){
       count=0;
     }
-    if(duration<0)isDead=true;
+    if(duration<0)destruct(this);
     if(stop){
       duration-=vectorMagnification;
       count+=vectorMagnification;
@@ -1525,7 +1525,7 @@ class SatelliteBullet extends SubBullet{
   public void EnemyHit(Enemy e,boolean b){
     e.Hit(parent);
     e.vel.add(vel.copy().mult(Mass/e.Mass));
-    isDead=true;
+    destruct(e);
   }
   
   @Override
@@ -1536,7 +1536,7 @@ class SatelliteBullet extends SubBullet{
   
   @Override
   public void WallHit(WallEntity w,boolean b){
-    isDead=true;
+    destruct(w);
     NextEntities.add(new Particle(this,5));
   }
 }
@@ -1601,7 +1601,7 @@ class BLASBullet extends FireBullet{
     if(count>damageCoolTime){
       count=0;
     }
-    if(duration<0)isDead=true;
+    if(duration<0)destruct(this);
     if(stop){
       duration-=vectorMagnification;
       count+=vectorMagnification;
@@ -1747,7 +1747,7 @@ class BiLinearBullet extends LinearBullet{
     e.vel.add(vel.copy().mult(Mass/e.Mass));
     HitEnemy.add(e);
     if(HitEnemy.size()>throughNum){
-      isDead=true;
+      destruct(e);
     }
   }
 }
@@ -1833,7 +1833,7 @@ class AnomalyBullet extends LightningBullet{
       pos.add(vel);
       vel.mult(0.95f);
     }
-    if(duration<time)isDead=true;
+    if(duration<time)destruct(this);
     time+=vectorMagnification;
     HitEnemy.clear();
     nextHitEnemy.forEach(e->{HitEnemy.add(e);});
@@ -1875,5 +1875,161 @@ class AnomalyBullet extends LightningBullet{
   public void WallCollision(WallEntity w){}
 }
 
-interface ExcludeBullet{
+class BindBullet extends Bullet{
+  PVector start;
+  PVector len=new PVector();
+  boolean bind=false;
+  int hp=5;
+  
+  BindBullet(BindEnemy e,Weapon w){
+    super(e,w);
+    setNear();
+    bulletColor=new Color(220,220,250);
+    start=parent.parent.pos.copy();
+  }
+  
+  public void setNear(){
+    float rad=atan2(pos,player.pos);
+    len.set(cos(rad)*speed,sin(rad)*speed);
+  }
+  
+  protected void display(PGraphics g){
+    g.strokeWeight(1);
+    g.stroke(toColor(bulletColor));
+    g.line(start.x,start.y,pos.x+vel.x,pos.y+vel.y);
+    if(age/duration>0.9f)bulletColor=bulletColor.darker();
+  }
+  
+  @Override
+  protected void update(){
+    if(!bind){
+      vel.add(len.copy().mult(vectorMagnification));
+      if(age>duration){
+        isDead=true;
+        NextEntities.add(new Particle(this,10));
+      }
+      age+=vectorMagnification;
+    }
+    setAABB();
+  }
+  
+  @Override
+  public void MyselfHit(Myself m,boolean b){
+    destruct(m);
+    if(!bind)m.Hit(parent.parent.control.applyStatus("Attack",parent.power),this);
+  }
+  
+  @Override
+  void destruct(Entity e){
+    if(e instanceof Myself){
+      bind=true;
+      main_game.CommandQue.put("Bind",new Command(0,1,0,(s)->{
+        if(s.equals("exec"))player.speedMag=0.1;
+        if(s.equals("shutdown"))player.speedMag=1;
+      }));
+      ((BindWeapon)parent).parentEnemy.bind=true;
+    }else if(e instanceof Bullet){
+      hp--;
+      if(hp<=0)isDead=true;
+    }
+  }
 }
+
+class Barrage extends ThroughBullet{
+  
+  Barrage(Enemy e,Weapon w,int num,int i){
+    super(e,w);
+    bulletColor=new Color(255,125,255);
+    rotate=e.rotate+TWO_PI*(((float)i)/(float)num);
+    pos.set(e.pos.x+cos(rotate)*e.size*0.5f,e.pos.y+sin(rotate)*e.size*0.5f);
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
+  }
+  
+  public void WallHit(WallEntity w,boolean b){
+    destruct(w);
+    NextEntities.add(new Particle(this,5));
+  }
+}
+
+class WallBounseBullet extends Barrage{
+  
+  WallBounseBullet(Enemy e,Weapon w,int num,int i){
+    super(e,w,num,i);
+    bulletColor=new Color(250,255,60);
+  }
+  
+  @Override
+  public void WallHit(WallEntity w,boolean b){
+    reflectFromNormal(w.norm);
+    pos.add(vel);
+    NextEntities.add(new Particle(this,5));
+  }
+}
+
+class EnemyLaserBullet extends ThroughBullet{
+  boolean attack=false;
+  
+  float time=0;
+  
+  EnemyLaserBullet(Enemy e,Weapon w){
+    super(e,w);
+    bulletColor=new Color(255,125,255);
+    pos.set(e.pos.x+cos(rotate)*e.size*0.5f,e.pos.y+sin(rotate)*e.size*0.5f);
+    speed=width+height;
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
+  }
+  
+  void display(PGraphics g){
+    pos.set(parent.parent.pos.x+cos(rotate)*parent.parent.size*0.5f,parent.parent.pos.y+sin(rotate)*parent.parent.size*0.5f);
+    g.strokeWeight(4);
+    if(attack){
+      g.stroke(240,240,255);
+      g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    }else{
+      g.stroke(255,0,0,100);
+      g.line(pos.x,pos.y,pos.x+vel.x,pos.y+vel.y);
+    }
+  }
+  
+  @Override
+  public void update(){
+    if(duration<time){
+      destruct(this);
+    }else if(duration*0.5<time){
+      attack=true;
+    }
+    if(attack&&random(0,1)>0.8)NextEntities.add(new LineFragment(pos.copy().add(random(-2,2),random(-2,2)),vel.copy().normalize().mult(20),new Color(20,20,255,100),3));
+    time+=vectorMagnification;
+    setAABB();
+  }
+  
+  @Override
+  public void MyselfHit(Myself m,boolean b){
+    if(!attack)return;
+    m.Hit(parent.parent.control.applyStatus("Attack",parent.power),this);
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean p){
+    if(!attack)return;
+    e.Hit(parent);
+    e.BulletHit(this,false);
+  }
+  
+  public void WallHit(WallEntity w,boolean b){
+  }
+  
+  public void destruct(Entity e){
+    if(duration>=time)return;
+    isDead=true;
+  }
+  
+  @Override
+  public void BulletCollision(Bullet b){
+    if(attack&&CapsuleCollision(pos,vel,b.pos,b.vel,bulletRadius+b.bulletRadius)){
+      b.BulletHit(this,true);
+    }
+  }
+}
+
+interface ExcludeBullet{}
