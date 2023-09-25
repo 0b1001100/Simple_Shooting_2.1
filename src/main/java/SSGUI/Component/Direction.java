@@ -90,29 +90,32 @@ public enum Direction {
 
   public static float getAngle(int binary){
     if((binary&0b111100)==0b000000)return Float.NaN;
-    float angle=Float.NaN;
-    int x=binary&0b110000;
-    Direction xd=binalyOf(x);
-    if(xd!=Horizonal){
-      angle=0f;
-      angle+=switch(x){
-        case 0b100000->0f;
-        case 0b010000->(float)Math.PI;
-        default->0f;
-      };
-    }
+    float angle_x=Float.NaN;
+    float angle_y=Float.NaN;
     int y=binary&0b001100;
     Direction yd=binalyOf(y);
     if(yd!=Vertical){
-      boolean average=!Float.isNaN(angle);
-      if(!average)angle=0f;
-      angle+=(angle+switch(y){
-        case 0b001000->(float)Math.PI*0.5f;
-        case 0b000100->(float)Math.PI*1.5f;
-        default->0f;
-      })*(average?0.5f:1f);
+      angle_y=switch(y){
+        case 0b000100->(float)Math.PI*0.5f;
+        case 0b001000->(float)Math.PI*1.5f;
+        default->Float.NaN;
+      };
     }
-    return angle;
+    int x=binary&0b110000;
+    Direction xd=binalyOf(x);
+    if(xd!=Horizonal){
+      angle_x=switch(x){
+        case 0b100000->(!Float.isNaN(angle_y)&&angle_y>Math.PI)?(float)Math.PI*2.0f:0f;
+        case 0b010000->(float)Math.PI;
+        default->Float.NaN;
+      };
+    }
+    if(Float.isNaN(angle_x)){
+      return angle_y;
+    }else if(Float.isNaN(angle_y)){
+      return angle_x;
+    }
+    return (angle_x+angle_y)*0.5f;
   }
 
   public static Direction angleTo4Direction(float angle){

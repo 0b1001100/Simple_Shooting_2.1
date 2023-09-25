@@ -128,14 +128,16 @@ abstract class Enemy extends Entity implements Cloneable{
   }
   
   public void Down(){
+    HP=0;
     killCount.incrementAndGet();
+    player.score_kill.addAndGet(round((float)maxHP));
     destruct(this);
     spownEntity();
     dead.deadEvent(this);
     dead=(e)->{};
   }
   
-  private void spownEntity(){
+  protected void spownEntity(){
     NextEntities.add(new Particle(this,(int)(size*3),1));
     NextEntities.add(random(0,1)<0.0005?new LargeExp(this,ceil(((float)maxHP)*expMag)):new Exp(this,ceil(((float)maxHP)*expMag)));
     if(random(1f)<maxHP*0.01f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.001?random(1)<maxHP*0.0001?100:10:1));
@@ -183,7 +185,8 @@ abstract class Enemy extends Entity implements Cloneable{
     PVector d=new PVector((size+e.size)*0.5-dist(pos,e.pos),0).rotate(atan2(pos,e.pos));
     vel=c.copy().mult((-e.Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(vel);
     e.vel=c.copy().mult((Mass/(Mass+e.Mass))*(1+this.e*e.e)*dot(vel.copy().sub(e.vel),c.copy())).add(e.vel);
-    pos.sub(d);
+    vel.sub(d.mult((e.Mass/(Mass+e.Mass))*(1f/0.9)));
+    e.vel.sub(d.mult((-Mass/(Mass+e.Mass))*(1f/0.9)));
   }
   
   @Override
@@ -203,7 +206,7 @@ abstract class Enemy extends Entity implements Cloneable{
     float r=atan2(m.pos,pos);
     float d=(m.size+size)*0.5-dist(m.pos,pos);
     pos.add(new PVector(cos(r)*d,sin(r)*d));
-    m.Hit(1);
+    m.Hit(1*vectorMagnification,this);
   }
   
   @Override
@@ -291,7 +294,7 @@ class Plus extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(20,170,20));
-    addMultiplyer(EnergyWeapon.class,1.1);
+    addMultiplyer(QuarkCanon.class,1.1);
   }
   
   public void Process(){
@@ -496,7 +499,7 @@ class Turret_S extends Enemy{
     cooltime+=vectorMagnification;
     if(useWeapon.coolTime<cooltime){
       useWeapon.shot();
-      cooltime=0;
+      cooltime=random(-2,2);
     }
   }
 }
@@ -512,7 +515,7 @@ class Plus_S extends Turret_S{
     target=player;
     setColor(new Color(20,170,20));
     setExpMag(0.8);
-    addMultiplyer(EnergyWeapon.class,1.2);
+    addMultiplyer(QuarkCanon.class,1.2);
   }
 }
 
@@ -527,7 +530,7 @@ class Slime extends Enemy{
     maxSpeed=0.7;
     rotateSpeed=3;
     setColor(new Color(20,255,0));
-    addMultiplyer(EnergyWeapon.class,1.1);
+    addMultiplyer(QuarkCanon.class,1.1);
   }
   
   @Override
@@ -1539,7 +1542,11 @@ class Sealed extends M_Boss_Y implements BossEnemy{
       boss=new HUDText("BOSS");
       dead=(e)->{
         StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage6"))stageList.addContent("Stage6");scene=3;}));
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{
+          if(!stageList.contains("StageE1"))stageList.addContent("StageE1");
+          if(!stageList.contains("Stage6"))stageList.addContent("Stage6");
+          scene=3;
+        }));
         boss.Dispose();
       };
     }
@@ -1554,12 +1561,7 @@ class Sealed extends M_Boss_Y implements BossEnemy{
         if(EntitySet.contains(f)){
           next.add(f);
           f.rotate=rotate;
-          switch(f.num){
-            case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI));break;
-            case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+HALF_PI+QUARTER_PI));break;
-            case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+PI+QUARTER_PI));break;
-            case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI-HALF_PI));break;
-          }
+          f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+HALF_PI*f.num));
         }
       }
       Frags=next;
@@ -1578,12 +1580,7 @@ class Sealed extends M_Boss_Y implements BossEnemy{
     Frags=new ArrayList<SealedFrag>();
     for(int i=0;i<4;i++){
       SealedFrag f=new SealedFrag(i);
-      switch(f.num){
-        case 0:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI));break;
-        case 1:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+HALF_PI+QUARTER_PI));break;
-        case 2:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+PI+QUARTER_PI));break;
-        case 3:f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI-HALF_PI));break;
-      }
+      f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+HALF_PI*f.num));
       Frags.add(f);
       NextEntities.add(f);
     }
@@ -1642,6 +1639,11 @@ class Sealed extends M_Boss_Y implements BossEnemy{
     
     @Override
     public void EnemyCollision(Enemy e){}
+    
+    @Override
+    public void ExplosionHit(Explosion e,boolean b){
+      Hit(10);
+    }
   }
 }
 
@@ -2049,7 +2051,7 @@ class Slime_F extends Enemy{
     maxSpeed=random(0.5,0.9);
     rotateSpeed=3;
     setColor(new Color(0,125,255));
-    addMultiplyer(EnergyWeapon.class,1.1);
+    addMultiplyer(QuarkCanon.class,1.1);
   }
   
   @Override
@@ -2463,8 +2465,1276 @@ class Absorb extends M_Boss_Y implements BossEnemy{
   }
 }
 
-interface BossEnemy{
+class Sealed_Base extends M_Boss_Y{
+  ArrayList<SealedFrag_Base>Frags;
+  boolean release=false;
+  
+  void init(){
+    setHP(100);
+    maxSpeed=2;
+    rotateSpeed=0.5;
+    setSize(54);
+    setMass(35);
+    setColor(new Color(0,230,230));
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    if(!release){
+      ArrayList<SealedFrag_Base>next=new ArrayList<>();
+      for(SealedFrag_Base f:Frags){
+        if(EntitySet.contains(f)){
+          next.add(f);
+          f.rotate=rotate;
+          f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+HALF_PI*f.num));
+        }
+      }
+      Frags=next;
+      if(Frags.size()==0)release=true;
+    }
+  }
+  
+  Enemy setPos(PVector p){
+    pos=p;
+    Frags=new ArrayList<>();
+    for(int i=0;i<4;i++){
+      SealedFrag_Base f=new SealedFrag_Base(i);
+      f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+HALF_PI*f.num));
+      Frags.add(f);
+      NextEntities.add(f);
+    }
+    return this;
+  }
+  
+  @Override
+  public void Hit(Weapon w){
+    if(!release)return;
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1;
+    HP-=w.power*mult;
+    damage+=w.power*mult;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+  
+  @Override
+  public void Hit(float f){
+    if(!release)return;
+    HP-=f;
+    damage+=f;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    if(!(e instanceof SealedFrag_Base))super.EnemyHit(e,b);
+  }
+  
+  @Override
+  protected void spownEntity(){
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+    if(random(1f)<maxHP*0.01f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.001?random(1)<maxHP*0.0001?100:10:1));
+  }
 }
 
-interface BlastResistant{
+class SealedFrag_Base extends Enemy implements ExcludeArchive{
+  int num=0;
+  
+  SealedFrag_Base(int i){
+    num=i;
+    init();
+  }
+  
+  @Override
+  protected void init(){
+    setHP(50);
+    setExpMag(0.8);
+    maxSpeed=0;
+    rotateSpeed=0;
+    setSize(16);
+    setMass(1000);
+    setColor(new Color(10,75,230));
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){}
+  
+  @Override
+  public void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
+  }
+  
+  @Override
+  protected void spownEntity(){
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+  }
 }
+
+class Sealed_Shot extends Sealed_Base{
+  
+  void init(){
+    super.init();
+    maxSpeed=1.5;
+    rotateSpeed=0.45;
+    setColor(new Color(60,200,100));
+  }
+  
+  Enemy setPos(PVector p){
+    pos=p;
+    Frags=new ArrayList<>();
+    for(int i=0;i<4;i++){
+      SealedFrag_Base f=new SealedFrag_Shot(this,i);
+      f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+HALF_PI*f.num));
+      Frags.add(f);
+      NextEntities.add(f);
+    }
+    return this;
+  }
+}
+
+class SealedFrag_Shot extends SealedFrag_Base{
+  Sealed_Base parent;
+  int num=0;
+  float cooltime=random(-30,30);
+  
+  void init(){
+    super.init();
+    setColor(new Color(0,150,40));
+  }
+  
+  SealedFrag_Shot(Sealed_Base parent,int i){
+    super(i);
+    this.parent=parent;
+    useWeapon=new EnemyWeapon(this);
+  }
+  
+  void Process(){
+    cooltime+=vectorMagnification;
+    if(useWeapon.coolTime<cooltime){
+      float temp=rotate;
+      rotate=atan2(parent.pos,pos);
+      useWeapon.shot();
+      rotate=temp;
+      cooltime=0;
+    }
+  }
+}
+
+class Sealed_Defence extends Sealed_Base{
+  float angle=0;
+  
+  void init(){
+    super.init();
+    maxSpeed=1.7;
+    rotateSpeed=0.5;
+    setColor(new Color(170,170,170));
+  }
+  
+  Enemy setPos(PVector p){
+    pos=p;
+    Frags=new ArrayList<>();
+    for(int i=0;i<7;i++){
+      SealedFrag_Base f=new SealedFrag_Defence(this,i);
+      f.pos=pos.copy().add(new PVector(32,0).rotate(rotate+QUARTER_PI+radians(360/7f)*f.num));
+      Frags.add(f);
+      NextEntities.add(f);
+    }
+    release=true;
+    return this;
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    ArrayList<SealedFrag_Base>next=new ArrayList<>();
+    for(SealedFrag_Base f:Frags){
+      if(EntitySet.contains(f)){
+        next.add(f);
+        f.rotate=rotate;
+        f.pos=pos.copy().add(new PVector(32,0).rotate(rotate+QUARTER_PI+radians(360/7f)*f.num+radians(angle)));
+      }
+    }
+    Frags=next;
+    angle+=5*vectorMagnification;
+  }
+  
+  public void Down(){
+    super.Down();
+    for(SealedFrag_Base f:Frags)f.Down();
+  }
+}
+
+class SealedFrag_Defence extends SealedFrag_Base{
+  Sealed_Base parent;
+  int num=0;
+  boolean defence=true;
+  Bullet pHit=null;
+  
+  void init(){
+    super.init();
+    setColor(new Color(255,0,0));
+  }
+  
+  SealedFrag_Defence(Sealed_Base parent,int i){
+    super(i);
+    this.parent=parent;
+    useWeapon=new EnemyWeapon(this);
+  }
+  
+  @Override
+  void BulletHit(Bullet b,boolean bl){
+    if(pHit!=b){
+      b.isDead=false;
+      b.isMine=false;
+      b.reflectFromNormal(PVector.sub(b.pos,pos).normalize());
+      pHit=b;
+    }
+  }
+  
+  @Override
+  public void Hit(Weapon w){
+  }
+}
+
+class Sealed_Stun extends Sealed_Base{
+  boolean stun=false;
+  float cooltime=600;
+  float angle=0;
+  
+  void init(){
+    super.init();
+    maxSpeed=1.8;
+    rotateSpeed=0.3;
+    setColor(new Color(255,200,0));
+  }
+  
+  Enemy setPos(PVector p){
+    pos=p;
+    Frags=new ArrayList<>();
+    for(int i=0;i<8;i++){
+      SealedFrag_Base f=new SealedFrag_Stun(i);
+      f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+radians(45)*f.num));
+      Frags.add(f);
+      NextEntities.add(f);
+    }
+    release=true;
+    return this;
+  }
+  
+  void Process(){
+    super.Process();
+    ArrayList<SealedFrag_Base>next=new ArrayList<>();
+    for(SealedFrag_Base f:Frags){
+      if(EntitySet.contains(f)){
+        next.add(f);
+        f.rotate=rotate;
+        f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+radians(45)*f.num+radians(angle)));
+      }
+    }
+    angle+=5*vectorMagnification;
+    Frags=next;
+    if(stun){
+      cooltime-=vectorMagnification;
+      if(cooltime<0){
+        cooltime=600;
+        stun=false;
+        release=true;
+        maxSpeed=2;
+        rotateSpeed=0.5;
+        setHP(100);
+      }
+    }
+  }
+  
+  @Override
+  void destruct(Entity e){
+    isDead=false;
+    stun=true;
+    release=false;
+    maxSpeed=0;
+    rotateSpeed=0;
+  }
+}
+
+class SealedFrag_Stun extends SealedFrag_Base{
+  Bullet pHit=null;
+  
+  void init(){
+    super.init();
+    setColor(new Color(0,255,150));
+  }
+  
+  SealedFrag_Stun(int i){
+    super(i);
+  }
+  
+  @Override
+  void BulletHit(Bullet b,boolean bl){
+    if(pHit!=b){
+      b.isDead=false;
+      b.isMine=false;
+      b.reflectFromNormal(PVector.sub(b.pos,pos).normalize());
+      pHit=b;
+    }
+  }
+  
+  @Override
+  public void Hit(Weapon w){
+  }
+}
+
+class Sealed_Multi extends Sealed_Base{
+  float angle=0;
+  
+  void init(){
+    super.init();
+    maxSpeed=1.9;
+    rotateSpeed=0.5;
+    setHP(200);
+    setColor(new Color(255,200,0));
+    if(StageName.equals("Stage8")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage9")&&STAGE_COUNT>8)stageList.addContent("Stage9");scene=3;}));
+        boss.Dispose();
+      };
+    }
+  }
+  
+  Enemy setPos(PVector p){
+    pos=p;
+    Frags=new ArrayList<>();
+    for(int i=0;i<8;i++){
+      SealedFrag_Base f=new SealedFrag_Shot(this,i);
+      f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+radians(45)*f.num));
+      Frags.add(f);
+      NextEntities.add(f);
+    }
+    if(StageName.equals("Stage8")){
+      boss.setTarget(this);
+      main_game.getHUDComponentSet().add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+  
+  @Override
+  public void Process(){
+    super.Process();
+    ArrayList<SealedFrag_Base>next=new ArrayList<>();
+    for(SealedFrag_Base f:Frags){
+      if(EntitySet.contains(f)){
+        next.add(f);
+        f.rotate=rotate;
+        f.pos=pos.copy().add(new PVector(27,0).rotate(rotate+QUARTER_PI+radians(45)*f.num+radians(angle)));
+      }
+    }
+    Frags=next;
+    angle+=5*vectorMagnification;
+  }
+}
+
+class Crystal extends Enemy{
+  
+  @Override
+  protected void init(){
+    setHP(3);
+    maxSpeed=1;
+    setColor(new Color(255,10,10));
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(rotate);
+    g.rectMode(CENTER);
+    g.strokeWeight(1);
+    g.noFill();
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(toColor(c));
+    }
+    g.beginShape();
+    for(int i=0;i<5;i++){
+      g.vertex(cos(TWO_PI/5f*i)*size*0.5,sin(TWO_PI/5f*i)*size*0.5);
+    }
+    g.endShape(CLOSE);
+    g.popMatrix();
+  }
+  
+  @Override
+  public void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
+  }
+  
+  @Override
+  protected void spownEntity(){
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+    if(random(1f)<maxHP*0.05f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.005?random(1f)<maxHP*0.0005?100:10:1));
+  }
+}
+
+class Crystal_W extends Crystal{
+  
+  @Override
+  protected void init(){
+    setHP(5);
+    maxSpeed=1.2;
+    setColor(new Color(255,255,255));
+  }
+}
+
+class Worm extends Enemy{
+  ArrayList<Worm_body>body;
+  int length=3;
+  
+  double sum_HP=15;
+  
+  Enemy setPos(PVector v){
+    body=new ArrayList<>();
+    super.setPos(v);
+    for(int i=0;i<length;i++){
+      body.add(new Worm_body(this,i));
+    }
+    NextEntities.addAll(body);
+    setController(new VoidController());
+    return this;
+  }
+  
+  @Override
+  void display(PGraphics g){
+    for(int i=1;i<length;i++){
+      g.stroke(255,100);
+      g.strokeWeight(2);
+      g.line(body.get(i-1).pos.x,body.get(i-1).pos.y,body.get(i).pos.x,body.get(i).pos.y);
+    }
+  }
+  
+  @Override
+  void Process(){
+    double hp=0;
+    for(Worm_body w:body)hp+=w.HP;
+    if(hp<body.get(0).maxHP*length-sum_HP){
+      Down();
+      for(Worm_body w:body)if(!w.isDead)w.Down();
+    }
+  }
+  
+  @Override
+  void putAABB(){}
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(qDist(pos,e.pos,(size+e.size)*0.5)){
+      EnemyHit(e,false);
+    }
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    if(!body.contains(e))super.EnemyHit(e,b);
+  }
+  
+  @Override
+  public void MyselfHit(Myself m,boolean b){
+  }
+  
+  @Override
+  public void BulletHit(Bullet b,boolean bl){
+  }
+  
+  @Override
+  protected void spownEntity(){}
+  
+  public void Down(){
+    HP=0;
+    killCount.incrementAndGet();
+    player.score_kill.addAndGet(round((float)sum_HP));
+    destruct(this);
+    spownEntity();
+    dead.deadEvent(this);
+    dead=(e)->{};
+  }
+  
+  class Worm_body extends Enemy{
+    Worm parent;
+    int num;
+    
+    Worm_body(Worm parent,int num){
+      super();
+      this.parent=parent;
+      this.num=num;
+      setPos(parent.pos.copy().add(cos(parent.rotate)*size*num,sin(parent.rotate)*size*num));
+    }
+    
+    void init(){
+      setSize(20);
+      setHP(100);
+      setMaxSpeed(1.2);
+      setMass(1000f/((num+1)*(num+1)));
+      rotateSpeed=1.0;
+      setColor(new Color(0,200,0));
+      setController(new WormController());
+      setExpMag(0.1);
+    }
+    
+    void Process(){
+    }
+    
+    @Override
+    public void EnemyHit(Enemy e,boolean b){
+      super.EnemyHit(e,b);
+    }
+    
+    @Override
+    protected void spownEntity(){
+      NextEntities.add(new Particle(this,(int)(size*3),1));
+      if(random(1f)<maxHP*0.05f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.005?random(1f)<maxHP*0.0005?100:10:1));
+    }
+  
+    public void Down(){
+      HP=0;
+      destruct(this);
+      spownEntity();
+      dead.deadEvent(this);
+      dead=(e)->{};
+    }
+  }
+}
+
+class Worm_R extends Worm{
+  
+  Enemy setPos(PVector v){
+    pos=v;
+    sum_HP=20;
+    body=new ArrayList<>();
+    for(int i=0;i<length;i++){
+      body.add(new Worm_body_R(this,i));
+    }
+    NextEntities.addAll(body);
+    return this;
+  }
+  
+  class Worm_body_R extends Worm_body{
+    
+    Worm_body_R(Worm parent,int num){
+      super(parent,num);
+    }
+    
+    void init(){
+      super.init();
+      setColor(new Color(200,10,10));
+    }
+  }
+}
+
+class IceDust extends Crystal{
+  
+  @Override
+  protected void init(){
+    setHP(1);
+    setSize(15);
+    maxSpeed=0.9;
+    setColor(new Color(0,255,255));
+  }
+}
+
+class Asteroid extends Enemy{
+  
+  {
+    size=70;
+  }
+  
+  @Override
+  protected void init(){
+    maxSpeed=0.9;
+    setSize(random(25,70));
+    setColor(new Color(130,115,110));
+    setController(new AsteroidController());
+    setExpMag(0);
+    dead=(e)->{
+      if(size<20)return;
+      int num=round(random(1,4));
+      for(int i=0;i<num;i++){
+        Asteroid a=0.1<random(0,1)?(Asteroid)new Asteroid().setPos(e.pos.copy().add(cos(TWO_PI/num*i)*size*0.5,sin(TWO_PI/num*i)*size*0.5)):(Asteroid)new Asteroid_Core().setPos(e.pos.copy().add(cos(TWO_PI/num*i)*size*0.5,sin(TWO_PI/num*i)*size*0.5));
+        a.rotate=a.protate=TWO_PI/num*i;
+        a.init();
+        a.setSize(size*0.5);
+        NextEntities.add(a);
+      }
+    };
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(rotate);
+    g.rectMode(CENTER);
+    g.strokeWeight(2);
+    g.noFill();
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(toColor(c));
+    }
+    g.beginShape();
+    for(int i=0;i<8;i++){
+      g.vertex(cos(TWO_PI/8f*i)*size*0.5,sin(TWO_PI/8f*i)*size*0.5);
+    }
+    g.endShape(CLOSE);
+    g.popMatrix();
+  }
+  
+  @Override
+  public void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
+  }
+  
+  @Override
+  protected void spownEntity(){
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+    if(random(1f)<maxHP*0.05f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.005?random(1f)<maxHP*0.0005?100:10:1));
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    super.EnemyHit(e,b);
+    if(!(e instanceof BossEnemy))e.Hit(1);
+    Hit(0.032/(size/20f));
+  }
+  
+  public void Down(){
+    HP=0;
+    killCount.incrementAndGet();
+    player.score_kill.addAndGet(round((float)HP*(size/70)));
+    destruct(this);
+    spownEntity();
+    dead.deadEvent(this);
+    dead=(e)->{};
+  }
+}
+
+class Asteroid_Core extends Asteroid{
+  
+  @Override
+  protected void init(){
+    maxSpeed=0.9;
+    setColor(new Color(75,215,75,100));
+    setController(new AsteroidController());
+    dead=(e)->{
+      NextEntities.add(new AsteroidExplosion(this));
+    };
+  }
+}
+
+class Gear extends Crystal{
+  boolean active=false;
+  
+  float cool=0f;
+  float duration;
+  
+  float angle=0;
+  
+  void init(){
+    maxSpeed=1.1;
+    setSize(30);
+    setHP(12);
+    setColor(new Color(205,165,165));
+    cool=random(180,480);
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(rotate);
+    g.rectMode(CENTER);
+    g.strokeWeight(1);
+    g.noFill();
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(toColor(c));
+    }
+    g.beginShape();
+    for(int i=0;i<5;i++){
+      g.vertex(cos(TWO_PI/5f*i)*size*0.5,sin(TWO_PI/5f*i)*size*0.5);
+    }
+    g.endShape(CLOSE);
+    g.beginShape();
+    for(int i=0;i<5;i++){
+      g.vertex(cos(TWO_PI/5f*i+angle)*size*0.5,sin(TWO_PI/5f*i+angle)*size*0.5);
+    }
+    g.endShape(CLOSE);
+    g.popMatrix();
+  }
+  
+  void Process(){
+    if(!active){
+      cool-=vectorMagnification;
+    }else{
+      duration-=vectorMagnification;
+      angle+=radians(vectorMagnification*8);
+    }
+    if(cool<=0&&!active){
+      active=true;
+      duration=random(120,300);
+    }
+    if(duration<=0&&active){
+      active=false;
+      cool=random(180,480);
+    }
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    super.EnemyHit(e,b);
+    if(active&&!((e instanceof Gear)||(e instanceof BossEnemy)))e.Hit(1);
+  }
+}
+
+class IceChunk extends IceDust{
+  
+  void init(){
+    setHP(6);
+    setSize(35);
+    maxSpeed=0.7;
+    setColor(new Color(0,255,255));
+    dead=(e)->{
+      for(int i=0;i<6;i++){
+        IceDust ice=(IceDust)new IceDust().setPos(e.pos.copy().add(cos(TWO_PI/6.0*i)*size*0.5,sin(TWO_PI/6.0*i)*size*0.5));
+        ice.rotate=ice.protate=TWO_PI/6.0*i;
+        ice.init();
+        NextEntities.add(ice);
+      }
+    };
+  }
+}
+
+class ARM extends M_Boss_Y{
+  MissileWeapon weapon;
+  boolean active=false;
+  
+  float cool=0f;
+  float duration;
+  float shot_cool=0f;
+  
+  float angle=0;
+  
+  @Override
+  public void init(){
+    weapon=new MissileWeapon(this);
+    weapon.setBulletNumber(10);
+    weapon.setSpeed(5f);
+    weapon.setDiffuse(TWO_PI);
+    setHP(500);
+    maxSpeed=1.1;
+    rotateSpeed=1.3;
+    setSize(55);
+    setMass(37);
+    setColor(new Color(205,165,165));
+    cool=random(180,480);
+    shot_cool=random(240,420);
+    if(StageName.equals("Stage9")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage10")&&STAGE_COUNT>9)stageList.addContent("Stage10");scene=3;}));
+        boss.Dispose();
+      };
+    }
+    addMultiplyer(IceWeapon.class,2);
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(rotate);
+    g.rectMode(CENTER);
+    g.strokeWeight(1);
+    g.noFill();
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(toColor(c));
+    }
+    g.beginShape();
+    for(int i=0;i<5;i++){
+      g.vertex(cos(TWO_PI/5f*i)*size*0.5,sin(TWO_PI/5f*i)*size*0.5);
+    }
+    g.endShape(CLOSE);
+    g.beginShape();
+    for(int i=0;i<5;i++){
+      g.vertex(cos(TWO_PI/5f*i+angle)*size*0.5,sin(TWO_PI/5f*i+angle)*size*0.5);
+    }
+    g.endShape(CLOSE);
+    g.popMatrix();
+  }
+  
+  @Override
+  void Process(){
+    super.Process();
+    shot_cool-=vectorMagnification;
+    if(shot_cool<0){
+      weapon.shot();
+      shot_cool=random(240,420);
+    }
+    if(!active){
+      cool-=vectorMagnification;
+    }else{
+      duration-=vectorMagnification;
+      angle+=radians(vectorMagnification*8);
+    }
+    if(cool<=0&&!active){
+      active=true;
+      duration=random(360,660);
+      maxSpeed=1.4;
+    }
+    if(duration<=0&&active){
+      active=false;
+      cool=random(300,600);
+      maxSpeed=1.1;
+    }
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    pos=p;
+    if(StageName.equals("Stage9")){
+      boss.setTarget(this);
+      main_game.getHUDComponentSet().add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+  
+  @Override
+  protected void spownEntity(){
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+    if(random(1f)<maxHP*0.05f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.005?random(1f)<maxHP*0.0005?100:10:1));
+  }
+  
+  public void Hit(Weapon w){
+    float mult=(MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1)*(active?0.5:1);
+    HP-=w.power*mult;
+    damage+=w.power*mult;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+}
+
+class Fixed_Turret extends Turret_S{
+  
+  void init(){
+    setController(new FixedTurretController());
+    setHP(20);
+    setSize(25);
+    setColor(new Color(255,0,170));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    useWeapon.duration=600;
+    useWeapon.coolTime=random(180,270);
+    return this;
+  }
+  
+  @Override
+  public void ExplosionHit(Explosion e,boolean b){
+    Hit(10);
+  }
+  
+  @Override
+  protected void spownEntity(){
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+    if(random(1f)<maxHP*0.05f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.005?random(1f)<maxHP*0.0005?100:10:1));
+  }
+}
+
+class Rotate_Turret_D extends Fixed_Turret{
+  
+  void init(){
+    setController(new RotateTurretController());
+    setHP(10);
+    setSize(25);
+    rotateSpeed=radians(3);
+    setColor(new Color(255,0,170));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new BarrageWeapon(this));
+    useWeapon.duration=600;
+    useWeapon.coolTime=random(15,20);
+    useWeapon.bulletNumber=2;
+    return this;
+  }
+}
+
+class Rotate_Turret_Q extends Fixed_Turret{
+  
+  void init(){
+    setController(new RotateTurretController());
+    setHP(12);
+    setSize(25);
+    rotateSpeed=radians(3);
+    setColor(new Color(255,0,170));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new BarrageWeapon(this));
+    useWeapon.duration=600;
+    useWeapon.coolTime=random(20,30);
+    useWeapon.bulletNumber=4;
+    return this;
+  }
+}
+
+class Bound_Turret extends Fixed_Turret{
+  
+  void init(){
+    super.init();
+    setHP(12);
+    setColor(new Color(0,110,255));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    useWeapon=new WallBounseWeapon(this);
+    useWeapon.duration=600;
+    useWeapon.coolTime=random(180,270);
+    return this;
+  }
+}
+
+class Bound_Turret_D extends Fixed_Turret{
+  
+  void init(){
+    super.init();
+    setHP(14);
+    setColor(new Color(0,110,255));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    useWeapon=new WallBounseWeapon(this);
+    useWeapon.duration=500;
+    useWeapon.coolTime=random(30,60);
+    useWeapon.bulletNumber=2;
+    return this;
+  }
+}
+
+class Self_Explosion extends Fixed_Turret{
+  boolean fire=false;
+  float timer=180;
+  
+  {
+    dead=(e)->{
+      NextEntities.add(new Explosion(e,size*2,0.5,5));
+    };
+  }
+  
+  @Override
+  void init(){
+    super.init();
+    setHP(8);
+    maxSpeed=0;
+    rotateSpeed=3;
+    setColor(new Color(255,128,0));
+  }
+  
+  void Process(){
+    if(fire){
+      timer-=vectorMagnification;
+      NextEntities.add(new Particle(this,1,1));
+    }
+    if(timer<0)Down();
+  }
+  
+  @Override
+  protected void putAABB(){
+    inScreen=-scroll.x<Center.x+AxisSize.x/2&&Center.x-AxisSize.x/2<-scroll.x+width&&-scroll.y<Center.y+AxisSize.y/2&&Center.y-AxisSize.y/2<-scroll.y+height;
+    float x=AxisSize.x*4.0;
+    float min=Center.x-x;
+    float max=Center.x+x;
+    HeapEntityDataX.get(threadNum).add(new AABBData(min,"s",this));
+    HeapEntityDataX.get(threadNum).add(new AABBData(max,"e",this));
+  }
+  
+  @Override
+  public void ExplosionHit(Explosion e,boolean b){
+    Down();
+  }
+  
+  @Override
+  public void MyselfCollision(Myself m){
+    if(!m.isDead&&qDist(m.pos,pos,(m.size+size)*0.5)){
+      MyselfHit(m,true);
+    }else if(!m.isDead&&qDist(m.pos,pos,(m.size+size)*4.0)){
+      fire=true;
+    }
+  }
+}
+
+class Circle_Turret extends Fixed_Turret{
+  
+  void init(){
+    setController(new RotateTurretController());
+    setHP(16);
+    setSize(25);
+    rotateSpeed=radians(3);
+    setColor(new Color(0,255,170));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new BarrageWeapon(this));
+    useWeapon.duration=600;
+    useWeapon.coolTime=random(25,40);
+    useWeapon.bulletNumber=12;
+    return this;
+  }
+}
+
+class Homing_Turret extends Fixed_Turret{
+  
+  void init(){
+    super.init();
+    setHP(18);
+    setSize(25);
+    setColor(new Color(255,0,100));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new MissileWeapon(this));
+    useWeapon.duration=400;
+    useWeapon.coolTime=random(60,90);
+    useWeapon.bulletNumber=1;
+    return this;
+  }
+}
+
+class Turret_Fast extends Fixed_Turret{
+  
+  void init(){
+    super.init();
+    setHP(20);
+    setSize(25);
+    setColor(new Color(235,255,0));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new FlashWeapon(this));
+    useWeapon.power*=2;
+    useWeapon.duration=400;
+    useWeapon.coolTime=random(60,90);
+    useWeapon.bulletNumber=1;
+    return this;
+  }
+}
+
+class Turret_Laser extends Fixed_Turret{
+  
+  void init(){
+    super.init();
+    setHP(25);
+    setSize(25);
+    setColor(new Color(255,0,0));
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    setWeapon(new EnemyLaserWeapon(this));
+    useWeapon.coolTime=random(130,180);
+    useWeapon.bulletNumber=1;
+    return this;
+  }
+}
+
+class Disk_Turret extends M_Boss_Y{
+  BarrageWeapon weapon;
+  
+  boolean barrage=false;
+  
+  float time=0;
+  float cooltime=0;
+  
+  float cool=random(400,700);
+  
+  float defenceDamage=0;
+  
+  @Override
+  public void init(){
+    useWeapon=new BarrageWeapon(this);
+    useWeapon.setBulletNumber(6);
+    useWeapon.setSpeed(5f);
+    useWeapon.setCoolTime(15f);
+    setHP(500);
+    maxSpeed=0.5;
+    rotateSpeed=1;
+    setSize(55);
+    setMass(37);
+    setColor(new Color(210,210,210));
+    if(StageName.equals("Stage10")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage11")&&STAGE_COUNT>10)stageList.addContent("Stage11");scene=3;}));
+        boss.Dispose();
+      };
+    }
+  }
+  
+  @Override
+  public void display(PGraphics g){
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(rotate);
+    g.rectMode(CENTER);
+    g.strokeWeight(1);
+    g.noFill();
+    if(Debug){
+      g.colorMode(HSB);
+      g.stroke(hue,255,255);
+      g.colorMode(RGB);
+    }else{
+      g.stroke(barrage?color(105,160,200):toColor(c));
+    }
+    g.beginShape();
+    for(int i=0;i<8;i++){
+      g.vertex(cos(TWO_PI/8f*i)*size*0.5,sin(TWO_PI/8f*i)*size*0.5);
+    }
+    g.endShape(CLOSE);
+    g.popMatrix();
+  }
+  
+  @Override
+  void Process(){
+    time+=vectorMagnification;
+    if(time>cool||defenceDamage>30){
+      cool=random(400,700);
+      time=0;
+      defenceDamage=0;
+      barrage=!barrage;
+      if(barrage){
+        setController(new RotateTurretController());
+        rotateSpeed=1;
+      }else{
+        setController(new SurvivorEnemyController());
+        rotateSpeed=1;
+      }
+    }
+    cooltime+=vectorMagnification;
+    if(useWeapon.coolTime*(barrage?1.0:4.0)<cooltime){
+      useWeapon.shot();
+      cooltime=random(-2,2);
+    }
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    pos=p;
+    if(StageName.equals("Stage10")){
+      boss.setTarget(this);
+      main_game.getHUDComponentSet().add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+  
+  public void Hit(Weapon w){
+    float mult=MultiplyerMap.containsKey(w.getClass())?MultiplyerMap.get(w.getClass()):1;
+    if(barrage){
+      defenceDamage+=w.power*mult;
+      return;
+    }
+    HP-=w.power*mult;
+    damage+=w.power*mult;
+    hit=true;
+    if(!isDead&&HP<=0){
+      Down();
+      return;
+    }
+  }
+  
+  @Override
+  protected void spownEntity(){
+    NextEntities.add(new Particle(this,(int)(size*3),1));
+    if(random(1f)<maxHP*0.05f)NextEntities.add(new Fragment(this,random(1f)<maxHP*0.005?random(1f)<maxHP*0.0005?100:10:1));
+  }
+}
+
+class S_Boss_Y extends M_Boss_Y{
+  
+  @Override
+  protected void init(){
+    setHP(300);
+    maxSpeed=1.85;
+    rotateSpeed=1.2;
+    setSize(52);
+    setMass(35);
+    setColor(new Color(255,255,10));
+    if(StageName.equals("StageE1")){
+      boss=new HUDText("BOSS");
+      dead=(e)->{
+        StageFlag.add("Survive_10_min");
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));
+        boss.Dispose();
+      };
+    }
+    addMultiplyer(PlasmaFieldWeapon.class,1.2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    if(StageName.equals("StageE1")){
+      boss.setTarget(this);
+      main_game.getHUDComponentSet().add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+}
+
+interface BossEnemy{}
+
+interface BlastResistant{}
+
+interface ExcludeArchive{}

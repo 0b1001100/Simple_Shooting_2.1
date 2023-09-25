@@ -10,6 +10,7 @@ import SSGUI.input.controller.Controller_RelativeSlider;
 import SSGUI.input.controller.Controller_Slider;
 import SSGUI.input.controller.configuration.Controller_Configuration;
 import SSGUI.input.controller.configuration.Dualshock_Configuration;
+import SSGUI.input.controller.configuration.Xbox_Configuration;
 import net.java.games.input.Component;
 import net.java.games.input.DirectAndRawInputEnvironmentPlugin;
 import processing.core.PApplet;
@@ -24,7 +25,7 @@ public class Controller extends Device {
   private ArrayList<Controller_Button>buttons;
   private Controller_Hat hat;
 
-  private boolean avariable=false;
+  private boolean available=false;
   
   public Controller(PApplet applet,PSurfaceJOGL surface){
     super(applet,surface);
@@ -42,8 +43,8 @@ public class Controller extends Device {
           controllers.forEach(c->{
             if(c.getType().toString().equals("Gamepad")||c.getType().toString().equals("Stick"))gamePad=c;
           });
-          avariable=(gamePad!=null);
-          if(avariable){
+          available=(gamePad!=null);
+          if(available){
             sliders.clear();
             buttons.clear();
             for(Component c:gamePad.getComponents()){
@@ -61,11 +62,15 @@ public class Controller extends Device {
                 }
               }
             }
+            if(gamePad.getName().contains("Xbox")){
+              config=new Xbox_Configuration(this);
+            }else{
+              config=new Dualshock_Configuration(this);
+            }
           }
-          config.init();
         }
         try {
-          Thread.sleep(500);
+          Thread.sleep(750);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
@@ -75,8 +80,12 @@ public class Controller extends Device {
 
   public void update(){
     synchronized(this){
-     if(gamePad==null)return;
-      gamePad.poll();
+      if(gamePad==null)return;
+      if(!gamePad.poll()){
+        available=false;
+        gamePad=null;
+        return;
+      }
       config.update();
       hat.update();
       buttons.forEach(b->b.update());
@@ -84,22 +93,30 @@ public class Controller extends Device {
     }
   }
 
-  public boolean isAvariable(){
-    return avariable;
+  public boolean isAvailable(){
+    return available;
   }
 
   public ArrayList<Controller_Button> getButtons(){
-    if(!avariable)return null;
+    if(!available)return null;
     return buttons;
   }
 
   public Controller_Button getButton(int index){
-    if(!avariable)return null;
+    if(!available)return null;
     return buttons.get(index);
   }
 
+  public boolean getButtonPress(){
+    if(!available)return false;
+    for(Controller_Button b:buttons){
+      if(b.press())return true;
+    }
+    return false;
+  }
+
   public Controller_Hat getHat(){
-    if(!avariable)return null;
+    if(!available)return null;
     return hat;
   }
 
@@ -126,32 +143,42 @@ public class Controller extends Device {
   }
 
   public float getMoveAngle(){
-    if(!avariable)return Float.NaN;
+    if(!available)return Float.NaN;
     return config.getMoveAngle();
   }
 
+  public float getMoveMag(){
+    if(!available)return 0;
+    return config.getMoveMag();
+  }
+
   public float getAttackAngle(){
-    if(!avariable)return Float.NaN;
+    if(!available)return Float.NaN;
     return config.getAttackAngle();
   }
 
+  public float getAttackMag(){
+    if(!available)return 0;
+    return config.getAttackMag();
+  }
+
   public boolean beginAttack(){
-    if(!avariable)return false;
+    if(!available)return false;
     return config.getBeginAttack();
   }
 
   public boolean beginMove(){
-    if(!avariable)return false;
+    if(!available)return false;
     return config.getBeginMove();
   }
 
   public boolean endAttack(){
-    if(!avariable)return false;
+    if(!available)return false;
     return config.getEndAttack();
   }
 
   public boolean endMove(){
-    if(!avariable)return false;
+    if(!available)return false;
     return config.getEndMove();
   }
 }

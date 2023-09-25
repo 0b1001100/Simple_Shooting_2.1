@@ -45,16 +45,16 @@ float field(in vec3 p) {
 }
 
 void main() {
-     	vec2 uv2 = 2. * gl_FragCoord.xy / vec2(512) - 1.;
+  vec2 uv2 = 2. * gl_FragCoord.xy / vec2(512) - 1.;
 	vec2 uvs = uv2 * vec2(512)  / 512.;
 	
 	float time2 = time;
-        float speed = speed2;
+  float speed = speed2;
         speed = .01 * cos(time2*0.02 + 3.1415926/4.0);          
 	//speed = 0.0;
-    	float formuparam = formuparam2;
+  float formuparam = formuparam2;
 
-    	//get coords and direction
+  //get coords and direction
 	vec2 uv = uvs;
 	//mouse rotation
 	float a_xz = 0.9;
@@ -69,8 +69,8 @@ void main() {
 	float v2 =1.0;
 	vec3 dir=vec3(uv*zoom,1.);
 	vec3 from=vec3(0.0, 0.0,0.0);
-        from.x -= 5.0*(mouse.x-0.5);
-        from.y -= 5.0*(mouse.y-0.5);
+      from.x -= 5.0*(mouse.x-0.5);
+      from.y -= 5.0*(mouse.y-0.5);
 
 
 	vec3 forward = vec3(0.,0.,1.);

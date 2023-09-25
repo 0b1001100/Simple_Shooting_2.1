@@ -225,3 +225,172 @@ class particleFragment extends Entity{
     pos.add(vel.copy().mult(vectorMagnification));
   }
 }
+
+abstract class LineManager{
+  ArrayList<Line>lines=new ArrayList<>();
+  
+  void update(){
+    addLine();
+    lines.forEach(l->l.update());
+    ArrayList<Line> nextLines=new ArrayList<>();
+    lines.forEach(l->{if(!l.isDead)nextLines.add(l);});
+    lines=nextLines;
+  }
+  
+  abstract void addLine();
+  
+  void display(){
+    lines.forEach(l->l.display());
+  }
+  
+  LineManager get(){
+    lines.clear();
+    return this;
+  }
+}
+
+class DefaultLineManager extends LineManager{
+  
+  void addLine(){}
+}
+
+class HexagonLineManager extends LineManager{
+  
+  void addLine(){
+    while(lines.size()<20)lines.add(new Hex_Line(100));
+  }
+}
+
+class TriangleLineManager extends LineManager{
+  
+  void addLine(){
+    while(lines.size()<20)lines.add(new Tri_Line(100));
+  }
+}
+
+abstract class Line{
+  ArrayList<PVector>positions=new ArrayList<>();
+  ArrayList<PVector>vertex=new ArrayList<>();
+  ArrayList<Boolean>inScreen=new ArrayList<>();
+  PVector position;
+  PVector vector;
+  PVector pVector;
+  
+  int length=120;
+  
+  boolean isDead=false;
+  
+  Line(PVector start,PVector vector){
+    position=start;
+    this.vector=vector;
+    pVector=vector.copy();
+    positions.add(start.copy());
+    inScreen.add(inScreen(start));
+  }
+  
+  void setVector(PVector v){
+    vector=v;
+  }
+  
+  void update(){
+    if(!vector.equals(pVector)){
+      vertex.add(position.copy());
+    }
+    pVector=vector.copy();
+    position.add(vector);
+    whileUpdate();
+    while(positions.size()>=length){
+      if(!vertex.isEmpty()&&positions.get(0).equals(vertex.get(0)))vertex.remove(0);
+      positions.remove(0);
+      inScreen.remove(0);
+    }
+    boolean dead[]=new boolean[]{false};
+    inScreen.forEach(b->dead[0]=dead[0]||b);
+    if(!dead[0]){
+      isDead=true;
+      return;
+    }
+    positions.add(position.copy());
+    inScreen.add(inScreen(position));
+  }
+  
+  abstract void whileUpdate();
+  
+  void display(){
+    stroke(100,90,90);
+    strokeWeight(2);
+    if(vertex.size()>=1){
+      PVector s=positions.get(0);
+      PVector e;
+      for(int i=0;i<vertex.size();i++){
+        e=vertex.get(i);
+        line(s.x,s.y,e.x,e.y);
+        s=vertex.get(i);
+      }
+      e=positions.get(positions.size()-1);
+      line(s.x,s.y,e.x,e.y);
+    }else{
+      PVector s=positions.get(0);
+      PVector e=positions.get(positions.size()-1);
+      line(s.x,s.y,e.x,e.y);
+    }
+  }
+  
+  boolean inScreen(PVector p){
+    return 0<=p.x&&p.x<=width&&0<=p.y&&p.y<=height;
+  }
+}
+
+class Hex_Line extends Line{
+  float angle;
+  
+  PVector dist=new PVector();
+  
+  float scale;
+  
+  {
+    angle=radians(floor(random(0,3))*120);
+  }
+  
+  Hex_Line(float scale){
+    super(new PVector(width*0.5,height*0.5),new PVector());
+    setVector(new PVector(3*cos(angle),3*sin(angle)));
+    this.scale=scale;
+  }
+  
+  void whileUpdate(){
+    dist.add(vector);
+    if(dist.mag()>=scale){
+      angle+=radians(floor(sign(random(-1,1)))*60);
+      setVector(new PVector(3*cos(angle),3*sin(angle)));
+      dist.set(0,0);
+    }
+  }
+}
+
+class Tri_Line extends Line{
+  float angle;
+  
+  PVector dist=new PVector();
+  
+  float scale;
+  
+  {
+    angle=radians(floor(random(0,3))*120);
+  }
+  
+  Tri_Line(float scale){
+    super(new PVector(width*0.5,height*0.5),new PVector());
+    setVector(new PVector(3*cos(angle),3*sin(angle)));
+    this.scale=scale;
+  }
+  
+  void whileUpdate(){
+    dist.add(vector);
+    if(dist.mag()>=scale){
+      angle+=radians(floor(sign(random(-1,1)))*(frameCount%3)*60);
+      setVector(new PVector(3*cos(angle),3*sin(angle)));
+      dist.set(0,0);
+    }
+  }
+}

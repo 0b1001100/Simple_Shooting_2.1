@@ -1,0 +1,53 @@
+{
+  "Tutorial":{
+    "ja_jp":"時間\n  --:--\n武器\n  -",
+    "en_us":"Time\n  --:--\nWeapon\n  -"
+  },
+  "StageE1":{
+    "ja_jp":"時間\n  3:00\n武器\n  -",
+    "en_us":"Time\n  3:00\nWeapon\n  -"
+  },
+  "Stage1":{
+    "ja_jp":"時間\n  10:00\n武器\n  Laser\n  PlasmaField",
+    "en_us":"Time\n  10:00\nWeapon\n  Laser\n  PlasmaField"
+  },
+  "Stage2":{
+    "ja_jp":"時間\n  10:00\n武器\n  Mirror\n  Reflector",
+    "en_us":"Time\n  10:00\nWeapon\n  Mirror\n  Reflector"
+  },
+  "Stage3":{
+    "ja_jp":"時間\n  10:00\n武器\n  Turret\n  Absorption",
+    "en_us":"Time\n  10:00\nWeapon\n  Turret\n  Absorption"
+  },
+  "Stage4":{
+    "ja_jp":"時間\n  10:00\n武器\n  G_Shot\n  Grenade",
+    "en_us":"Time\n  10:00\nWeapon\n  G_Shot\n  Grenade"
+  },
+  "Stage5":{
+    "ja_jp":"時間\n  14:00\n武器\n  Fire\n  Lightning",
+    "en_us":"Time\n  14:00\nWeapon\n  Fire\n  Lightning"
+  },
+  "Stage6":{
+    "ja_jp":"時間\n  10:00\n武器\n  Mirror\n  BLAS\n  Ice",
+    "en_us":"Time\n  10:00\nWeapon\n  Mirror\n  BLAS\n  Ice"
+  },
+  "Stage7":{
+    "ja_jp":"時間\n  10:00\n武器\n  Mirror\n  Absorption\n  Ice",
+    "en_us":"Time\n  10:00\nWeapon\n  Mirror\n  Absorption\n  Ice"
+  },
+  "Stage8":{
+    "ja_jp":"時間\n  5:00\n武器\n  -",
+    "en_us":"Time\n  5:00\nWeapon\n  -",
+    "background":"pixel"
+  },
+  "Stage9":{
+    "ja_jp":"時間\n  7:00\n武器\n  -\n特殊ルール\n  スコア100毎にクールタイムが1%減少",
+    "en_us":"Time\n  7:00\nWeapon\n  -\nSpecial rules\n 1% decrease in cool time for every 100 score",
+    "background":"pixel"
+  },
+  "Stage10":{
+    "ja_jp":"時間\n  10:00\n武器\n  -\n特殊ルール\n  スコア100毎にクールタイムが1%減少",
+    "en_us":"Time\n  10:00\nWeapon\n  -\nSpecial rules\n 1% decrease in cool time for every 100 score",
+    "background":"pixel"
+  }
+}

@@ -36,7 +36,7 @@ class Stage{
   }
   
   public void addSpown(PVector pos,Enemy e){
-    spown.add(new SpownPoint(pos,e));
+    spown.add(new SpownPoint(pos,0,e));
   }
   
   public void addSpown(EnemySpown s,float offset,Enemy e){
@@ -46,7 +46,7 @@ class Stage{
   public void addSpown(EnemySpown s,float offset,float t,Enemy e){
     int number=0;
     switch(s){
-      case Single:spown.add(new SpownPoint(player.pos.copy(),t,e));return;
+      case Single:spown.add(new SpownPoint(player.pos.copy(),HALF_PI*3f,t,e));return;
       case Double:number=2;break;
       case Triangle:number=3;break;
       case Rect:number=4;break;
@@ -60,7 +60,7 @@ class Stage{
     float r=TWO_PI/number;
     try{
       for(int i=0;i<number;i++){
-        spown.add(new SpownPoint(player.pos.copy().add(new PVector(e.size*4*cos(r*i+offset+HALF_PI),-e.size*4*sin(r*i+offset+HALF_PI))),t,e.clone()));
+        spown.add(new SpownPoint(player.pos.copy().add(new PVector(e.size*4*cos(r*i+radians(offset)+HALF_PI),-e.size*4*sin(r*i+radians(offset)+HALF_PI))),r,t,e.clone()));
       }
     }catch(CloneNotSupportedException f){}
   }
@@ -73,7 +73,20 @@ class Stage{
     float r=TWO_PI/n;
     try{
       for(int i=0;i<n;i++){
-        spown.add(new SpownPoint(player.pos.copy().add(new PVector(e.size*4*dist*cos(r*i+offset+HALF_PI),-e.size*4*dist*sin(r*i+offset+HALF_PI))),t,e.clone()));
+        spown.add(new SpownPoint(player.pos.copy().add(new PVector(e.size*4*dist*cos(r*i+radians(offset)+HALF_PI),-e.size*4*dist*sin(r*i+radians(offset)+HALF_PI))),r,t,e.clone()));
+      }
+    }catch(CloneNotSupportedException f){}
+  }
+  
+  public void addSpown_Center(int n,float dist,float offset,Enemy e){
+    addSpown_Center(n,dist,offset,120,e);
+  }
+  
+  public void addSpown_Center(int n,float dist,float offset,float t,Enemy e){
+    float r=TWO_PI/n;
+    try{
+      for(int i=0;i<n;i++){
+        spown.add(new SpownPoint(new PVector(e.size*4*dist*cos(r*i+radians(offset)+HALF_PI),-e.size*4*dist*sin(r*i+radians(offset)+HALF_PI)),r,t,e.clone()));
       }
     }catch(CloneNotSupportedException f){}
   }
@@ -129,9 +142,11 @@ class Stage{
           if(sum[0]<=rand&rand<sum[0]+freq){
             e[0]=ene.clone();
             if(displaySpown){
-              spown.add(new SpownPoint(v[0].add(cos(r)*e[0].size,sin(r)*e[0].size),e[0]));
+              spown.add(new SpownPoint(v[0].add(cos(r)*e[0].size,sin(r)*e[0].size),r,e[0]));
             }else{
-              NextEntities.add(e[0].setPos(v[0].add(cos(r)*e[0].size,sin(r)*e[0].size)));
+              Enemy _e=e[0].setPos(v[0].add(cos(r)*e[0].size,sin(r)*e[0].size));
+              _e.rotate=_e.protate=r+PI;
+              NextEntities.add(_e);
             }
           }
           sum[0]+=freq;
@@ -157,14 +172,15 @@ class SpownPoint{
   boolean isDead=false;
   PVector pos;
   float time;
+  float angle;
   
-  SpownPoint(PVector pos,Enemy e){
+  SpownPoint(PVector pos,float angle,Enemy e){
     this.pos=pos;
     time=120;
     this.e=e;
   }
   
-  SpownPoint(PVector pos,float time,Enemy e){
+  SpownPoint(PVector pos,float angle,float time,Enemy e){
     this.pos=pos;
     this.time=time;
     this.e=e;
@@ -184,6 +200,7 @@ class SpownPoint{
     if(time<0){
       isDead=true;
       e.setPos(pos);
+      e.rotate=e.protate=angle+PI;
       e.init();
       NextEntities.add(e);
       return;
@@ -232,6 +249,7 @@ abstract class GameHUD{
 
 class SurvivorHUD extends GameHUD{
   private ComponentSet PauseSet;
+  int pScore=0;
   
   SurvivorHUD(GameProcess parent){
     super(parent);
@@ -284,7 +302,7 @@ class SurvivorHUD extends GameHUD{
       GravityLens.set("center",centers,2);
       GravityLens.set("g",rads);
       GravityLens.set("len",LensData.size());
-      GravityLens.set("texture",g);
+      GravityLens.set("input_texture",g);
       GravityLens.set("resolution",width,height);
       applyShader(GravityLens);
     }
@@ -294,6 +312,9 @@ class SurvivorHUD extends GameHUD{
   }
   
   private void displayHUD(){
+    if(pScore<player.score_kill.get()+player.score_tech.get()){
+      pScore+=max(1,(player.score_kill.get()+player.score_tech.get()-pScore)*0.1);
+    }
     push();
     resetMatrix();
     stageLayer.display();
@@ -322,7 +343,7 @@ class SurvivorHUD extends GameHUD{
     text(Language.getString("ui_kill")+":"+killCount,width-200,78);
     text(Language.getString("ui_remain")+":"+player.remain,100,78);
     text(Language.getString("ui_frag")+":"+player.fragment,250,78);
-    //text("weapons:"+player.attackWeapons.size(),400,78);
+    text("Score:"+pScore,width-450,78);
     pop();
   }
   

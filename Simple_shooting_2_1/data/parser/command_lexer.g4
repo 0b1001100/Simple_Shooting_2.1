@@ -56,6 +56,14 @@ DURATION:'duration';
 
 COOLTIME:'cooltime';
 
+INVINCIBLE:'invincible';
+
+SUMMON:'summon';
+
+ABSOLUTE:'absolute';
+
+RELATIVE:'relative';
+
 fragment Digits:[0-9] ([0-9_]* [0-9])?;
 
 fragment EscapeSequence:'\\'[btnfr"'\\]|'\\'([0-3]? [0-7])? [0-7]|'\\''u'+ HexDigit HexDigit HexDigit HexDigit;

@@ -11,7 +11,7 @@ public class Controller_Slider extends Controller_Input {
 
   @Override
   public float getRawValue(){
-    return component.getPollData();
+    return rawValue;
   }
 
   public float getTotalValue(){

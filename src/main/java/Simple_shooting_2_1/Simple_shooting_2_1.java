@@ -23,12 +23,12 @@ public class Simple_shooting_2_1 extends PApplet{
   @Override
   public void settings(){
     size(1280,720,P2D);
-    initUI();
   }
 
   @Override
   public void setup(){
     hint(DISABLE_KEY_REPEAT);
+    initUI();
     input=new Input(this, (PSurfaceJOGL)surface);
     glpg=(PGraphicsOpenGL)g;
   }

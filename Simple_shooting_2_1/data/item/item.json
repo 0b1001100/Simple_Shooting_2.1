@@ -1,0 +1,90 @@
+{
+  "list":[
+    {
+      "name":"hp",
+      "progress":2,
+      "stock":9,
+      "price":1250
+    },
+    {
+      "name":"attack",
+      "progress":2,
+      "stock":4,
+      "price":1500
+    },
+    {
+      "name":"auto_recover",
+      "progress":3,
+      "stock":1,
+      "price":2000
+    },
+    {
+      "name":"revive",
+      "progress":4,
+      "stock":2,
+      "price":1750
+    },
+    {
+      "name":"defence",
+      "progress":5,
+      "stock":5,
+      "price":1750
+    },
+    {
+      "name":"background_hexagon",
+      "progress":1,
+      "stock":1,
+      "price":1000
+    },
+    {
+      "name":"background_triangle",
+      "progress":2,
+      "stock":1,
+      "price":1000
+    },
+    {
+      "name":"sale",
+      "progress":0,
+      "stock":1,
+      "price":0
+    }
+  ],
+  "lang":{
+    "ja_jp":{
+      "hp":"HP増加",
+      "ex_hp":"HPを1増加させる",
+      "attack":"攻撃力増加",
+      "ex_attack":"攻撃力を0.25増加させる",
+      "auto_recover":"自動回復",
+      "ex_auto_recover":"毎秒2%自動回復するようになる",
+      "revive":"復活",
+      "ex_revive":"残機が1増える",
+      "defence":"防御増加",
+      "ex_defence":"防御を0.05増加させる",
+      "background_hexagon":"背景(正六角形)",
+      "ex_background_hexagon":"メニュー画面の背景(正六角形)\n設定から変更可能",
+      "background_triangle":"背景(三角形)",
+      "ex_background_triangle":"メニュー画面の背景(三角形)\n設定から変更可能",
+      "sale":"売却",
+      "ex_sale":"所持しているアイテムを全て売却する"
+    },
+    "en_us":{
+      "hp":"HP increase",
+      "ex_hp":"Increases HP by 1",
+      "attack":"attack increase",
+      "ex_attack":"Increases attack by 0.25",
+      "auto_recover":"automatic recovery",
+      "ex_auto_recover":"It will now auto-heal 2% per second.",
+      "revive":"Revive",
+      "ex_revive":"Remain increases by one.",
+      "defence":"defence increace",
+      "ex_defence":"Increases defence by 0.05",
+      "background_hexagon":"Background (Hexagon)",
+      "ex_background_hexagon":"Menu screen background (Hexagon)\nCan be changed from settings",
+      "background_triangle":"Background (triangle)",
+      "ex_background_triangle":"Menu screen background (triangle)\nCan be changed from settings",
+      "sale":"Sale",
+      "ex_sale":"Sell all items in your possession."
+    }
+  }
+}

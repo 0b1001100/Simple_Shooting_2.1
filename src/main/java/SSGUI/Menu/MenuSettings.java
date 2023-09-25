@@ -16,7 +16,6 @@ public enum MenuSettings {
 
   private MenuSettings(){
     theme=new MenuTheme();
-    getFocusAnimator();
   }
 
   public VectorAnimator getFocusAnimator(){

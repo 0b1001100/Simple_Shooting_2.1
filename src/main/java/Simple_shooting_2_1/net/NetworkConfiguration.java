@@ -44,9 +44,28 @@ public enum NetworkConfiguration {
     }
 
     //get local IP
+    ProcessBuilder local_builder=new ProcessBuilder("nslookup","test");
+    
+    try{
+      Process process = local_builder.start();
+      try (BufferedReader r = new BufferedReader(new InputStreamReader(process.getInputStream(), Charset.defaultCharset()))) {
+          String line;
+          while ((line = r.readLine()) != null) {
+            if(line.contains("Address")){
+              local_IP=line.split(":")[1].trim();
+            }
+          }
+      }
+    }catch (IOException e){
+      e.printStackTrace();
+    }
   }
 
   public String getGlobalIP(){
     return global_IP;
+  }
+
+  public String getLocalIP(){
+    return local_IP;
   }
 }

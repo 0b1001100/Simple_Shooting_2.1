@@ -1,7 +1,7 @@
 uniform vec2 resolution;
 uniform sampler2D input_texture;
-const float FXAA_SPAN_MAX = 8.0;
-const float FXAA_REDUCE_MUL = 1.0 / 1.5;
+const float FXAA_SPAN_MAX = 4.0;
+const float FXAA_REDUCE_MUL = 1.0 / 2.0;
 const float FXAA_SUBPIX_SHIFT = 1.0 / 4.0;
 
 #define FxaaInt2 vec2
