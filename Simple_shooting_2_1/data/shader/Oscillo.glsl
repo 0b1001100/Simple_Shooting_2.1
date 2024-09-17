@@ -1,6 +1,6 @@
 uniform vec2 resolution;
 uniform float time;
-uniform sampler2D input_texture;
+uniform sampler2D texture;
 
 void main(void){
     float frac=mod(time*1000.,25.)/25.;
@@ -20,7 +20,7 @@ void main(void){
     
     bool display=two?pos<frac||pos>frac_min:pos<frac&&pos>frac_min;
 
-    vec4 col = texture(input_texture,uv);
+    vec4 col = texture(texture,uv);
     
     float gray=length(col.rgb);
 

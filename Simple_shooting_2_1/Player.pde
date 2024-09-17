@@ -22,7 +22,6 @@ class Myself extends Entity{
   double absDefence;
   volatile float exp=0;
   float nextLevel=10;
-  float protate=0;
   float diffuse=0;
   float rotateSpeed=10;
   float bulletSpeed=15;
@@ -71,7 +70,7 @@ class Myself extends Entity{
     g.rotate(rotate);
     g.strokeWeight(1);
     g.noFill();
-    g.stroke(toColor(c));
+    g.stroke(skins.get());
     g.ellipse(0,0,size,size);
     g.strokeWeight(3);
     g.arc(0,0,size*1.5,size*1.5,
@@ -176,12 +175,11 @@ class Myself extends Entity{
   
   public void Rotate(){
     float rad=0;
-    rad=main_input.getMoveMag()>0?main_input.getMoveAngle():rotate;
+    rad=main_input.getMoveMag()>0?(TWO_PI-main_input.getMoveAngle()):rotate;
     if(Float.isNaN(rad))rad=rotate;
     PVector dir=new PVector(cos(rotate),sin(rotate));
     PVector t_dir=new PVector(cos(rad),sin(rad));
     rad=constrain(PVector.angleBetween(dir,t_dir),0,radians(rotateSpeed*main_input.getMoveMag()))*sign(cross(dir,t_dir))*vectorMagnification;
-    protate=rotate;
     rotate+=rad;
     rotate=rotate%TWO_PI;
   }
@@ -204,8 +202,9 @@ class Myself extends Entity{
   }
   
   private void addVel(float accel,boolean force){
-    Speed*=0.9f;
-    vel.mult(0.9f);
+    float mag=pow(0.9f,vectorMagnification);
+    Speed*=mag;
+    vel.mult(mag);
     if(!force){
       Speed+=accel*vectorMagnification;
       Speed=min(maxSpeed*speedMag,Speed);
@@ -217,8 +216,9 @@ class Myself extends Entity{
   }
   
   private void subVel(float accel,boolean force){
-    Speed*=0.9f;
-    vel.mult(0.9f);
+    float mag=pow(0.9f,vectorMagnification);
+    Speed*=mag;
+    vel.mult(mag);
     if(!force){
       Speed-=accel*vectorMagnification;
       Speed=max(-maxSpeed,Speed);
@@ -232,6 +232,7 @@ class Myself extends Entity{
   public void shot(){
     if(coolingTime>selectedWeapon.coolTime&&((((mousePressed&&autoShot)||(main_input.getMouse().mousePress()&&!autoShot))&&mouseButton==LEFT)||main_input.getAttackMag()>0
       )&&!selectedWeapon.empty){
+      soundManager.play("shot");
       selectedWeapon.shot();
       coolingTime=0;
     }else if(selectedWeapon.empty){
@@ -290,7 +291,7 @@ class Myself extends Entity{
   
   @Override
   public void BulletCollision(Bullet b){
-    if(!b.isMine)b.MyselfCollision(this);
+    if(!(b.parent.parent instanceof Myself))b.MyselfCollision(this);
   }
   
   @Override
@@ -305,6 +306,31 @@ class Myself extends Entity{
       damage+=d-Defence.get().floatValue();
     }
     hit=true;
+  }
+}
+
+class Player_Skin{
+  HashMap<String,Integer>colors=new HashMap<>();
+  String current="default";
+  
+  Player_Skin(){
+    colors.put("default",color(0,255,0));
+    colors.put("red",color(255,0,0));
+    colors.put("orange",color(255,128,0));
+    colors.put("yellow",color(255,255,0));
+    colors.put("light_blue",color(0,200,255));
+    colors.put("blue",color(0,50,255));
+    colors.put("purple",color(255,0,255));
+    colors.put("rainbow",color(0,255,0));
+  }
+  
+  int get(){
+    if(current.equals("rainbow"))return Color.HSBtoRGB(millis()*0.0005,1,1);
+    return colors.get(current);
+  }
+  
+  void set(String s){
+    if(colors.containsKey(s))current=s;
   }
 }
 
@@ -371,6 +397,7 @@ class Satellite extends Entity{
   }
   
   public void shot(){
+    satellite.parent=player;
     target=player.pos.copy().add(player.pos.copy().sub(pos));
     NextEntities.add(new SatelliteBullet(satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
   }
@@ -400,7 +427,33 @@ class Hexite extends Satellite{
   }
   
   public void shot(){
+    satellite.parent=player;
     target=player.pos.copy().add(player.pos.copy().sub(pos));
     NextEntities.add(new HexiteBullet((HexiteWeapon)satellite,this,target.copy().add(random(-satellite.scale*8,satellite.scale*8),random(-satellite.scale*8,satellite.scale*8))));
+  }
+}
+
+int[] ten_keys=new int[]{LogiLED.NUM_ZERO,LogiLED.NUM_ONE,LogiLED.NUM_TWO,LogiLED.NUM_THREE,LogiLED.NUM_FOUR,LogiLED.NUM_FIVE,LogiLED.NUM_SIX,LogiLED.NUM_SEVEN,LogiLED.NUM_EIGHT,LogiLED.NUM_NINE};
+int[] num_keys=new int[]{LogiLED.ZERO,LogiLED.ONE,LogiLED.TWO,LogiLED.THREE,LogiLED.FOUR,LogiLED.FIVE,LogiLED.SIX,LogiLED.SEVEN,LogiLED.EIGHT,LogiLED.NINE};
+
+void applyPlayerColor(){
+  int i=skins.get();
+  int r=int(red(i));
+  int g=int(green(i));
+  int b=int(blue(i));
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.W,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.S,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.A,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.D,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_UP,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_DOWN,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_LEFT,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_RIGHT,r,g,b);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.G_LOGO,r,g,b);
+  int life=min(player.remain,9);
+  for(int j=0;j<10;j++){
+    boolean current=life==j;
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(ten_keys[j],current?255:0,0,0);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(num_keys[j],current?255:0,0,0);
   }
 }

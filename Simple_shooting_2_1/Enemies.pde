@@ -423,7 +423,7 @@ class M_Boss_Y extends Enemy implements BossEnemy{
   @Override
   protected void init(){
     setHP(1000);
-    maxSpeed=1.85;
+    maxSpeed=1;
     rotateSpeed=1.2;
     setSize(52);
     setMass(35);
@@ -2479,6 +2479,20 @@ class Sealed_Base extends M_Boss_Y{
   }
   
   @Override
+  public void display(PGraphics g){
+    super.display(g);
+    if(release)return;
+    g.pushMatrix();
+    g.translate(pos.x,pos.y);
+    g.rotate(rotate);
+    g.noFill();
+    g.strokeWeight(1);
+    g.stroke(0,255,255,100);
+    g.circle(0,0,size);
+    g.popMatrix();
+  }
+  
+  @Override
   public void Process(){
     super.Process();
     if(!release){
@@ -2692,7 +2706,7 @@ class SealedFrag_Defence extends SealedFrag_Base{
   void BulletHit(Bullet b,boolean bl){
     if(pHit!=b){
       b.isDead=false;
-      b.isMine=false;
+      b.parent.parent=this;
       b.reflectFromNormal(PVector.sub(b.pos,pos).normalize());
       pHit=b;
     }
@@ -2779,7 +2793,7 @@ class SealedFrag_Stun extends SealedFrag_Base{
   void BulletHit(Bullet b,boolean bl){
     if(pHit!=b){
       b.isDead=false;
-      b.isMine=false;
+      b.parent.parent=this;
       b.reflectFromNormal(PVector.sub(b.pos,pos).normalize());
       pHit=b;
     }

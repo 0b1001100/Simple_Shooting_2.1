@@ -1,4 +1,16 @@
 [
   "cursor_move.wav",
-  "select.wav"
+  "select.wav",
+  "shot.mp3",
+  "*smoke.mp3",
+  "*bridge.mp3",
+  "*battle.mp3",
+  "*confusion.mp3",
+  "*vivid.mp3",
+  "*Sound_Wave.mp3",
+  "*ArcCOS.mp3",
+  "*ZONE_-X13-.mp3",
+  "*haze.mp3",
+  "*PIKE.mp3",
+  "*Sign.mp3"
 ]

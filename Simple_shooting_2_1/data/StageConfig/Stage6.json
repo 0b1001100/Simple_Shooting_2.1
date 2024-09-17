@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"ZONE_-X13-",
+    "achievement":"Clear_Stage6"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

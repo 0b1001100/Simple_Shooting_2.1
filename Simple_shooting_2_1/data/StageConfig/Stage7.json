@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"Sound_Wave",
+    "achievement":"Clear_Stage7"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

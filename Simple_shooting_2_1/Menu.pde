@@ -1,7 +1,10 @@
 Canvas menu_op_canvas;
 ShopItemList shopItemList=new ShopItemList();
-ItemList backgroundList=new ItemList();
+SelectItemList backgroundList=new SelectItemList();
+SelectItemList skinList=new SelectItemList();
+AchievementList achievementList=new AchievementList();
 
+Player_Skin skins=new Player_Skin();
 HashMap<String,LineManager>menu_animations=new HashMap<>();
 HashMap<String,Consumer<String>>shop_selected_process=new HashMap<>();
 LineManager menu_animation=new DefaultLineManager();
@@ -13,12 +16,25 @@ LineManager menu_animation=new DefaultLineManager();
 }
 
 public void initMenu(){
+  LogiLED.LogiLedSetLighting(0,0,0);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F5,0,128,255);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_UP,0,128,255);
+  LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_DOWN,0,128,255);
   soundManager.setMute(true);
   starts=new ComponentSetLayer();
   NormalButton New=new NormalButton(Language.getString("start_game"));
   New.setBounds(width*0.5-155,height-80,140,30);
   New.addListener(()-> {
     starts.toChild("main");
+    LogiLED.LogiLedSetLighting(0,0,0);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F5,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_UP,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_DOWN,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.RIGHT_SHIFT,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.LEFT_SHIFT,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ESC,0,128,255);
   });
   New.addWindowResizeEvent(()->{
     New.setBounds(width*0.5-155,height-80,140,30);
@@ -69,7 +85,7 @@ public void initMenu(){
           g.loadPixels();
           titleShader.set("tex",g);
           titleShader.set("position",titleLight,2);
-          titleShader.set("resolution",width,height);
+          titleShader.set("resolution",(float)width,(float)height);
           preg.filter(titleShader);
           g.filter(titleShader);
         }else{
@@ -77,7 +93,7 @@ public void initMenu(){
           g.loadPixels();
           titleShader.set("tex",preg);
           titleShader.set("position",titleLight,2);
-          titleShader.set("resolution",width,height);
+          titleShader.set("resolution",(float)width,(float)height);
           preg.filter(titleShader);
           g.filter(titleShader);
         }
@@ -135,6 +151,10 @@ public void initMenu(){
   item.addListener(()->{
     starts.toChild("item");
   });
+  MenuButton ach=new MenuButton(Language.getString("achievement"));
+  ach.addListener(()->{
+    starts.toChild("achievement");
+  });
   MenuButton Archive=new MenuButton(Language.getString("Archive"));
   Archive.addListener(()->{
     starts.toChild("archive");
@@ -146,11 +166,16 @@ public void initMenu(){
       starts.toChild("arc_list");
       starts.getNowComponents().forEach(c->c.addSelect());
     });
+    MenuButton arc_w_tolist=new MenuButton(Language.getString("weapon"));
+    arc_w_tolist.addListener(()->{
+      starts.toChild("arc_w_list");
+      starts.getNowComponents().forEach(c->c.addSelect());
+    });
     MenuButton arc_back=new MenuButton(Language.getString("back"));
     arc_back.addListener(()->{
       starts.toParent();
     });
-    ComponentSet archiveSelect=toSet(arcLayout,arc_tolist,arc_back);
+    ComponentSet archiveSelect=toSet(arcLayout,arc_tolist,arc_w_tolist,arc_back);
     //---
   //---
   MenuButton operationEx=new MenuButton(Language.getString("operation_ex"));
@@ -186,17 +211,27 @@ public void initMenu(){
   //--
   starts.setSubChildDisplayType(1);
   starts.addLayer("root",titleSet);
-  starts.addChild("root","main",toSet(mainLayout,Select,Config,item,Archive,operationEx,credit));
+  starts.addChild("root","main",toSet(mainLayout,Select,Config,item,ach,Archive,operationEx,credit));
   starts.addSubChild("main","stage",toSet(stageList));
   starts.addSubChild("stage","mode",toSet(new Y_AxisLayout(570,120,120,25,10),NormalMag,AbsMag));
   confSet(starts);
   itemSet(starts);
+  achievementSet(starts);
   starts.addChild("main","archive",archiveSelect);
   starts.addSubChild("archive","arc_list",initArchive(archiveSelect));
+  starts.addSubChild("archive","arc_w_list",initWeaponArchive(archiveSelect));
   operationSet(starts);
   creditSet(starts);
   if(launched){
     starts.toChild("main");
+    LogiLED.LogiLedSetLighting(0,0,0);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F5,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_UP,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_DOWN,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.RIGHT_SHIFT,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.LEFT_SHIFT,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ESC,0,128,255);
   }else{
     launched=true;
   }
@@ -297,6 +332,27 @@ void confSet(ComponentSetLayer layer){
          public void lostFocus(){}
       });
       //--
+    MenuButton Skin=new MenuButton(Language.getString("skin"));
+    Skin.addListener(()->{
+      starts.toChild("skinMenu");
+    });
+    Skin.addFocusListener(new FocusEvent(){
+       public void getFocus(){
+        confBox.setText(Language.getString("ex_skin"));
+      }
+      
+       public void lostFocus(){}
+    });
+      //--
+      skinList.setBounds(400,100,300,500);
+      skinList.showSub=false;
+      skinList.addContent("default");
+      skinList.addSelectListener((s)->{
+        skins.set(s);
+        conf.setString("skin",s);
+        exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
+      });
+      //--
     MenuButton Background=new MenuButton(Language.getString("background"));
     Background.addListener(()->{
       starts.toChild("bgMenu");
@@ -309,12 +365,62 @@ void confSet(ComponentSetLayer layer){
        public void lostFocus(){}
     });
       //--
-      backgroundList=new ItemList();
       backgroundList.setBounds(400,100,300,500);
       backgroundList.showSub=false;
       backgroundList.addContent("default");
       backgroundList.addSelectListener((s)->{
-        if(menu_animations.containsKey(s))menu_animation=menu_animations.get(s).get();
+        if(menu_animations.containsKey(s)){
+          menu_animation=menu_animations.get(s).get();
+          conf.setString("background",s.replace("s",""));
+          exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
+        }
+      });
+      //--
+    MenuButton Volume=new MenuButton(Language.getString("sound"));
+    Volume.addListener(()->{
+      starts.toChild("volMenu");
+    });
+    Volume.addFocusListener(new FocusEvent(){
+       public void getFocus(){
+        confBox.setText(Language.getString("ex_sound"));
+      }
+      
+       public void lostFocus(){}
+    });
+      //--
+      SliderItem bgm=new SliderItem(11);
+      bgm.setBounds(400,100,300,25);
+      bgm.setLabel("BGM");
+      bgm.smooth=false;
+      bgm.setValue(conf.getJSONObject("volume").getInt("bgm"));
+      bgm.addFocusListener(new FocusEvent(){
+         public void getFocus(){
+          confBox.setText(Language.getString("ex_BGM"));
+        }
+        
+         public void lostFocus(){}
+      });
+      SliderItem SE=new SliderItem(11);
+      SE.setBounds(400,150,300,25);
+      SE.setLabel("SE");
+      SE.smooth=false;
+      SE.setValue(conf.getJSONObject("volume").getInt("SE"));
+      SE.addFocusListener(new FocusEvent(){
+         public void getFocus(){
+          confBox.setText(Language.getString("ex_SE"));
+        }
+        
+         public void lostFocus(){}
+      });
+      bgm.addListener(()->{
+        soundManager.setVolume((bgm.getValue()-1)/5.0,(SE.getValue()-1)/5.0);
+        conf.getJSONObject("volume").setInt("bgm",bgm.getValue());
+        exec.execute(()->saveJSONObject(conf,SavePath+"config.json"));
+      });
+      SE.addListener(()->{
+        soundManager.setVolume((bgm.getValue()-1)/5.0,(SE.getValue()-1)/5.0);
+        conf.getJSONObject("volume").setInt("SE",SE.getValue());
+        exec.execute(()->saveJSONObject(conf,SavePath+"config.json"));
       });
       //--
     MenuButton Lang=new MenuButton(Language.getString("language"));
@@ -411,9 +517,11 @@ void confSet(ComponentSetLayer layer){
         starts.toParent();
       });
   //---
-  layer.addSubChild("main","confMenu",toSet(confLayout,Display,Background,Lang,exit,reset),toSet(confBox));
+  layer.addSubChild("main","confMenu",toSet(confLayout,Display,Skin,Background,Volume,Lang,exit,reset),toSet(confBox));
   layer.addSubChild("confMenu","dispMenu",toSet(dispLayout,Colorinv,dispFPS,Quality,vsy,fullsc),toSet(confBox));
+  layer.addSubChild("confMenu","skinMenu",toSet(skinList),toSet(confBox));
   layer.addSubChild("confMenu","bgMenu",toSet(backgroundList),toSet(confBox));
+  layer.addSubChild("confMenu","volMenu",toSet(bgm,SE),toSet(confBox));
   layer.addSubChild("confMenu","Language",toSet(LangList));
   layer.addSubChild("confMenu","reset_dialog",toSet(DialogBG,back_reset,enter_reset));
 }
@@ -440,10 +548,12 @@ void itemSet(ComponentSetLayer layer){
       shopItemList.Items.get(s).setStock(shopItemList.Items.get(s).stock+1);
       conf.getJSONObject("Items").setInt(s,shopItemList.Items.get(s).stock);
       if(shop_selected_process.containsKey(s))shop_selected_process.get(s).accept(s);
+      ShopItem v=shopItemList.Items.get(s);
+      if(s.contains("background_")&&v.stock>0&&!backgroundList.contains(s.split("background_")[1]))backgroundList.addContent(s.split("background_")[1]);
+      if(s.contains("skin_")&&v.stock>0&&!skinList.contains(s.split("skin_")[1]))skinList.addContent(s.split("skin_")[1]);
     }
-    shopItemList.Items.forEach((k,v)->{
-      if(k.contains("background_")&&v.stock>0&&!backgroundList.contains(k.split("background_")[1]))backgroundList.addContent(k.split("background_")[1]);
-    });
+    saveConfig save=new saveConfig();
+    exec.submit(save);
   });
   shopItemList.addExplanation("_","Loading...");
   exec.execute(()->{
@@ -460,11 +570,29 @@ void itemSet(ComponentSetLayer layer){
       shopItemList.addExplanation(item.getString("name"),lang.getString("ex_"+item.getString("name")));
     }
     shopItemList.Items.forEach((k,v)->{
-      if(k.contains("background_")&&v.stock>0&&!backgroundList.contains(k.split("background_")[1]))backgroundList.addContent(k.split("background_")[1]);
+      if(k.contains("background_")&&v.stock>0&&!backgroundList.contains(k.split("background_")[1])){
+        backgroundList.addContent(k.split("background_")[1]);
+      }
+      backgroundList.setSelectedIndex(conf.getString("background"));
+      menu_animation=menu_animations.get(conf.getString("background")).get();
+      if(k.contains("skin_")&&v.stock>0&&!skinList.contains(k.split("skin_")[1])){
+        skinList.addContent(k.split("skin_")[1]);
+      }
+      skinList.setSelectedIndex(conf.getString("skin"));
+      skins.set(conf.getString("skin"));
     });
   });
   shopItemList.setPredicate(i->fragmentCount>=i);
   starts.addSubChild("main","item",toSet(shopItemList));
+}
+
+void achievementSet(ComponentSetLayer layer){
+  achievementList.setBounds(250,100,300,500);
+  achievementList.setSubBounds(width-350,100,300,500);
+  achievementList.addWindowResizeEvent(()->{
+    achievementList.setSubBounds(width-350,100,300,500);
+  });
+  starts.addSubChild("main","achievement",toSet(achievementList));
 }
 
 void operationSet(ComponentSetLayer layer){
@@ -532,7 +660,7 @@ void creditSet(ComponentSetLayer layer){
   back_cr.addWindowResizeEvent(()->{
     back_cr.setBounds(20,height*0.9f,120,25);
   });
-  PFont[] f={createFont("SansSerif.plain",height*0.03)};
+  PFont[] f={createFont(font_name,height*0.03)};
   boolean[] cr_res={true};
   Canvas cr_canvas=new Canvas(g);
   cr_canvas.addWindowResizeEvent(()->{
@@ -540,24 +668,26 @@ void creditSet(ComponentSetLayer layer){
   });
   cr_canvas.setContent((g)->{
     if(cr_res[0]){
-      f[0]=createFont("SansSerif.plain",height*0.03);
+      float t_size=height*0.03;
+      f[0]=createFont(font_name,height*0.03);
+      String text=getLanguageText("credit_co");
+      String comp_text="\n\n"+getLanguageText("credit_co_2");
+      credit_scroll_limit=(text.length()-text.replace("\n","").length())*(t_size+16)+(conf.getBoolean("clear")?comp_text.length()-comp_text.replace("\n","").length():0)*(t_size+16);
+      credit_scroll=-height;
       cr_res[0]=false;
     }
     g.pushMatrix();
-    g.translate(0,750-credit_scroll);
+    g.translate(0,-credit_scroll);
     g.fill(0);
     g.rectMode(CORNER);
     g.textAlign(CENTER,TOP);
     g.textLeading(30);
     g.textSize(height*0.03);
     g.textFont(f[0]);
-    g.text(getLanguageText("credit_co"),0,30,width,height*0.9-30);
-    g.textAlign(CENTER,BOTTOM);
-    g.textLeading(30);
-    if(conf.getBoolean("clear"))g.text(getLanguageText("credit_co_2"),0,0,width*0.9,height*0.9-30);
+    g.text(getLanguageText("credit_co")+(conf.getBoolean("clear")?"\n\n"+getLanguageText("credit_co_2"):""),0,30,width,height*3-30);
     g.popMatrix();
     if(credit_scroll>=credit_scroll_limit){
-      credit_scroll=0;
+      credit_scroll=-height;
     }else{
       credit_scroll+=vectorMagnification;
     }
@@ -611,5 +741,33 @@ ComponentSet initArchive(ComponentSet parent){
     Entities.addAll(NextEntities);
   });
   archive=toSet(view,list);
+  return archive;
+}
+
+ComponentSet initWeaponArchive(ComponentSet parent){
+  ComponentSet archive=new ComponentSet();
+  ItemList list=new ItemList();
+  list.setBounds(10,100,300,height-200);
+  list.setSubBounds(width-310,100,300,height-200);
+  list.addWindowResizeEvent(()->{
+    list.setBounds(10,100,300,height-200);
+    list.setSubBounds(width-310,100,300,height-200);
+  });
+  list.addFocusListener(new FocusEvent(){
+    void getFocus(){
+      parent.Active=false;
+    }
+    
+    void lostFocus(){
+     parent.Active=true;
+    }
+  });
+  String[] arr=conf.getJSONArray("Weapons").toStringArray();
+  Arrays.sort(arr);
+  for(String s:arr){
+    list.addContent(s);
+    list.addExplanation(s,getLanguageText("ex_"+s));
+  }
+  archive=toSet(list);
   return archive;
 }

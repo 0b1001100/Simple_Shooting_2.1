@@ -1,5 +1,9 @@
 [
   {
+    "type":"setting",
+    "bgm":"ArcCOS"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

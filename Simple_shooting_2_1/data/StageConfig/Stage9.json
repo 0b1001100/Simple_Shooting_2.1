@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"PIKE",
+    "achievement":"Clear_Stage9"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

@@ -1,6 +1,7 @@
 class GameProcess{
   private GameHUD mainHUD;
   HashMap<String,String>EventSet;
+  HashMap<String,ArrayList<BiSwitchConsumer>>EventProcessSet;
   HashMap<String,Command>CommandQue=new HashMap<String,Command>();
   BackgroundShader backgroundShader;
   ComponentSet HUDSet;
@@ -33,6 +34,7 @@ class GameProcess{
   
    public void init(){
      EventSet=new HashMap<String,String>();
+     EventProcessSet=new HashMap<>();
      HUDSet=new ComponentSet();
      UpgradeSet=new ComponentSet();
      stageLayer=new ComponentSetLayer();
@@ -59,35 +61,13 @@ class GameProcess{
      playerTable.getAll().forEach(i->{
        playerTable.addTable(i,i.weight);
      });
-     JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
-     if(!StageName.equals(""))backgroundShader=backgrounds.get(ex.getJSONObject(StageName).getString("background","default"));
      player.attackWeapons.clear();
-     switch(StageName){
-       case "Tutorial":initTutorial();break;
-       case "Stage1":player.attackWeapons.add(masterTable.getWeapon("Laser"));
-                     player.attackWeapons.add(masterTable.getWeapon("PlasmaField"));
-                     break;
-       case "Stage2":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
-                     player.attackWeapons.add(masterTable.getWeapon("Reflector"));
-                     break;
-       case "Stage3":player.attackWeapons.add(masterTable.getWeapon("Turret"));
-                     player.attackWeapons.add(masterTable.getWeapon("Absorption"));
-                     break;
-       case "Stage4":player.attackWeapons.add(masterTable.getWeapon("G_Shot"));
-                     player.attackWeapons.add(masterTable.getWeapon("Grenade"));
-                     break;
-       case "Stage5":player.attackWeapons.add(masterTable.getWeapon("Fire"));
-                     player.attackWeapons.add(masterTable.getWeapon("Lightning"));
-                     break;
-       case "Stage6":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
-                     player.attackWeapons.add(masterTable.getWeapon("BLAS"));
-                     player.attackWeapons.add(masterTable.getWeapon("Ice"));
-                     break;
-       case "Stage7":player.attackWeapons.add(masterTable.getWeapon("Mirror"));
-                     player.attackWeapons.add(masterTable.getWeapon("Absorption"));
-                     player.attackWeapons.add(masterTable.getWeapon("Ice"));
-                     break;
+     JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
+     if(!StageName.equals("")){
+       backgroundShader=backgrounds.get(ex.getJSONObject(StageName).getString("background","default"));
+       Arrays.asList(ex.getJSONObject(StageName).getJSONArray("weapon").toStringArray()).forEach(s->player.attackWeapons.add(masterTable.getWeapon(s)));
      }
+     if(StageName.equals("Tutorial"))initTutorial();
   }
   
   private void initTutorial(){
@@ -265,8 +245,10 @@ class GameProcess{
     if(!upgrade)keyProcess();
     if(!(upgrade||menu)){
       player.handleUpdate();
-      EntityUpdateAndCollision(()->{},()->{EventProcess();EventSet.clear();});
+      EntityUpdateAndCollision(()->{},()->{});
     }
+    EventProcess();
+    EventSet.clear();
     HashMap<String,Command>nextQue=new HashMap<String,Command>();
     CommandQue.forEach((k,v)->{
       v.update();
@@ -369,10 +351,18 @@ class GameProcess{
     if(main_input.isMenuInput()){
       menu=!menu;
       if(!upgrade)pause=menu;
+      if(menu){
+        soundManager.fadeTo(current_bgm,0.9,0.1);
+      }else{
+        soundManager.amp(current_bgm,0.3);
+      }
     }
   }
   
    public void EventProcess(){
+    if(EventSet.containsKey("start_upgrade")){
+      soundManager.fadeTo(current_bgm,0.9,0.1);
+    }
     if(EventSet.containsKey("end_upgrade")){
       UpgradeSet.removeAll();
       if(player.levelupNumber<1){
@@ -380,6 +370,7 @@ class GameProcess{
       }else{
         player.levelup=true;
       }
+      soundManager.amp(current_bgm,0.3);
     }
     if(EventSet.containsKey("getNextWeapon")){
       String[] src=EventSet.get("getNextWeapon").split("_");
@@ -400,6 +391,13 @@ class GameProcess{
         playerTable.addTable(i,i.weight);
       }
     }
+    EventSet.forEach((k,v)->{
+      if(EventProcessSet.containsKey(k)){
+        EventProcessSet.get(k).forEach(p->{
+          p.accept(k,v);
+        });
+      }
+    });
   }
   
   ComponentSet getHUDComponentSet(){
@@ -494,6 +492,14 @@ class GameProcess{
           upgrade=false;
           EventSet.put("end_upgrade","");
         });
+      }
+      if(num==0){
+        player.levelup=false;
+        --player.levelupNumber;
+        upgrade=false;
+        EventSet.put("end_upgrade","");
+        player.fragment+=20;
+        return;
       }
       Canvas c=new Canvas(g);
       c.setContent((g->{
@@ -709,7 +715,7 @@ class GameProcess{
   public void command_summon(java.util.List<Token>tokens){
     int type=1;//relative
     if(tokens.size()>4){
-      type=tokens.get(5).getText().equals("relative")?1:0;
+      type=tokens.get(4).getText().equals("relative")?1:0;
     }
     try{
       stage.addSpown(new PVector(Float.valueOf(tokens.get(2).getText()),Float.valueOf(tokens.get(3).getText())).add(type==1?player.pos:new PVector(0,0)),
@@ -719,8 +725,9 @@ class GameProcess{
     }
   }
   
-   public void command_exit(){
-    scene=0;
+  public void command_exit(){
+    StageFlag.add("Game_Over");
+    scene=3;
     done=true;
   }
   
@@ -982,4 +989,101 @@ class DynamicWall extends WallEntity{
 
 interface Executable{
   public void exec(String s);
+}
+
+interface BiSwitchConsumer<T,U>{
+  final Switcher switcher=new Switcher(true);
+  
+  void accept(T t,U u);
+}
+
+static class Switcher{
+  boolean state=true;
+  
+  Switcher(boolean state){
+    this.state=state;
+  }
+  
+  void set(boolean state){
+    this.state=state;
+  }
+}
+
+class AchievementManager{
+  AchievementText text=new AchievementText();
+  HashMap<String,JSONObject> achievement_map=new HashMap<>();
+  ArrayList<String> achieved_list=new ArrayList<String>();
+  ArrayList<String> achieved=new ArrayList<String>();
+  String stage_a="";
+  
+  AchievementManager(){
+    JSONObject achievement=loadJSONObject(SavePath+"achievement.json");
+    achievement.keys().forEach(k->{
+      achievement_map.put((String)k,achievement.getJSONObject((String)k));
+    });
+    Arrays.asList(conf.getJSONArray("Achievement").toStringArray()).forEach(a->{
+      achieved_list.add(a);
+    });
+  }
+  
+  void setStageAchievement(String a){
+    stage_a=a;
+  }
+  
+  void stageCleared(){
+    complete(stage_a);
+  }
+  
+  void complete(String a){
+    if(isValid(a)){
+      achieved.add(a);
+      text.complete(a);
+    }
+  }
+  
+  boolean isValid(String a){
+    return achievement_map.containsKey(a)&&!achieved_list.contains(a);
+  }
+  
+  ArrayList<String> getAchieved(){
+    return achieved_list;
+  }
+  
+  void display(){
+    text.display();
+  }
+  
+  void update(){
+    if(!achieved.isEmpty()){
+      achieved.forEach(a->{
+        if(!isValid(a))return;
+        achieved_list.add(a);
+        Arrays.asList(achievement_map.get(a).getJSONArray("reward").toStringArray()).forEach(r->{
+          processAchievement(r);
+        });
+      });
+      achieved.clear();
+      JSONArray temp=new JSONArray();
+      achieved_list.forEach(a->{
+        temp.append(a);
+      });
+      conf.setJSONArray("Achievement",temp);
+      saveConfig save=new saveConfig();
+      exec.submit(save);
+    }
+    text.update();
+  }
+  
+  void processAchievement(String a){
+    if(!conf.getJSONArray("Achievement").isNull(0)){
+      java.util.List<String>list=Arrays.asList(conf.getJSONArray("Achievement").toStringArray());
+      if(list.contains(a))return;
+    }
+    String type=a.split(":")[0];
+    String target=a.split(":")[1];
+    switch(type){
+      case "Weapon":conf.getJSONArray("Weapons").append(target);break;
+      case "Fragment":fragmentCount+=Integer.parseInt(target);break;
+    }
+  }
 }

@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"smoke",
+    "achievement":"Clear_Stage5"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

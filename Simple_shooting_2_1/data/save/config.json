@@ -1,37 +1,64 @@
 {
+  "vsync": true,
+  "FPS": true,
+  "clear": false,
+  "skin": "default",
+  "Fragment": 720,
+  "volume": {
+    "SE": 6,
+    "bgm": 6
+  },
   "Language": "ja_jp",
   "Weapons": [
-    "G_Shot",
-    "Grenade",
     "Turret",
-    "Mirror",
     "PlasmaField",
     "Laser",
     "Lightning",
-    "Reflector",
-    "Absorption",
-    "BLAS",
-    "TLAS",
-    "Linear",
-    "Fire",
-    "Ice",
-    "Satellite",
-    "projectile",
     "scale",
     "power",
     "speed",
     "duration",
     "cooltime",
-    "magnet"
+    "Mirror",
+    "Reflector",
+    "Absorption",
+    "BLAS"
   ],
-  "vsync": false,
-  "Enemy": [],
-  "ShaderQuality": 0,
-  "FPS": false,
-  "clear": false,
-  "Stage": ["Tutorial"],
-  "Record": {},
+  "background": "default",
+  "Enemy": [
+    "Simple_shooting_2_1$DummyEnemy",
+    "Simple_shooting_2_1$ExplosionEnemy_Micro",
+    "Simple_shooting_2_1$Formation",
+    "Simple_shooting_2_1$M_Boss_Y",
+    "Simple_shooting_2_1$Micro_M",
+    "Simple_shooting_2_1$Micro_Y",
+    "Simple_shooting_2_1$Turret"
+  ],
+  "ShaderQuality": 2,
+  "Stage": [
+    "Tutorial",
+    "Stage1",
+    "Stage2",
+    "Stage3"
+  ],
+  "Record": {
+    "Tutorial": {
+      "score": 0,
+      "time": 27
+    },
+    "Stage1": {
+      "score": 1432,
+      "time": 608
+    },
+    "Stage2": {
+      "score": 1752,
+      "time": 609
+    }
+  },
   "Fullscreen": false,
   "Items": {},
-  "Fragment": 0
+  "Achievement": [
+    "Clear_Stage1",
+    "Clear_Stage2"
+  ]
 }

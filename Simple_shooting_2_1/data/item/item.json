@@ -34,13 +34,62 @@
       "name":"background_hexagon",
       "progress":1,
       "stock":1,
-      "price":1000
+      "price":1000,
+      "image":true
     },
     {
       "name":"background_triangle",
       "progress":2,
       "stock":1,
       "price":1000
+    },
+    {
+      "name":"skin_red",
+      "progress":1,
+      "stock":1,
+      "price":100
+    },
+    {
+      "name":"skin_orange",
+      "progress":1,
+      "stock":1,
+      "price":100
+    },
+    {
+      "name":"skin_yellow",
+      "progress":1,
+      "stock":1,
+      "price":100
+    },
+    {
+      "name":"skin_light_blue",
+      "progress":1,
+      "stock":1,
+      "price":100
+    },
+    {
+      "name":"skin_blue",
+      "progress":1,
+      "stock":1,
+      "price":100
+    },
+    {
+      "name":"skin_purple",
+      "progress":1,
+      "stock":1,
+      "price":100
+    },
+    {
+      "name":"skin_rainbow",
+      "progress":5,
+      "stock":1,
+      "price":1000
+    },
+    {
+      "name":"ooparts",
+      "progress":10,
+      "stock":1,
+      "price":1000000
     },
     {
       "name":"sale",
@@ -65,6 +114,22 @@
       "ex_background_hexagon":"メニュー画面の背景(正六角形)\n設定から変更可能",
       "background_triangle":"背景(三角形)",
       "ex_background_triangle":"メニュー画面の背景(三角形)\n設定から変更可能",
+      "skin_red":"スキン変更(赤色)",
+      "ex_skin_red":"自身の色を赤色に変更する\n設定から変更可能",
+      "skin_orange":"スキン変更(橙色)",
+      "ex_skin_orange":"自身の色を橙色に変更する\n設定から変更可能",
+      "skin_yellow":"スキン変更(黄色)",
+      "ex_skin_yellow":"自身の色を黄色に変更する\n設定から変更可能",
+      "skin_light_blue":"スキン変更(水色)",
+      "ex_skin_light_blue":"自身の色を水色に変更する\n設定から変更可能",
+      "skin_blue":"スキン変更(青色)",
+      "ex_skin_blue":"自身の色を青色に変更する\n設定から変更可能",
+      "skin_purple":"スキン変更(紫色)",
+      "ex_skin_purple":"自身の色を紫色に変更する\n設定から変更可能",
+      "skin_rainbow":"スキン変更(虹色)",
+      "ex_skin_rainbow":"自身の色を時間経過で変化させる\n設定から変更可能",
+      "ooparts":"オーパーツ",
+      "ex_ooparts":"高値で取引されているが、誰もその使い道を知らない。",
       "sale":"売却",
       "ex_sale":"所持しているアイテムを全て売却する"
     },
@@ -83,6 +148,22 @@
       "ex_background_hexagon":"Menu screen background (Hexagon)\nCan be changed from settings",
       "background_triangle":"Background (triangle)",
       "ex_background_triangle":"Menu screen background (triangle)\nCan be changed from settings",
+      "skin_red":"スキン変更(赤色)",
+      "ex_skin_red":"自身の色を赤色に変更する\n設定から変更可能",
+      "skin_orange":"スキン変更(橙色)",
+      "ex_skin_orange":"自身の色を橙色に変更する\n設定から変更可能",
+      "skin_yellow":"スキン変更(黄色)",
+      "ex_skin_yellow":"自身の色を黄色に変更する\n設定から変更可能",
+      "skin_light_blue":"スキン変更(水色)",
+      "ex_skin_light_blue":"自身の色を水色に変更する\n設定から変更可能",
+      "skin_blue":"スキン変更(青色)",
+      "ex_skin_blue":"自身の色を青色に変更する\n設定から変更可能",
+      "skin_purple":"スキン変更(紫色)",
+      "ex_skin_purple":"自身の色を紫色に変更する\n設定から変更可能",
+      "skin_rainbow":"スキン変更(虹色)",
+      "ex_skin_rainbow":"自身の色を時間経過で変化させる\n設定から変更可能",
+      "ooparts":"OOPARTS",
+      "ex_ooparts":"高値で取引されているが、誰もその使い道を知らない。",
       "sale":"Sale",
       "ex_sale":"Sell all items in your possession."
     }

@@ -94,14 +94,54 @@
     8. Homing_Turret 18 x//タレットがホーミング
     9.  Turret_Fast 20 x//高速弾タレット
     10. Turret_Laser 25 x//FF15のオメガみたいな攻撃をしてくる
-    11. Disk_Turret 600//UFO的なアレ
+    11. Disk_Turret 600 x//UFO的なアレ
 11. Remix_2
-    1. δ
-    2. Δ
+    1. Δ
+    2. γ
+12. Chain
+13. Dungeon
+    1. Box 5 //破壊するタイプの箱
+    2. Door //破壊不可能な扉
+    3. Core 100 //Doorの動力源
+    4. Pillar //ただの柱
+    5. TNT //文字通り
+    6. ElevetorButton //Elevetorを呼び出す
+    7. Elevetor //Exit
+14. Adventure
+    1. LaserTrap //触れると死
+    2. BoundTrap //BoundBullet発射
+    3. SlideElevetor //into The END...
+15. The END
+    1. 
 
 ## TODO
 - [x]スコア機能
 - [x]Stage9(サブ武器なし、7min)
-- [ ]Stage10(サブ武器なし、10min)
+- [x]Stage10(サブ武器なし、10min)
+- [ ]StateE2(ボスラッシュ、初期でInfinityShield)
+- [ ]Stage11
+- [ ]Stage12
+- [ ]Stage13(10min)
+- [ ]Stage14(10min)
+- [ ]Stage15(ラスボス戦、10min)
+- [x]スキン変更
+- [x]StageListをソート
+- [x]壁紙、スキンの選択画面で現在選択されているものを表示
+- [x]スキンと背景の保存
+- [ ]画面の揺れ
+- [ ]最低画質
+- [ ]ショップで画像表示
+- [ ]音量設定
+- [ ]プレイヤーの各動作にイベントを設定して、チュートリアルをイベント駆動型にすることでステージ設定ファイルに動作を記述する
+- [x]曲のクレジット
+- [x]完全レベルアップ後の対応
+- [ ]Endress
+- [ ]アチーブメントの表示(ステージ解放条件を明示)
+- [ ]武器を開放していく方式に
+- [ ]LAN内マルチプレイ
+  - [ ]"{}|"はエスケープシーケンス
+  - [ ]名前一致か"_"の場合にコマンド受け入れ
+  - [ ]"_"によるコマンドは制限付き
+- [ ]WANマルチプレイ(Ice server?)
 
 Bullet>Enemy>Myself>Explosion>Wall

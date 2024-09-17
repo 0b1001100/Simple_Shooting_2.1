@@ -187,7 +187,7 @@ class EnemyWeapon extends Weapon{
   
   EnemyWeapon(Enemy e){
     super(e);
-    parentEnemy=e;
+    parent=parentEnemy=e;
     setPower(1);
     setSpeed(3.5f);
     setDuration(120);
@@ -555,6 +555,11 @@ abstract class AttackWeapon extends SubWeapon{
       time=0;
     }
   }
+  
+  void shot(){
+    parent=player;
+    super.shot();
+  }
 }
 
 class G_ShotWeapon extends AttackWeapon{
@@ -635,6 +640,7 @@ class MirrorWeapon extends AttackWeapon{
   @Override
   public void shot(){
     offset=random(0,TWO_PI);
+    parent=player;
     super.shot();
   }
   
@@ -790,6 +796,7 @@ class LightningWeapon extends AttackWeapon{
   @Override
   public void shot(){
     super.shot();
+    parent=player;
     ++offset;
     offset%=12;
   }

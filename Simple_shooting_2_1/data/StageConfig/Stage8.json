@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"haze",
+    "achievement":"Clear_Stage8"
+  },
+  {
     "time":1,
     "type":"add",
     "param":{

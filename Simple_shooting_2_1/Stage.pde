@@ -266,6 +266,7 @@ class SurvivorHUD extends GameHUD{
     back.addListener(()->{
       parent.menu=false;
       pause=false;
+      soundManager.amp(current_bgm,0.3);
     });
     SkeletonButton menu=new SkeletonButton(getLanguageText("me_menu"));
     menu.setBounds(width*0.5-90,height*0.5+36,180,37);
@@ -274,7 +275,8 @@ class SurvivorHUD extends GameHUD{
     });
     menu.addListener(()->{
       parent.done=true;
-      scene=0;
+      StageFlag.add("Game_Over");
+      scene=3;
     });
     PauseSet.addAll(back,menu);
   }
@@ -302,8 +304,7 @@ class SurvivorHUD extends GameHUD{
       GravityLens.set("center",centers,2);
       GravityLens.set("g",rads);
       GravityLens.set("len",LensData.size());
-      GravityLens.set("input_texture",g);
-      GravityLens.set("resolution",width,height);
+      GravityLens.set("resolution",(float)width,(float)height);
       applyShader(GravityLens);
     }
     LensData.clear();

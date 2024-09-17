@@ -1,37 +1,31 @@
 {
   "Language": "ja_jp",
   "Weapons": [
-    "G_Shot",
-    "Grenade",
     "Turret",
-    "Mirror",
     "PlasmaField",
     "Laser",
     "Lightning",
-    "Reflector",
-    "Absorption",
-    "BLAS",
-    "TLAS",
-    "Linear",
-    "Fire",
-    "Ice",
-    "Satellite",
-    "projectile",
     "scale",
     "power",
     "speed",
     "duration",
-    "cooltime",
-    "magnet"
+    "cooltime"
   ],
   "vsync": false,
+  "volume":{
+    "bgm":6,
+    "SE":6
+  },
   "Enemy": [],
   "ShaderQuality": 0,
   "FPS": false,
   "clear": false,
   "Stage": ["Tutorial"],
   "Record":{},
+  "Achievement":[],
   "Fullscreen": false,
   "Fragment": 0,
-  "Items": {}
+  "Items": {},
+  "skin": "default",
+  "background": "default"
 }

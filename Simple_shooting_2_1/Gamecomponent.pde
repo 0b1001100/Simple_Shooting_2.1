@@ -136,7 +136,7 @@ class HUDText extends GameComponent{
   
   {
     focussable=false;
-    font=createFont("SansSerif.plain",15);
+    font=createFont(font_name,15);
   }
   
   HUDText(String text){
@@ -152,6 +152,9 @@ class HUDText extends GameComponent{
   
   public void display(){
     if(easeTime==0)return;
+    float ease=easeOutExpo(easeTime);
+    //frame(White)&line(White)->text(White)&frame(Black)&upper(White)
+    //Theme red&black or green&black or white&black
     float w=((Sigmoid(easeTime/7)-0.5)/0.5f)*(offset+mainWidth);
     pushMatrix();
     resetMatrix();
@@ -325,6 +328,46 @@ class LineTextField extends GameComponent{
   }
 }
 
+class AchievementText extends GameComponent{
+  ArrayList<String>completed=new ArrayList<>();
+  float cooltime=0;
+  float duration=180;
+  
+  AchievementText(){
+    
+  }
+  
+  void complete(String s){
+    completed.add(s);
+  }
+  
+  void display(){
+    if(completed.isEmpty())return;
+    textSize(15);
+    textFont(font_15);
+    float w=max(textWidth(getLanguageText("comp_achievement")),textWidth(getLanguageText(completed.get(0))))+20;
+    float offset=min(20,cooltime,180-cooltime);
+    noStroke();
+    fill(30,30,30);
+    rectMode(CORNER);
+    rect(0,height*0.2,(2.0/(1+pow(2.71828,-offset/5))-1)*w,50);
+    if(cooltime>20&&cooltime<160){
+      fill(230);
+      text(getLanguageText("comp_achievement"),10,height*0.2+21);
+      text(getLanguageText(completed.get(0)),10,height*0.2+43);
+    }
+    cooltime+=vectorMagnification;
+    if(cooltime>=duration){
+      cooltime=0;
+      completed.remove(0);
+    }
+  }
+  
+  void update(){
+    
+  }
+}
+
 abstract class ButtonItem extends GameComponent{
   protected SelectEvent e=()->{};
   protected boolean pCursor=false;
@@ -333,7 +376,7 @@ abstract class ButtonItem extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",d.y*0.5);
+      font=createFont(font_name,d.y*0.5);
     };
   }
   
@@ -396,7 +439,7 @@ abstract class CheckBox extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",d.y*0.5);
+      font=createFont(font_name,d.y*0.5);
     };
   }
   
@@ -454,7 +497,7 @@ abstract class ToggleBox extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",d.y*0.5);
+      font=createFont(font_name,d.y*0.5);
     };
   }
   
@@ -512,6 +555,7 @@ class SliderItem extends GameComponent{
   protected int Value=1;
   protected int pValue=1;
   protected int elementNum=2;
+  String label="";
   
   SliderItem(){
     setBackground(new Color(0,0,0));
@@ -530,6 +574,10 @@ class SliderItem extends GameComponent{
     setBorderColor(new Color(255,128,0));
   }
   
+  void setLabel(String l){
+    label=l;
+  }
+  
   public void setSmooth(boolean b){
     smooth=b;
   }
@@ -537,15 +585,21 @@ class SliderItem extends GameComponent{
   public void display(){
     blendMode(BLEND);
     strokeWeight(1);
-    fill(!focus?color(background.getRed(),background.getGreen(),background.getBlue(),background.getAlpha()):
-         color(selectbackground.getRed(),selectbackground.getGreen(),selectbackground.getBlue(),selectbackground.getAlpha()));
+    fill(!focus?toColor(background):toColor(selectbackground));
     stroke(0);
-    line(pos.x,pos.y,pos.x+dist.x,pos.y);
-    fill(!focus?color(foreground.getRed(),foreground.getGreen(),foreground.getBlue(),foreground.getAlpha()):
-         color(selectforeground.getRed(),selectforeground.getGreen(),selectforeground.getBlue(),selectforeground.getAlpha()));
-    stroke(border.getRed(),border.getGreen(),border.getBlue(),border.getAlpha());
+    line(pos.x,pos.y,pos.x+dist.x*(1-1.0/elementNum),pos.y);
+    for(int i=0;i<elementNum;i++){
+      float offset=dist.x/elementNum;
+      line(pos.x+offset*i,pos.y-5,pos.x+offset*i,pos.y+5);
+    }
+    fill(!focus?toColor(foreground):toColor(selectforeground));
+    stroke(!focus?color(30,30,30):toColor(border));
     rectMode(CENTER);
     rect(pos.x+Xdist,pos.y,dist.y/3,dist.y,dist.y/12);
+    fill(0);
+    textSize(15);
+    textFont(font_15);
+    text((Value-1)+"/"+(elementNum-1)+"  :"+label,pos.x+dist.x,pos.y);
   }
   
   public void update(){
@@ -573,17 +627,21 @@ class SliderItem extends GameComponent{
       Value=constrain(round(Xdist/(dist.x/elementNum))+1,1,elementNum);
     }
     if(!smooth){
-      Xdist=(dist.x/elementNum)*Value;
+      Xdist=(dist.x/elementNum)*(Value-1);
     }
     if(Value!=pValue)executeEvent();
   }
   
   public void keyProcess(){
-    switch(nowPressedKeyCode){
-      case RIGHT:Value=constrain(Value+1,1,elementNum);break;
-      case LEFT:Value=constrain(Value-1,1,elementNum);break;
+    if(focus&&main_input.isInputDetected()){
+      switch(main_input.getDirection()){
+        case Right:Value=constrain(Value+1,1,elementNum);break;
+        case Left:Value=constrain(Value-1,1,elementNum);break;
+        default:return;
+      }
+      Xdist=(dist.x/elementNum)*(Value-1);
+      if(Value!=pValue)executeEvent();
     }
-    Xdist=(dist.x/elementNum)*(Value-1);
   }
   
   public void addListener(ChangeEvent e){
@@ -598,10 +656,9 @@ class SliderItem extends GameComponent{
     return Value;
   }
   
-  @Deprecated
   public void setValue(int v){
     Value=constrain(v,1,elementNum);
-    Xdist=(dist.x/elementNum)*Value;
+    Xdist=(dist.x/elementNum)*(Value-1);
   }
 }
 
@@ -613,7 +670,7 @@ abstract class TextBox extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",fontSize);
+      font=createFont(font_name,fontSize);
     };
   }
   
@@ -772,7 +829,7 @@ class ItemList extends GameComponent{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",15);
+      font=createFont(font_name,15);
     };
   }
   
@@ -830,7 +887,7 @@ class ItemList extends GameComponent{
   GameComponent setBounds(float x,float y,float dx,float dy){
     pg=createGraphics(round(dx),round(dy),P2D);
     pg.beginDraw();
-    pg.textFont(createFont("SansSerif.plain",15));
+    pg.textFont(createFont(font_name,15));
     pg.endDraw();
     return super.setBounds(x,y,dx,dy);
   }
@@ -1028,6 +1085,71 @@ class ItemList extends GameComponent{
   }
 }
 
+class SelectItemList extends ItemList{
+  int idx=0;
+  
+  SelectItemList(){
+    super();
+  }
+  
+  SelectItemList(int i){
+    super();
+    idx=i;
+  }
+  
+  void setSelectedIndex(int i){
+    idx=i;
+  }
+  
+  void setSelectedIndex(String s){
+    idx=Contents.indexOf(s);
+  }
+  
+  public void Select(){
+    soundManager.play("select");
+    s.itemSelect(selectedItem);
+    idx=Contents.indexOf(selectedItem);
+  }
+  
+  public void display(){
+    blendMode(BLEND);
+    int num=0;
+    pg.beginDraw();
+    pg.background(toColor(background));
+    pg.textSize(15);
+    pg.textFont(font);
+    for(String s:Contents){
+      if(floor(scroll/Height)<=num&num<=floor((scroll+dist.y)/Height)){
+        if(selectedNumber==num){
+          pg.fill(max(0,background.getRed()-30),max(0,background.getGreen()-30),max(0,background.getBlue()-30),alpha);
+          pg.rect(0,num*Height-scroll,dist.x,Height);
+          pg.stroke(toColor(menuRightColor));
+          pg.line(0,num*Height-scroll,0,(num+1)*Height-scroll);
+        }
+        if(idx==num){
+          pg.rectMode(CENTER);
+          pg.fill(100);
+          pg.noStroke();
+          pg.pushMatrix();
+          pg.translate(dist.x-Height,(num+0.5)*Height-scroll);
+          pg.rotate(QUARTER_PI);
+          pg.rect(0,0,Height*0.3,Height*0.3);
+          pg.popMatrix();
+          pg.rectMode(CORNER);
+        }
+        pg.fill(0,alpha);
+        pg.noStroke();
+        pg.text(s,10,num*Height+Height*0.7-scroll);
+      }
+      num++;
+    }
+    sideBar();
+    pg.endDraw();
+    image(pg,pos.x,pos.y);
+    if(showSub&selectedItem!=null)subDraw();
+  }
+}
+
 class ShopItemList extends ItemList{
   HashMap<String,ShopItem>Items=new HashMap<>();
   Predicate<Integer>pred=i->true;
@@ -1050,7 +1172,7 @@ class ShopItemList extends ItemList{
   GameComponent setBounds(float x,float y,float dx,float dy){
     pg=createGraphics(round(dx),round(dy),P2D);
     pg.beginDraw();
-    pg.textFont(createFont("SansSerif.plain",15));
+    pg.textFont(createFont(font_name,15));
     pg.endDraw();
     return super.setBounds(x,y,dx,dy);
   }
@@ -1130,7 +1252,7 @@ class ShopItemList extends ItemList{
              remain:"",sPos.x+5,sPos.y+45+Height,sDist.x-10,sDist.y-90);
       fill(getAvailableColor(Items.get(selectedItem).progress()));
       String progress="";
-      progress="Stage : "+Items.get(selectedItem).progress;
+      progress="Stage : "+Items.get(selectedItem).progress+" +";
       text(Explanation.containsKey(selectedItem)&&Contents.size()>0?
              progress:"",sPos.x+5,sPos.y+45+Height*2,sDist.x-10,sDist.y-90);
     }
@@ -1160,6 +1282,10 @@ class ShopItemList extends ItemList{
   void setPredicate(Predicate<Integer>predicate){
     pred=predicate;
   }
+}
+
+class AchievementList extends ItemList{
+  
 }
 
 class ListTemplate extends GameComponent{
@@ -1455,7 +1581,7 @@ class MenuButton extends TextButton{
   
   public void display(){
     pushStyle();
-    if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
+    if(font==null)font=createFont(font_name,dist.y*0.5);
     textFont(font);
     blendMode(BLEND);
     strokeWeight(1);
@@ -1495,7 +1621,7 @@ class SkeletonButton extends MenuButton{
   
   public void display(){
     pushStyle();
-    if(font==null)font=createFont("SansSerif.plain",dist.y*0.5);
+    if(font==null)font=createFont(font_name,dist.y*0.5);
     textFont(font);
     blendMode(BLEND);
     strokeWeight(1);
@@ -1523,7 +1649,7 @@ class UpgradeButton extends MenuButton{
   
   {
     re=(p,d)->{
-      font=createFont("SansSerif.plain",d.y*0.2);
+      font=createFont(font_name,d.y*0.2);
     };
   }
   
@@ -1547,7 +1673,7 @@ class UpgradeButton extends MenuButton{
   
   public void display(){
     pushStyle();
-    if(font==null)font=createFont("SansSerif.plain",dist.y*0.2);
+    if(font==null)font=createFont(font_name,dist.y*0.2);
     textFont(font);
     blendMode(BLEND);
     strokeWeight(1);

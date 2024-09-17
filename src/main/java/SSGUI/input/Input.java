@@ -2,8 +2,14 @@ package SSGUI.input;
 
 import java.util.ArrayList;
 
+import com.jogamp.newt.event.WindowEvent;
+import com.jogamp.newt.event.WindowListener;
+import com.jogamp.newt.event.WindowUpdateEvent;
+import com.jogamp.newt.opengl.GLWindow;
+
 import SSGUI.Component.Direction;
 import processing.core.PApplet;
+import processing.core.PVector;
 import processing.opengl.PSurfaceJOGL;
 
 public class Input {
@@ -15,6 +21,8 @@ public class Input {
   private KeyBoard keyBoard;
   private Controller controller;
 
+  private boolean focus=true;
+
   public Input(PApplet applet,PSurfaceJOGL surface){
     this.applet=applet;
     devices=new ArrayList<>();
@@ -24,12 +32,36 @@ public class Input {
     devices.add(keyBoard);
     controller=new Controller(applet, surface);
     devices.add(controller);
+    ((GLWindow)surface.getNative()).addWindowListener(new WindowListener() {
+      @Override
+      public void windowDestroyed(WindowEvent e){}
+      @Override
+      public void windowMoved(WindowEvent e){}
+      @Override
+      public void windowResized(WindowEvent e){}
+      @Override
+      public void windowRepaint(WindowUpdateEvent e){}
+      @Override
+      public void windowDestroyNotify(WindowEvent e){}
+      @Override
+      public void windowLostFocus(WindowEvent e){
+        focus=false;
+      }
+      @Override
+      public void windowGainedFocus(WindowEvent e){
+        focus=true;
+      }
+    });
   }
 
   public void update(){
     mouse.update();
     keyBoard.update();
     controller.update();
+  }
+
+  public boolean isWindowFocused(){
+    return focus;
   }
   
   public Mouse getMouse(){
@@ -123,6 +155,12 @@ public class Input {
       mag=controller.getMoveMag();
     }
     return mag;
+  }
+
+  public PVector getMoveVector(){
+    float mag=getMoveMag();
+    float angle=keyBoard.getAngle();
+    return new PVector((float)Math.cos(angle)*mag,(float)Math.sin(angle)*mag);
   }
 
   public float getAttackAngle(){
