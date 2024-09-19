@@ -3,7 +3,7 @@
   "FPS": true,
   "clear": false,
   "skin": "default",
-  "Fragment": 720,
+  "Fragment": 1120,
   "volume": {
     "SE": 6,
     "bgm": 6
@@ -22,11 +22,15 @@
     "Mirror",
     "Reflector",
     "Absorption",
-    "BLAS"
+    "BLAS",
+    "G_Shot",
+    "Grenage",
+    "projectile"
   ],
   "background": "default",
   "Enemy": [
     "Simple_shooting_2_1$DummyEnemy",
+    "Simple_shooting_2_1$EnemyShield",
     "Simple_shooting_2_1$ExplosionEnemy_Micro",
     "Simple_shooting_2_1$Formation",
     "Simple_shooting_2_1$M_Boss_Y",
@@ -39,7 +43,14 @@
     "Tutorial",
     "Stage1",
     "Stage2",
-    "Stage3"
+    "Stage3",
+    "Stage4",
+    "Stage5",
+    "Stage6",
+    "Stage7",
+    "Stage8",
+    "Stage9",
+    "Stage10"
   ],
   "Record": {
     "Tutorial": {
@@ -53,12 +64,18 @@
     "Stage2": {
       "score": 1752,
       "time": 609
+    },
+    "Stage3": {
+      "score": 2250,
+      "time": 616
     }
   },
   "Fullscreen": false,
-  "Items": {},
+  "Items": {"ooparts": 1},
   "Achievement": [
     "Clear_Stage1",
-    "Clear_Stage2"
+    "Clear_Stage2",
+    "Get_OOPARTS",
+    "Clear_Stage3"
   ]
 }

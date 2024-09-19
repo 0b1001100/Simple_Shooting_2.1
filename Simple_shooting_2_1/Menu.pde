@@ -534,6 +534,7 @@ void itemSet(ComponentSetLayer layer){
   });
   shopItemList.addSelectListener((s)->{
     fragmentCount-=shopItemList.Items.get(s).price;
+    if(s.equals("ooparts"))achievement_manager.complete("Get_OOPARTS");
     conf.setInt("Fragment",fragmentCount);
     if(s.equals("sale")){
       shopItemList.Items.forEach((k,v)->{
@@ -591,6 +592,10 @@ void achievementSet(ComponentSetLayer layer){
   achievementList.setSubBounds(width-350,100,300,500);
   achievementList.addWindowResizeEvent(()->{
     achievementList.setSubBounds(width-350,100,300,500);
+  });
+  achievementList.clearContent();
+  achievement_manager.achievement_map.forEach((k,v)->{
+    achievementList.addContent(k);
   });
   starts.addSubChild("main","achievement",toSet(achievementList));
 }

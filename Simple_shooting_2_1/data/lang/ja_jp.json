@@ -60,6 +60,10 @@
   "change_weapon":"武器変更",
   "comp_achievement":"アチーブメントを達成",
   "achievement":"アチーブメント",
+  "state":"状態",
+  "reward":"報酬",
+  "achieved":"達成済み",
+  "not_achieved":"未達成",
   "credit":"クレジット",
   "credit_co":"企画\n0x4C & kusa51\n\n変なコードを書いた人\n0x4C\n\n全てのデザイン\n0x4C\n\n使用したもの\njava22 Processing4\n\n使用した楽曲\n\n[DOVA-SYNDROME]\nIn Confusion by shimtone\nビビッドブルー by かずち\n超頭脳バトル by Yuyake Monster\nFuture Bridge by FLASH☆BEAT\n塵の雨と硝煙 by EN_OKAWA\nZONE -X13- by MAKOOTO\nSound Wave by FLASH☆BEAT\nArcCOS by かずち\nhaze by チョコミント\nPIKE by かずち\n瞼の裏の記号 by TOGA\n\nライセンス\nGNU3.0\n\nリポジトリ\nhttps://github.com/Asynchronous-0x4C/Simple_Shooting_2.1",
   "credit_co_2":"Thank you for playing!\n次回作にほどほどに期待しておいてください。",
@@ -138,5 +142,7 @@
   "Clear_Stage9":"ステージ9をクリア",
   "ex_Clear_Stage9":"ステージ9をクリアする",
   "Clear_Stage10":"ステージ10をクリア",
-  "ex_Clear_Stage10":"ステージ10をクリアする"
+  "ex_Clear_Stage10":"ステージ10をクリアする",
+  "Get_OOPARTS":"廃課金",
+  "ex_Get_OOPARTS":"オーパーツを手に入れる"
 }

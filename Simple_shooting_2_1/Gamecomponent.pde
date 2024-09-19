@@ -332,6 +332,7 @@ class AchievementText extends GameComponent{
   ArrayList<String>completed=new ArrayList<>();
   float cooltime=0;
   float duration=180;
+  boolean played=false;
   
   AchievementText(){
     
@@ -343,6 +344,10 @@ class AchievementText extends GameComponent{
   
   void display(){
     if(completed.isEmpty())return;
+    if(!played){
+      soundManager.play("ach");
+      played=true;
+    }
     textSize(15);
     textFont(font_15);
     float w=max(textWidth(getLanguageText("comp_achievement")),textWidth(getLanguageText(completed.get(0))))+20;
@@ -360,6 +365,7 @@ class AchievementText extends GameComponent{
     if(cooltime>=duration){
       cooltime=0;
       completed.remove(0);
+      played=false;
     }
   }
   
@@ -1286,6 +1292,65 @@ class ShopItemList extends ItemList{
 
 class AchievementList extends ItemList{
   
+  void display(){
+    blendMode(BLEND);
+    int num=0;
+    pg.beginDraw();
+    pg.background(toColor(background));
+    pg.textSize(15);
+    pg.textFont(font);
+    for(String s:Contents){
+      if(floor(scroll/Height)<=num&num<=floor((scroll+dist.y)/Height)){
+        if(selectedNumber==num){
+          pg.fill(max(0,background.getRed()-(achievement_manager.isAchieved(s)?30:0)),max(0,background.getGreen()-30),max(0,background.getBlue()-30),alpha);
+          pg.rect(0,num*Height-scroll,dist.x,Height);
+          pg.stroke(toColor(menuRightColor));
+          pg.line(0,num*Height-scroll,0,(num+1)*Height-scroll);
+        }
+        pg.fill(0,int(alpha*(achievement_manager.isAchieved(s)?1:0.5)));
+        pg.noStroke();
+        pg.textAlign(LEFT);
+        pg.text(getLanguageText(s),10,num*Height+Height*0.7-scroll);
+        pg.textAlign(RIGHT);
+        pg.text(achievement_manager.isAchieved(s)?getLanguageText("achieved"):getLanguageText("not_achieved"),dist.x-10,num*Height+Height*0.7-scroll);
+      }
+      num++;
+    }
+    sideBar();
+    pg.endDraw();
+    noStroke();
+    fill(0x70,alpha);
+    rect(pos.x,pos.y-Height,dist.x,Height);
+    textAlign(LEFT);
+    fill(0,alpha);
+    textSize(15);
+    textFont(font);
+    text(getLanguageText("name"),pos.x+10,pos.y+Height*(0.7-1));
+    textAlign(RIGHT);
+    text(getLanguageText("state"),pos.x+dist.x-10,pos.y+Height*(0.7-1));
+    image(pg,pos.x,pos.y);
+    if(showSub&selectedItem!=null)subDraw();
+  }
+  
+  void subDraw(){
+    pushStyle();
+    blendMode(BLEND);
+    rectMode(CORNER);
+    fill(#707070,alpha);
+    noStroke();
+    rect(sPos.x,sPos.y,sDist.x,25);
+    fill(toColor(background));
+    rect(sPos.x,sPos.y+25,sDist.x,sDist.y-25);
+    textSize(15);
+    textAlign(CENTER);
+    textFont(font);
+    fill(0,alpha);
+    text(Language.getString("ex"),sPos.x+5+textWidth(Language.getString("ex"))/2,sPos.y+17.5);
+    textAlign(LEFT);
+    text(getLanguageText("ex_"+selectedItem),sPos.x+5,sPos.y+45,sDist.x-10,sDist.y-90);
+    text(getLanguageText("reward"),sPos.x+5,sPos.y+45+Height*2,sDist.x-10,sDist.y-90);
+    text("  "+String.join("\n  ",achievement_manager.getRewardText(selectedItem)),sPos.x+5,sPos.y+45+Height*3,sDist.x-10,sDist.y-90);
+  }
 }
 
 class ListTemplate extends GameComponent{

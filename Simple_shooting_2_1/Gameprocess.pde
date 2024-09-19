@@ -1011,13 +1011,15 @@ static class Switcher{
 
 class AchievementManager{
   AchievementText text=new AchievementText();
-  HashMap<String,JSONObject> achievement_map=new HashMap<>();
+  TreeMap<String,JSONObject> achievement_map;
   ArrayList<String> achieved_list=new ArrayList<String>();
   ArrayList<String> achieved=new ArrayList<String>();
   String stage_a="";
   
   AchievementManager(){
     JSONObject achievement=loadJSONObject(SavePath+"achievement.json");
+    String src=String.join("",loadStrings(SavePath+"achievement.json"));
+    achievement_map=new TreeMap<String,JSONObject>(new Comparator<String>(){int compare(String a,String b){return src.indexOf(a)-src.indexOf(b);}});
     achievement.keys().forEach(k->{
       achievement_map.put((String)k,achievement.getJSONObject((String)k));
     });
@@ -1045,8 +1047,25 @@ class AchievementManager{
     return achievement_map.containsKey(a)&&!achieved_list.contains(a);
   }
   
+  String[] getReward(String s){
+    return achievement_map.get(s).getJSONArray("reward").toStringArray();
+  }
+  
+  String[] getRewardText(String s){
+    String[] rew=getReward(s);
+    for(int i=0;i<rew.length;i++){
+      String[] p=rew[i].split(":");
+      rew[i]=getLanguageText("rew_"+p[0].toLowerCase()).replace("{}",p[1]);
+    }
+    return rew;
+  }
+  
   ArrayList<String> getAchieved(){
     return achieved_list;
+  }
+  
+  boolean isAchieved(String s){
+    return achieved_list.contains(s);
   }
   
   void display(){
@@ -1058,7 +1077,7 @@ class AchievementManager{
       achieved.forEach(a->{
         if(!isValid(a))return;
         achieved_list.add(a);
-        Arrays.asList(achievement_map.get(a).getJSONArray("reward").toStringArray()).forEach(r->{
+        Arrays.asList(getReward(a)).forEach(r->{
           processAchievement(r);
         });
       });

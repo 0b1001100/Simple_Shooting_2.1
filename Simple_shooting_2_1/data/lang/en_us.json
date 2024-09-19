@@ -59,6 +59,10 @@
   "change_weapon":"Change weapon",
   "comp_achievement":"Complete the achievement",
   "achievement":"Achievement",
+  "achieved":"Achieved",
+  "not_achieved":"Not achieved",
+  "state":"State",
+  "reward":"Reward",
   "credit":"credit",
   "credit_co":"Planning\n0x4C & kusa51\nWho wrote the weird code\n0x4C\nAll designs\n0x4C\nUsed\njava22 Processing4\nLicense\nGNU3.0\nRepository\nhttps://github.com/Asynchronous-0x4C/Simple_Shooting_2.1",
   "credit_co_2":"Thank you for playing!\nPlease look forward to the next work in moderation.",
@@ -137,5 +141,7 @@
   "Clear_Stage9":"ステージ9をクリア",
   "ex_Clear_Stage9":"ステージ9をクリアする",
   "Clear_Stage10":"ステージ10をクリア",
-  "ex_Clear_Stage10":"ステージ10をクリアする"
+  "ex_Clear_Stage10":"ステージ10をクリアする",
+  "Get_OOPARTS":"You are The \"Whale\"",
+  "ex_Get_OOPARTS":"Buy OOPARTS"
 }
