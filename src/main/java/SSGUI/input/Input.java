@@ -142,7 +142,7 @@ public class Input {
   }
 
   public float getMoveAngle(){
-    float angle=keyBoard.getAngle();
+    float angle=((float)Math.PI*2)-keyBoard.getAngle();
     if(controller.isAvailable()&&controller.getMoveMag()>0&&!Float.isNaN(controller.getMoveAngle())){
       angle=controller.getMoveAngle();
     }

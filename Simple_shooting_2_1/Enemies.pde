@@ -428,15 +428,19 @@ class M_Boss_Y extends Enemy implements BossEnemy{
     setSize(52);
     setMass(35);
     setColor(new Color(255,255,10));
-    if(StageName.equals("Stage1")){
+    setBossData("Stage1");
+    addMultiplyer(PlasmaFieldWeapon.class,1.2);
+  }
+  
+  void setBossData(String stage_name){
+    if(StageName.equals(stage_name)){
       boss=new HUDText("BOSS");
       dead=(e)->{
         StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage2"))stageList.addContent("Stage2");scene=3;}));
+        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->scene=3));
         boss.Dispose();
       };
     }
-    addMultiplyer(PlasmaFieldWeapon.class,1.2);
   }
   
   void backToScreen(){
@@ -720,7 +724,7 @@ class Ghost extends Enemy{
   }
 }
 
-class Formation extends M_Boss_Y implements BossEnemy{
+class Formation extends M_Boss_Y{
   ArrayList<Formation_Copy>child=new ArrayList<Formation_Copy>();
   float age=0;
   
@@ -732,14 +736,7 @@ class Formation extends M_Boss_Y implements BossEnemy{
     setSize(58);
     setMass(37);
     setColor(new Color(150,95,255));
-    if(StageName.equals("Stage2")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage3"))stageList.addContent("Stage3");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage2");
     addMultiplyer(G_ShotWeapon.class,1.2);
   }
   
@@ -999,7 +996,7 @@ class AntiSkill extends Turret_S{
   }
 }
 
-class EnemyShield extends M_Boss_Y implements BossEnemy{
+class EnemyShield extends M_Boss_Y{
   ArrayList<EnemyShield_Child>child=new ArrayList<EnemyShield_Child>();
   boolean attack=false;
   boolean shot=false;
@@ -1016,14 +1013,7 @@ class EnemyShield extends M_Boss_Y implements BossEnemy{
     setSize(62);
     setMass(37);
     setColor(new Color(10,180,255));
-    if(StageName.equals("Stage3")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage4"))stageList.addContent("Stage4");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage3");
     addMultiplyer(SatelliteWeapon.class,1.2);
   }
   
@@ -1328,7 +1318,7 @@ class AntiG_Shot extends Enemy{
   }
 }
 
-class Barrier extends M_Boss_Y implements BossEnemy{
+class Barrier extends M_Boss_Y{
   float age=0;
   float edge;
   boolean barrier=false;
@@ -1342,14 +1332,7 @@ class Barrier extends M_Boss_Y implements BossEnemy{
     setMass(53);
     setColor(new Color(0,200,255));
     edge=random(1500,1800);
-    if(StageName.equals("Stage4")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage5"))stageList.addContent("Stage5");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage4");
   }
   
   @Override
@@ -1526,7 +1509,7 @@ class SnipeEnemy extends Turret_S implements BossEnemy{
   }
 }
 
-class Sealed extends M_Boss_Y implements BossEnemy{
+class Sealed extends M_Boss_Y{
   ArrayList<SealedFrag>Frags;
   boolean release=false;
   
@@ -1538,18 +1521,7 @@ class Sealed extends M_Boss_Y implements BossEnemy{
     setSize(54);
     setMass(35);
     setColor(new Color(255,40,40));
-    if(StageName.equals("Stage5")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{
-          if(!stageList.contains("StageE1"))stageList.addContent("StageE1");
-          if(!stageList.contains("Stage6"))stageList.addContent("Stage6");
-          scene=3;
-        }));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage5");
   }
   
   @Override
@@ -1954,7 +1926,7 @@ class Flash extends Turret_S{
   }
 }
 
-class Missile_B extends M_Boss_Y implements BossEnemy{
+class Missile_B extends M_Boss_Y{
   float maxcool=30;
   float cooltime=30;
   int state=0;
@@ -1968,14 +1940,7 @@ class Missile_B extends M_Boss_Y implements BossEnemy{
     setSize(58);
     setMass(37);
     setColor(new Color(170,0,70));
-    if(StageName.equals("Stage6")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage7")&&STAGE_COUNT>6)stageList.addContent("Stage7");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage6");
     addMultiplyer(IceWeapon.class,2);
   }
   
@@ -2302,7 +2267,7 @@ class BindEnemy extends Turret_S{
   }
 }
 
-class Absorb extends M_Boss_Y implements BossEnemy{
+class Absorb extends M_Boss_Y{
   HashSet<Enemy>link=new HashSet<>();
   HashSet<Enemy>nextLink=new HashSet<>();
   
@@ -2322,14 +2287,7 @@ class Absorb extends M_Boss_Y implements BossEnemy{
     setMass(37);
     target=player;
     setColor(new Color(150,255,160));
-    if(StageName.equals("Stage7")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage8")&&STAGE_COUNT>7)stageList.addContent("Stage8");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage7");
     addMultiplyer(IceWeapon.class,2);
   }
   
@@ -2813,14 +2771,7 @@ class Sealed_Multi extends Sealed_Base{
     rotateSpeed=0.5;
     setHP(200);
     setColor(new Color(255,200,0));
-    if(StageName.equals("Stage8")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage9")&&STAGE_COUNT>8)stageList.addContent("Stage9");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage8");
   }
   
   Enemy setPos(PVector p){
@@ -3266,14 +3217,7 @@ class ARM extends M_Boss_Y{
     setColor(new Color(205,165,165));
     cool=random(180,480);
     shot_cool=random(240,420);
-    if(StageName.equals("Stage9")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage10")&&STAGE_COUNT>9)stageList.addContent("Stage10");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage9");
     addMultiplyer(IceWeapon.class,2);
   }
   
@@ -3625,14 +3569,7 @@ class Disk_Turret extends M_Boss_Y{
     setSize(55);
     setMass(37);
     setColor(new Color(210,210,210));
-    if(StageName.equals("Stage10")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{if(!stageList.contains("Stage11")&&STAGE_COUNT>10)stageList.addContent("Stage11");scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("Stage10");
   }
   
   @Override
@@ -3724,14 +3661,7 @@ class S_Boss_Y extends M_Boss_Y{
     setSize(52);
     setMass(35);
     setColor(new Color(255,255,10));
-    if(StageName.equals("StageE1")){
-      boss=new HUDText("BOSS");
-      dead=(e)->{
-        StageFlag.add("Survive_10_min");
-        stage.addSchedule(StageName,new TimeSchedule(stage.time/60f+3,(s)->{scene=3;}));
-        boss.Dispose();
-      };
-    }
+    setBossData("StageE1");
     addMultiplyer(PlasmaFieldWeapon.class,1.2);
   }
   
@@ -3739,6 +3669,33 @@ class S_Boss_Y extends M_Boss_Y{
   public Enemy setPos(PVector p){
     super.setPos(p);
     if(StageName.equals("StageE1")){
+      boss.setTarget(this);
+      main_game.getHUDComponentSet().add(boss);
+      boss.startDisplay();
+    }
+    return this;
+  }
+}
+
+class S_Boss_O extends Missile_B{
+  
+  @Override
+  void init(){
+    setHP(8000);
+    maxSpeed=1.85;
+    rotateSpeed=1.2;
+    maxcool=cooltime=10;
+    setSize(52);
+    setMass(35);
+    setColor(new Color(255,128,10));
+    setBossData("StageE2");
+    addMultiplyer(PlasmaFieldWeapon.class,1.2);
+  }
+  
+  @Override
+  public Enemy setPos(PVector p){
+    super.setPos(p);
+    if(StageName.equals("StageE2")){
       boss.setTarget(this);
       main_game.getHUDComponentSet().add(boss);
       boss.startDisplay();

@@ -54,7 +54,7 @@ abstract class Item{
       for(int i=0;i<nextData.size();i++){
         JSONObject o=nextData.getJSONObject(i);
         Item it=playerTable.getForce(o.getString("name"));//it->need weapons
-        if(!it.isAddNext(it))return;
+        if(it==null||!it.isAddNext(it))return;
       }
       if(main_game.EventSet.containsKey("addNextWeapon")){
         main_game.EventSet.replace("addNemtWeapon",main_game.EventSet.get("addNextWeapon")+"_"+nextName);

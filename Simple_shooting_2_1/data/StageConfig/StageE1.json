@@ -1,7 +1,8 @@
 [
   {
     "type":"setting",
-    "bgm":"ArcCOS"
+    "bgm":"ArcCOS",
+    "achievement":"Clear_StageE1"
   },
   {
     "time":1,

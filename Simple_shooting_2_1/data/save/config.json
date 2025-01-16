@@ -1,9 +1,10 @@
 {
-  "vsync": true,
-  "FPS": true,
+  "vsync": false,
+  "FPS": false,
   "clear": false,
   "skin": "default",
-  "Fragment": 1120,
+  "Fragment": 0,
+  "Surge_level": 2,
   "volume": {
     "SE": 6,
     "bgm": 6
@@ -18,64 +19,21 @@
     "power",
     "speed",
     "duration",
-    "cooltime",
-    "Mirror",
-    "Reflector",
-    "Absorption",
-    "BLAS",
-    "G_Shot",
-    "Grenage",
-    "projectile"
+    "cooltime"
   ],
   "background": "default",
-  "Enemy": [
-    "Simple_shooting_2_1$DummyEnemy",
-    "Simple_shooting_2_1$EnemyShield",
-    "Simple_shooting_2_1$ExplosionEnemy_Micro",
-    "Simple_shooting_2_1$Formation",
-    "Simple_shooting_2_1$M_Boss_Y",
-    "Simple_shooting_2_1$Micro_M",
-    "Simple_shooting_2_1$Micro_Y",
-    "Simple_shooting_2_1$Turret"
-  ],
-  "ShaderQuality": 2,
+  "Enemy": ["Simple_shooting_2_1$DummyEnemy"],
+  "ShaderQuality": 0,
   "Stage": [
     "Tutorial",
-    "Stage1",
-    "Stage2",
-    "Stage3",
-    "Stage4",
-    "Stage5",
-    "Stage6",
-    "Stage7",
-    "Stage8",
-    "Stage9",
-    "Stage10"
+    "Stage1"
   ],
-  "Record": {
-    "Tutorial": {
-      "score": 0,
-      "time": 27
-    },
-    "Stage1": {
-      "score": 1432,
-      "time": 608
-    },
-    "Stage2": {
-      "score": 1752,
-      "time": 609
-    },
-    "Stage3": {
-      "score": 2250,
-      "time": 616
-    }
-  },
+  "Record": {"Tutorial": {
+    "score": 0,
+    "time": 29
+  }},
   "Fullscreen": false,
-  "Items": {"ooparts": 1},
-  "Achievement": [
-    "Clear_Stage1",
-    "Clear_Stage2",
-    "Get_OOPARTS",
-    "Clear_Stage3"
-  ]
+  "Items": {},
+  "Achievement": [],
+  "Clear_Stage": ["Tutorial"]
 }

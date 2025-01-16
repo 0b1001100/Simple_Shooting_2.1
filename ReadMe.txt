@@ -27,6 +27,7 @@ Simple_shooting_2_1.exeをダブルクリックすれば始まります。
 
 
 [コントローラー]
+対応コントローラー:Xbox、DualShock(DualSenseもたぶん使えます)
 
 【左スティック】
 移動
@@ -64,11 +65,20 @@ GPL-3.0
 Processing(開発ソフト)
 https://processing.org/
 
-java20(ランタイム)
-https://www.oracle.com/java/technologies/javase/jdk20-archive-downloads.html
+java23(ランタイム)
+https://www.oracle.com/java/technologies/javase/jdk23-archive-downloads.html
 
 
 --更新ログ--
+
+<v1.2.0>
+- StageE2を追加。
+- アチーブメントを追加。
+- BGMを追加。
+- BGM追加に伴い、音量設定を追加。
+- チャージショットをひとまず追加。右クリック長押しで撃てます。
+
+- 敵の移動速度の偏りを修正
 
 <v1.1.6>
 - StageE1,Stage7,Stage8,Stage9,Stage10を追加。

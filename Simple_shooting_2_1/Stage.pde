@@ -301,9 +301,10 @@ class SurvivorHUD extends GameHUD{
           rads[i]=1;
         }
       }
+      GravityLens.set("input_texture",g);
       GravityLens.set("center",centers,2);
       GravityLens.set("g",rads);
-      GravityLens.set("len",LensData.size());
+      GravityLens.set("len",min(LensData.size(),10));
       GravityLens.set("resolution",(float)width,(float)height);
       applyShader(GravityLens);
     }

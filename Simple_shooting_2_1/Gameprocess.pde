@@ -1029,7 +1029,11 @@ class AchievementManager{
   }
   
   void setStageAchievement(String a){
-    stage_a=a;
+    if(isValid(a)){
+      stage_a=a;
+    }else{
+      stage_a="";
+    }
   }
   
   void stageCleared(){
@@ -1044,7 +1048,7 @@ class AchievementManager{
   }
   
   boolean isValid(String a){
-    return achievement_map.containsKey(a)&&!achieved_list.contains(a);
+    return a!=null&&achievement_map.containsKey(a)&&!achieved_list.contains(a);
   }
   
   String[] getReward(String s){
@@ -1103,6 +1107,7 @@ class AchievementManager{
     switch(type){
       case "Weapon":conf.getJSONArray("Weapons").append(target);break;
       case "Fragment":fragmentCount+=Integer.parseInt(target);break;
+      case "Stage":stageList.addContent(target);break;
     }
   }
 }

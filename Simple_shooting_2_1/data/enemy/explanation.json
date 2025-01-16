@@ -59,7 +59,8 @@
     "Micro_C":"万を持して登場したシアン色の敵。\nMicroシリーズが揃えばどんな色でも表現できる。",
     "LinkEnemy":"接触した仲間の数だけ強くなる。\n彼らは新しい流行となるだろう。",
     "BindEnemy":"こちらの動きを拘束してくる弾を撃つ。\n必死こいて回避しよう。",
-    "Absorb":"仲間の数だけ強くなり、多くの武器を使い分けるエリート。\n流行にはすぐ乗るスタイル。"
+    "Absorb":"仲間の数だけ強くなり、多くの武器を使い分けるエリート。\n流行にはすぐ乗るスタイル。",
+    "DummyEnemy":"敵のダミー。\n殴られることでしか存在価値を証明することができない。"
   },
   "en_us":{
     "Turret":"An ordinary enemy.\nThere is nothing unusual when it comes to the concept of enemies."

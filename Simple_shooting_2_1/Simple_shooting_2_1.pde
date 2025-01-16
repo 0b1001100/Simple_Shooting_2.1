@@ -338,21 +338,7 @@ void setup(){
     confImageLoaded=true;
   });
   exec.execute(()->{
-    JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
-    JSONArray Stages=conf.getJSONArray("Stage");
-    for(int i=0;i<Stages.size();i++){
-      StringBuilder weapons=new StringBuilder(ex.getJSONObject(Stages.getString(i)).getJSONArray("weapon").toStringArray().length==0?"\n  -":"");
-      Arrays.asList(ex.getJSONObject(Stages.getString(i)).getJSONArray("weapon").toStringArray()).forEach(s->weapons.append("\n  "+s));
-      if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
-        JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
-        float time=o.getInt("time");
-        stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")).replace("$",weapons.toString())+
-          "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
-          "\n  Score: "+o.getInt("score"));
-      }else{
-        stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")).replace("$",weapons.toString()));
-      }
-    }
+    initStageExplanation();
   });
   //get controller
   Logger.getLogger(ControllerEnvironment.class.getPackage().getName()).setLevel(Level.OFF);
@@ -534,10 +520,17 @@ String resultText;
 
 public void Result(){
   if(changeScene){
-    LogiLED.LogiLedSetLighting(0,0,0);
+    LogiLED.LogiLedSetLighting(50,50,50);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
     soundManager.fadeout(current_bgm,0.6);
-    if(!StageFlag.contains("Game_Over"))achievement_manager.stageCleared();
+    if(!StageFlag.contains("Game_Over")){
+      achievement_manager.stageCleared();
+      JSONArray arr=conf.getJSONArray("Clear_Stage");
+      if(!Arrays.asList(arr.toStringArray()).contains(stage.name)){
+        arr.append(stage.name);
+        conf.setJSONArray("Clear_Stage",arr);
+      }
+    }
     resetMatrix();
     resultAnimation=true;
     resultTime=0;
@@ -554,19 +547,7 @@ public void Result(){
       scene=0;
       exec.execute(()->{
         stageList.clearExplanation();
-        JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
-        JSONArray Stages=conf.getJSONArray("Stage");
-        for(int i=0;i<Stages.size();i++){
-          if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
-            JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
-            float time=o.getInt("time");
-            stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language"))+
-              "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
-              "\n  Score: "+o.getInt("score"));
-          }else{
-            stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")));
-          }
-        }
+        initStageExplanation();
       });
     });
     resultButton.requestFocus();
@@ -705,7 +686,7 @@ public void Field() {
     stage.addProcess(StageName,new TimeSchedule(Float.MAX_VALUE,s->{s.endSchedule=true;}));
     soundManager.loop(current_bgm);
     soundManager.amp(current_bgm,0.3);
-    LogiLED.LogiLedSetLighting(0,0,0);
+    LogiLED.LogiLedSetLighting(50,50,50);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ESC,0,128,255);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F2,0,128,255);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F3,0,128,255);
@@ -792,6 +773,24 @@ public void Shader(){
         Oscillo_Otsu.set("time",second()+millis()*0.001);
         filter(Oscillo_Otsu);
         break;
+    }
+  }
+}
+
+void initStageExplanation(){
+  JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
+  JSONArray Stages=conf.getJSONArray("Stage");
+  for(int i=0;i<Stages.size();i++){
+    StringBuilder weapons=new StringBuilder(ex.getJSONObject(Stages.getString(i)).getJSONArray("weapon").toStringArray().length==0?"\n  -":"");
+    Arrays.asList(ex.getJSONObject(Stages.getString(i)).getJSONArray("weapon").toStringArray()).forEach(s->weapons.append("\n  "+s));
+    if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
+      JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
+      float time=o.getInt("time");
+      stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")).replace("$",weapons.toString())+
+        "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
+        "\n  Score: "+o.getInt("score"));
+    }else{
+      stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")).replace("$",weapons.toString()));
     }
   }
 }

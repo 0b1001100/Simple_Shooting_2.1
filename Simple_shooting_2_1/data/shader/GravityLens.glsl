@@ -1,4 +1,4 @@
-uniform sampler2D texture;
+uniform sampler2D input_texture;
 uniform vec2 center[10];
 uniform vec2 resolution;
 uniform float g[10];
@@ -17,5 +17,5 @@ void main(void){
     }
     pos=g2>sqDist?pos:pos+dist*(g2/sqDist)/resolution;
   }
-  gl_FragColor=black?vec4(0.0, 0.0, 0.0, 1.0):texture2D(texture,pos);
+  gl_FragColor=black?vec4(0.0, 0.0, 0.0, 1.0):texture2D(input_texture,pos);
 }

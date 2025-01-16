@@ -844,7 +844,7 @@ class ItemList extends GameComponent{
   }
   
   ItemList(String... s){
-    Contents.addAll(Arrays.asList(s));
+    Contents.addAll(Arrays.asList(s).stream().distinct().collect(Collectors.toList()));
     changeEvent();
     keyMove=true;
   }
@@ -856,6 +856,7 @@ class ItemList extends GameComponent{
   
   public void addContent(String... s){
     Contents.addAll(Arrays.asList(s));
+    Contents=(ArrayList<String>)Contents.stream().distinct().collect(Collectors.toList());
     selectedNumber=0;
     changeEvent();
   }

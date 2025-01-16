@@ -9,6 +9,11 @@
     "en_us":"Time\n  3:00\nWeapon$",
     "weapon":[]
   },
+  "StageE2":{
+    "ja_jp":"時間\n  6:00\n武器$",
+    "en_us":"Time\n  6:00\nWeapon$",
+    "weapon":["InfinityShield"]
+  },
   "Stage1":{
     "ja_jp":"時間\n  10:00\n武器$",
     "en_us":"Time\n  10:00\nWeapon$",

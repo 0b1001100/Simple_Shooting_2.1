@@ -16,7 +16,7 @@ LineManager menu_animation=new DefaultLineManager();
 }
 
 public void initMenu(){
-  LogiLED.LogiLedSetLighting(0,0,0);
+  LogiLED.LogiLedSetLighting(50,50,50);
   LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
   LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F5,0,128,255);
   LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_UP,0,128,255);
@@ -27,7 +27,7 @@ public void initMenu(){
   New.setBounds(width*0.5-155,height-80,140,30);
   New.addListener(()-> {
     starts.toChild("main");
-    LogiLED.LogiLedSetLighting(0,0,0);
+    LogiLED.LogiLedSetLighting(50,50,50);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F5,0,128,255);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_UP,0,128,255);
@@ -131,7 +131,11 @@ public void initMenu(){
     });
     stageList.addSelectListener((s)->{
       StageName=s;
-      starts.toChild("mode");
+      if(Arrays.asList(conf.getJSONArray("Clear_Stage").toStringArray()).contains(s)){
+        starts.toChild("mode");
+      }else{
+        scene=1;
+      }
     });
     MenuButton NormalMag=new MenuButton(Language.getString("normal"));
     NormalMag.addListener(()->{
@@ -224,7 +228,7 @@ public void initMenu(){
   creditSet(starts);
   if(launched){
     starts.toChild("main");
-    LogiLED.LogiLedSetLighting(0,0,0);
+    LogiLED.LogiLedSetLighting(50,50,50);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F5,0,128,255);
     LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ARROW_UP,0,128,255);
@@ -768,6 +772,10 @@ ComponentSet initWeaponArchive(ComponentSet parent){
     }
   });
   String[] arr=conf.getJSONArray("Weapons").toStringArray();
+  for(String s:new String[]{"QuarkCanon","PhotonPulse","TauBlaster","Surge"}){
+    list.addContent(s);
+    list.addExplanation(s,getLanguageText("ex_"+s));
+  }
   Arrays.sort(arr);
   for(String s:arr){
     list.addContent(s);
