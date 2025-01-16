@@ -18,10 +18,10 @@ import static com.jogamp.newt.event.KeyEvent.*;
 
 public class KeyBoard extends Device {
   private HashSet<Integer>pressedKeys;
+  private HashSet<Integer>currentPressedKeys;
   private HashMap<String,HashSet<Integer>>keyBind;
   private HashMap<String,HashMap<String,Consumer<KeyEvent>>>eventMap;
 
-  private short latestKey;
   private boolean keyPress;
   private boolean keyRelease;
   
@@ -38,13 +38,14 @@ public class KeyBoard extends Device {
     }
     initKeyBind();
     pressedKeys=new HashSet<>();
+    currentPressedKeys=new HashSet<>();
     ((GLWindow)surface.getNative()).addKeyListener(new KeyAdapter(){
       @Override
       public void keyPressed(com.jogamp.newt.event.KeyEvent e) {
         if(e.isAutoRepeat())return;
         keyPress=true;
-        latestKey=e.getKeyCode();
         pressedKeys.add((int)e.getKeyCode());
+        currentPressedKeys.add((int)e.getKeyCode());
         eventMap.get(eventNames[0]).forEach((k,v)->v.accept(e));
       }
       @Override
@@ -69,11 +70,46 @@ public class KeyBoard extends Device {
     keyBind.put("Change",new HashSet<>(Arrays.asList((int)VK_TAB)));
   }
 
+  public void clearKeyBind(){
+    keyBind.clear();
+  }
+
+  public void addKeyBind(String name,Integer... key){
+    if(keyBind.containsKey(name)){
+      keyBind.get(name).addAll(Arrays.asList(key));
+    }else{
+     keyBind.put(name,new HashSet<>(Arrays.asList(key)));
+
+    }
+  }
+
+  public void removeKeyBind(String name){
+    if(keyBind.containsKey(name))keyBind.get(name).clear();
+  }
+
+  public void removeKeyBind(String name,Integer... key){
+    if(keyBind.containsKey(name))keyBind.get(name).removeAll(Arrays.asList(key));
+  }
+
+  public void addMoveKeyGroup(KeyGroup group){
+    int[] keys=group.getKeys();
+    int loop=Math.min(keys.length, 4);
+    for(int i=0;i<loop;i++){
+      switch(i){
+        case 0:addKeyBind("Up", keys[i]);break;
+        case 1:addKeyBind("Down", keys[i]);break;
+        case 2:addKeyBind("Right", keys[i]);break;
+        case 3:addKeyBind("Left", keys[i]);break;
+      }
+    }
+  }
+
   /**
    * This method updates inner variable state.
    * This method should call after processing the input.
    */
   public void update(){
+    currentPressedKeys.clear();
     keyPress=keyRelease=false;
   }
 
@@ -110,22 +146,21 @@ public class KeyBoard extends Device {
   }
 
   public boolean getBindedInput(String bind){
-    return keyPress&&containsSet(pressedKeys, keyBind.get(bind));
+    return keyPress&&keyBind.containsKey(bind)&&containsSet(currentPressedKeys, keyBind.get(bind));
   }
 
   public Direction getDirection(){
     if(!keyPressed()&&!keyPress())return Direction.None;
-    return switch((Integer)(int)latestKey){
-      case Integer i when keyBind.get("Up").contains(i)->Direction.Up;
-      case Integer i when keyBind.get("Down").contains(i)->Direction.Down;
-      case Integer i when keyBind.get("Right").contains(i)->Direction.Right;
-      case Integer i when keyBind.get("Left").contains(i)->Direction.Left;
-      default->Direction.None;
-    };
+    int binary=0b000000;
+    if(containsSet(keyBind.get("Up"), pressedKeys))binary=binary|Direction.Up.getBinary();
+    if(containsSet(keyBind.get("Down"), pressedKeys))binary=binary|Direction.Down.getBinary();
+    if(containsSet(keyBind.get("Right"), pressedKeys))binary=binary|Direction.Right.getBinary();
+    if(containsSet(keyBind.get("Left"), pressedKeys))binary=binary|Direction.Left.getBinary();
+    return Direction.binalyDirectionOf(binary);
   }
 
   public float getAngle(){
-    if(!keyPressed()&&!keyRelease())return Float.NaN;
+    if(!keyPressed()&&!keyRelease())return 0f;
     int binary=0b000000;
     if(containsSet(keyBind.get("Up"), pressedKeys))binary=binary|Direction.Up.getBinary();
     if(containsSet(keyBind.get("Down"), pressedKeys))binary=binary|Direction.Down.getBinary();

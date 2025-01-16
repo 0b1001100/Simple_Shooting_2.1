@@ -46,7 +46,7 @@ public class Simple_shooting_2_1 extends PApplet{
     main=new ComponentSet();
     MenuButton button=new MenuButton();
     button.setBounds(()->new PVector(100f,100f), ()->new PVector(120f,25f));
-    button.setLabel(javaVersionName);
+    button.setLabel(Runtime.version().toString());
     MenuButton button2=new MenuButton();
     button2.setBounds(()->new PVector(100f,150f), ()->new PVector(120f,25f));
     button2.setLabel("I'm");

@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"bridge",
+    "achievement":"Clear_Stage4"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

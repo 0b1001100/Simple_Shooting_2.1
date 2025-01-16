@@ -1,6 +1,5 @@
 abstract class Bullet extends Entity{
   Weapon parent;
-  boolean isMine=false;
   Color bulletColor;
   float bulletRadius=3;
   float rotate=0;
@@ -25,13 +24,11 @@ abstract class Bullet extends Entity{
     try{
       parent=m.selectedWeapon.clone();
     }catch(Exception e){}
-    isMine=true;
     setAABB();
     setMass(1.3);
   }
   
   Bullet(Entity e,Weapon w){
-    isMine=e instanceof Myself;
     try{
       parent=w.clone();
     }catch(Exception E){}
@@ -100,7 +97,7 @@ abstract class Bullet extends Entity{
   
   @Override
   public void EnemyCollision(Enemy e){
-    if(isMine&&CircleCollision(e.pos,e.size+bulletRadius*2,pos,vel.copy().mult(max(1,vectorMagnification)))&&e!=parent.parent){
+    if((parent.parent instanceof Myself)&&CircleCollision(e.pos,e.size+bulletRadius*2,pos,vel.copy().mult(max(1,vectorMagnification)))){
       EnemyHit(e,true);
     }
   }
@@ -122,7 +119,7 @@ abstract class Bullet extends Entity{
   
   @Override
   public void BulletHit(Bullet b,boolean p){
-    if(!(b instanceof PlayerBullet)&&isMine){
+    if(!(b instanceof PlayerBullet)&&(parent.parent instanceof Myself)){
       player.score_tech.incrementAndGet();
       b.destruct(this);
       destruct(b);
@@ -133,7 +130,7 @@ abstract class Bullet extends Entity{
   
   @Override
   public void MyselfCollision(Myself m){
-    if(!isMine&&!isDead&&CircleCollision(m.pos,m.size,pos,vel)){
+    if(!(parent.parent instanceof Myself)&&!isDead&&CircleCollision(m.pos,m.size,pos,vel)){
       MyselfHit(m,true);
     }
   }
@@ -185,7 +182,6 @@ class PlayerBullet extends Bullet{
   
   PlayerBullet(){
     super();
-    isMine=true;
   }
   
   PlayerBullet(Myself m){
@@ -210,7 +206,6 @@ class SubBullet extends PlayerBullet{
     speed=w.speed;
     duration=w.duration;
     through=w.through;
-    isMine=true;
     pos=player.pos.copy();
     rotate=random(0,TWO_PI);
     vel.set(cos(rotate)*speed,sin(rotate)*speed);
@@ -223,7 +218,6 @@ class SubBullet extends PlayerBullet{
     speed=w.speed;
     duration=w.duration;
     through=w.through;
-    isMine=true;
     pos=player.pos.copy();
     rotate=random(0,TWO_PI);
     vel.set(cos(rotate)*speed,sin(rotate)*speed);
@@ -247,6 +241,9 @@ class SubBullet extends PlayerBullet{
   
   @Override
   public void BulletHit(Bullet b,boolean p){}
+  
+  @Override
+  public void MyselfHit(Myself m,boolean b){}
 }
 
 class GravityBullet extends SubBullet{
@@ -501,7 +498,6 @@ class MirrorBullet extends SubBullet implements ExcludeGPGPU{
     if(b instanceof PlayerBullet)return;
     b.reflectFromNormal(axis);
     if(b instanceof ThroughBullet){
-      b.isMine=true;
       b.parent.parent=player;
     }
   }
@@ -887,7 +883,6 @@ class ThroughBullet extends Bullet{
   HashSet<Entity>nextHitEnemy;
   
   {
-    isMine=false;
     HitEnemy=new HashSet<Entity>();
     nextHitEnemy=new HashSet<Entity>();
   }
@@ -1028,7 +1023,6 @@ class AntiBulletFieldBullet extends Bullet{
     bulletColor=new Color(60,115,255);
     vel=new PVector(0,0);
     scale=80;
-    isMine=false;
   }
   
   @Override
@@ -1055,7 +1049,7 @@ class AntiBulletFieldBullet extends Bullet{
       if(!((e instanceof PlasmaFieldBullet)||(e instanceof FireBullet)||
          (e instanceof GrenadeBullet)||(e instanceof GravityBullet)||
          (e instanceof AbsorptionBullet))){
-        if(((Bullet)e).isMine)e.destruct(this);
+        if(((Bullet)e).parent!=null&&((Bullet)e).parent.parent instanceof Myself)e.destruct(this);
       }
     }
   }
@@ -1071,7 +1065,7 @@ class AntiBulletFieldBullet extends Bullet{
     if(!((b instanceof PlasmaFieldBullet)||(b instanceof FireBullet)||
        (b instanceof GrenadeBullet)||(b instanceof GravityBullet)||
        (b instanceof AbsorptionBullet))){
-      if(b.isMine)b.destruct(this);
+      if((b.parent.parent instanceof Myself))b.destruct(this);
     }
   }
   
@@ -1086,7 +1080,6 @@ class EnemyMirrorBullet extends MirrorBullet{
     float offset=-w.parent.rotate;
     parent=w;
     scale=16;
-    isMine=false;
     rotateOffset=(num==0?0:(float)num/(float)sum)*TWO_PI;
     offset+=rotateOffset;
     axis+=offset;
@@ -1144,7 +1137,7 @@ class EnemyMirrorBullet extends MirrorBullet{
   
   @Override
   public void BulletCollision(Bullet b){
-    if(b.isMine){
+    if((b.parent.parent instanceof Myself)){
       if(SegmentOrientedRectangleCollision(b.pos,b.vel,LeftDown,new PVector(scale*0.25f,scale),axis)){
         BulletHit(b,false);
       }
@@ -1155,7 +1148,6 @@ class EnemyMirrorBullet extends MirrorBullet{
   public void BulletHit(Bullet b,boolean p){
     b.reflectFromNormal(axis);
     if(!(b instanceof SubBullet)){
-      b.isMine=false;
       b.parent.parent=parent.parent;
     }
   }
@@ -1689,7 +1681,7 @@ class VoidBullet extends GravityBullet{
 
 class TLASBullet extends SubBullet{
   Enemy target;
-  float mag=0.05f;
+  float mag=0.02f;
   int num;
   
   TLASBullet(SubWeapon w,int num){
@@ -2028,6 +2020,64 @@ class EnemyLaserBullet extends ThroughBullet{
   public void BulletCollision(Bullet b){
     if(attack&&CapsuleCollision(pos,vel,b.pos,b.vel,bulletRadius+b.bulletRadius)){
       b.BulletHit(this,true);
+    }
+  }
+}
+
+class SurgeBullet extends PlayerBullet{
+  HashSet<Entity>HitEnemy;
+  HashSet<Entity>nextHitEnemy;
+  
+  SurgeBullet(Myself p,int n,int level){
+    super(p,n);
+    HitEnemy=new HashSet<>();
+    nextHitEnemy=new HashSet<>();
+  }
+  
+  @Override
+  protected void init(Myself m,int num){
+    float rad=0;
+    int n=m.chargeWeapon.bulletNumber;
+    float r=n>1?radians(5)/(n-1):0;
+    rotate=main_input.getAttackAngle()+random(-m.diffuse/2,m.diffuse/2)+(n>1?radians(2.5)-num*r:0);
+    speed=m.chargeWeapon.speed;
+    bulletColor=cloneColor(m.chargeWeapon.bulletColor);
+    pos.set(m.pos.x+cos(rotate)*m.size*0.5f,m.pos.y+sin(rotate)*m.size*0.5f);
+    vel.set(cos(rotate)*speed,sin(rotate)*speed);
+    duration=m.chargeWeapon.duration;
+    try{
+      parent=m.chargeWeapon.clone();
+    }catch(Exception e){}
+    setAABB();
+    setMass(1.3);
+  }
+  
+  @Override
+  void display(PGraphics g){
+    super.display(g);
+  }
+  
+  @Override
+  void update(){
+    super.update();
+    HitEnemy.clear();
+    HitEnemy.addAll(nextHitEnemy);
+    nextHitEnemy.clear();
+  }
+  
+  @Override
+  public void EnemyCollision(Enemy e){
+    if(CircleCollision(e.pos,e.size,pos,vel)){
+      EnemyHit(e,true);
+    }
+  }
+  
+  @Override
+  public void EnemyHit(Enemy e,boolean b){
+    nextHitEnemy.add(e);
+    if(!HitEnemy.contains(e)){
+      e.Hit(parent);
+      e.vel.add(vel.copy().mult(Mass/e.Mass));
     }
   }
 }

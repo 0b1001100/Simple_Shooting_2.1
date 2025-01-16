@@ -159,7 +159,7 @@ class CommandField extends LineTextField{
   
   public void display(){
     push();
-    if(font==null)font=createFont("SansSerif.plain",dist.y*0.8);
+    if(font==null)font=createFont(font_name,dist.y*0.8);
     textHeight=pos.y+dist.y*0.75;
     rectMode(CORNER);
     noStroke();

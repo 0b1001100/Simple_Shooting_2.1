@@ -1,5 +1,7 @@
 //You must add "--enable-preview" option (when you compie this program).
 
+import com.logitech.gaming.LogiLED;
+
 import processing.awt.*;
 
 import java.awt.*;
@@ -17,6 +19,7 @@ import java.util.function.*;
 import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.*;
 
 import net.java.games.input.*;
 
@@ -36,6 +39,7 @@ import static com.jogamp.common.util.IOUtil.ClassResources;
 import static com.jogamp.newt.event.KeyEvent.*;
 
 Simple_shooting_2_1 CopyApplet=this;
+Minim minim;
 
 Myself player;
 
@@ -82,6 +86,8 @@ HashMap<String,PImage>confImage=new HashMap<>();
 
 int oscilloState=0;
 
+String current_bgm="";
+
 Input main_input;
 
 AtomicInteger killCount=new AtomicInteger(0);
@@ -92,6 +98,7 @@ ComponentSetLayer stageLayer=new ComponentSetLayer();
 ComponentSetLayer starts=new ComponentSetLayer();
 ComponentSet resultSet;
 ItemList stageList=new ItemList();
+AchievementManager achievement_manager;
 
 int resizedNumber=0;
 
@@ -108,6 +115,7 @@ PFont font_50;
 PFont font_30;
 PFont font_20;
 PFont font_15;
+String font_name;
 
 HashSet<String>moveKeyCode=new HashSet<String>(Arrays.asList(createArray(str(UP),str(DOWN),str(RIGHT),str(LEFT),"87","119","65","97","83","115","68","100")));
 
@@ -161,7 +169,7 @@ SoundManager soundManager;
 
 static final int STAGE_COUNT=10;//Can release Stage1 to Stage[STAGE_COUNT].
 
-static final String VERSION="1.1.6";
+static final String VERSION="1.2.0";
 
 static final boolean Windows="\\".equals(System.getProperty("file.separator"));
 
@@ -174,6 +182,7 @@ static final String WeaponDataPath;
 static final String SavePath;
 static final String ImagePath;
 static final String SoundPath;
+static final String FontPath;
 
 static{
   ShaderPath=Windows?".\\data\\shader\\":"../data/shader/";
@@ -185,6 +194,7 @@ static{
   SavePath=Windows?".\\data\\save\\":"../data/save/";
   ImagePath=Windows?".\\data\\images\\":"../data/images/";
   SoundPath=Windows?".\\data\\sound\\":"../data/sound/";
+  FontPath=Windows?".\\data\\font\\":"../data/font/";
 }
 
 boolean vsync=false;
@@ -204,9 +214,11 @@ void settings(){
     icon.setAccessible(true);
     icon.set(surface,new String[]{ImagePath+"icon_16.png",ImagePath+"icon_48.png"});
   }catch(Exception e){e.printStackTrace();}
+  font_name="SansSerif.plain";
 }
 
 void setup(){
+  minim=new Minim(this);
   NewtFactory.setWindowIcons(new ClassResources(new String[]{ImagePath+"icon_16.png",ImagePath+"icon_48.png"},this.getClass().getClassLoader(),this.getClass()));
   hint(DISABLE_OPENGL_ERRORS);
   hint(DISABLE_DEPTH_SORT);
@@ -262,11 +274,11 @@ void setup(){
     drawStatistics.add(-1f);
     runStatistics.add(-1f);
   }
-  font_15=createFont("SansSerif.plain",15);
-  font_20=createFont("SansSerif.plain",20);
-  font_30=createFont("SansSerif.plain",30);
-  font_50=createFont("SansSerif.plain",50);
-  font_70=createFont("SansSerif.plain",70);
+  font_15=createFont(font_name,15);
+  font_20=createFont(font_name,20);
+  font_30=createFont(font_name,30);
+  font_50=createFont(font_name,50);
+  font_70=createFont(font_name,70);
   textFont(font_15);
   FXAAShader=loadShader(ShaderPath+"FXAA.glsl");
   colorInv=loadShader(ShaderPath+"ColorInv.glsl");
@@ -326,22 +338,12 @@ void setup(){
     confImageLoaded=true;
   });
   exec.execute(()->{
-    JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
-    JSONArray Stages=conf.getJSONArray("Stage");
-    for(int i=0;i<Stages.size();i++){
-      if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
-        JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
-        float time=o.getInt("time");
-        stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language"))+
-          "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
-          "\n  Score: "+o.getInt("score"));
-      }else{
-        stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")));
-      }
-    }
+    initStageExplanation();
   });
   //get controller
+  Logger.getLogger(ControllerEnvironment.class.getPackage().getName()).setLevel(Level.OFF);
   main_input=new Input(this,(PSurfaceJOGL)surface);
+  main_input.getKeyBoard().addKeyBind("Menu",(int)VK_ESCAPE);
   main_game=new GameProcess();
   exec.execute(()->{
     soundManager.loadSound();
@@ -350,6 +352,7 @@ void setup(){
     backgrounds.put("default",new DefaultBackgroundShader().load());
     backgrounds.put("pixel",new PixelBackgroundShader().load());
   });
+  LogiLED.LogiLedInit();
 }
 
 public void draw(){
@@ -371,6 +374,8 @@ public void draw(){
     break;
     case 3:Result();
   }
+  achievement_manager.display();
+  achievement_manager.update();
   eventProcess();
   Shader();
   if(displayFPS)printFPS();
@@ -410,6 +415,7 @@ public void LoadData(){
     frameRate(60);
   }
   ArchiveEntity=new ArrayList<>(Arrays.asList(conf.getJSONArray("Enemy").toStringArray()));
+  achievement_manager=new AchievementManager();
 }
 
 public void ErrorCorrect(){
@@ -480,7 +486,7 @@ String getLanguageText(String s){
   starts.update();
   if(colorInverse&&!starts.nowLayer.equals("root")){
     colorInv.set("tex",g);
-    colorInv.set("resolution",width,height);
+    colorInv.set("resolution",(float)width,(float)height);
     try{
       filter(colorInv);
     }catch(Exception e){
@@ -489,15 +495,42 @@ String getLanguageText(String s){
   }
 }
 
- public void Load(){
-  background(0);
-  scene=2;
+public void Load(){
+  background(20);
+  fill(220);
+  int millis=millis()%1000;
+  textSize(20);
+  textFont(font_20);
+  text("Now Loading"+((millis<250)?"":(millis<500)?".":(millis<750)?"..":"..."),width-200,height-40);
+  if(changeScene){
+    JSONArray stage_data=loadJSONArray(StageConfPath+StageName+".json");
+    for(int i=0;i<stage_data.size();i++){
+      JSONObject config=stage_data.getJSONObject(i);
+      if(config.getString("type").equals("setting")){
+        current_bgm=config.getString("bgm");
+        soundManager.loadQeuedData(current_bgm,()->{scene=2;});
+        achievement_manager.setStageAchievement(config.getString("achievement"));
+        break;
+      }
+    }
+  }
 }
 
 String resultText;
 
 public void Result(){
   if(changeScene){
+    LogiLED.LogiLedSetLighting(50,50,50);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ENTER,0,128,255);
+    soundManager.fadeout(current_bgm,0.6);
+    if(!StageFlag.contains("Game_Over")){
+      achievement_manager.stageCleared();
+      JSONArray arr=conf.getJSONArray("Clear_Stage");
+      if(!Arrays.asList(arr.toStringArray()).contains(stage.name)){
+        arr.append(stage.name);
+        conf.setJSONArray("Clear_Stage",arr);
+      }
+    }
     resetMatrix();
     resultAnimation=true;
     resultTime=0;
@@ -506,31 +539,18 @@ public void Result(){
                "Time: "+nf(floor(stage.time/3600),floor(stage.time/360000)>=1?0:2,0)+":"+nf(floor((stage.time/60)%60),2,0)+"\n"+
                "Score: "+(player.score_kill.get()+player.score_tech.get());
     MenuButton resultButton=new MenuButton("OK");
-    resultButton.setBounds(width*0.5f-60,height*0.7f,120,25);
+    resultButton.setBounds(width*0.5f-60,height*0.9f,120,25);
     resultButton.addWindowResizeEvent(()->{
-      resultButton.setBounds(width*0.5f-60,height*0.7f,120,25);
+      resultButton.setBounds(width*0.5f-60,height*0.9f,120,25);
     });
     resultButton.addListener(()->{
       scene=0;
       exec.execute(()->{
         stageList.clearExplanation();
-        JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
-        JSONArray Stages=conf.getJSONArray("Stage");
-        for(int i=0;i<Stages.size();i++){
-          if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
-            JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
-            float time=o.getInt("time");
-            stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language"))+
-              "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
-              "\n  Score: "+o.getInt("score"));
-          }else{
-            stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")));
-          }
-        }
+        initStageExplanation();
       });
     });
     resultButton.requestFocus();
-    resultSet=toSet(resultButton);
     fragmentCount+=player.fragment;
     if(!StageFlag.contains("Game_Over")){
       JSONObject rec=conf.getJSONObject("Record");
@@ -545,6 +565,22 @@ public void Result(){
         rec.setJSONObject(StageName,data);
       }
     }
+    stageList.Contents.sort(new Comparator<String>(){
+      int compare(String a,String b){
+        return num(a)<num(b)?-1:1;
+      }
+      
+      float num(String s){
+        String n=s.replace("Stage","");
+        if(n.contains("E")){
+          return Integer.valueOf(n.replace("E",""))*5+0.5;
+        }else if(n.contains("Tutorial")){
+          return 0;
+        }
+        return Integer.valueOf(n);
+      }
+    });
+    resultSet=toSet(resultButton);
     saveConfig save=new saveConfig();
     exec.submit(save);
   }
@@ -588,7 +624,7 @@ public void Result(){
   }
 }
 
- public void initThread(){
+public void initThread(){
   collisionNumber=updateNumber=(byte)min(16,Runtime.getRuntime().availableProcessors());
   exec=Executors.newFixedThreadPool(collisionNumber);
   for(int i=0;i<updateNumber;i++){
@@ -602,7 +638,8 @@ public void Result(){
   }
 }
 
- public void Field() {
+public void Field() {
+  if(pscene!=scene&&!changeScene)return;
   if (changeScene){
     stage.name=StageName;
     main_game.init();
@@ -639,6 +676,7 @@ public void Result(){
         }));
       }else if(config.getString("type").equals("setting")){
         JSONArray walls=config.getJSONArray("wall");
+        if(walls!=null)
         for(int j=0;j<walls.size();j++){
           JSONArray wall=walls.getJSONArray(j);
           main_game.addWall(wall.getFloat(0),wall.getFloat(1),wall.getFloat(2),wall.getFloat(3));
@@ -646,11 +684,22 @@ public void Result(){
       }
     }
     stage.addProcess(StageName,new TimeSchedule(Float.MAX_VALUE,s->{s.endSchedule=true;}));
+    soundManager.loop(current_bgm);
+    soundManager.amp(current_bgm,0.3);
+    LogiLED.LogiLedSetLighting(50,50,50);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.ESC,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F2,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F3,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.F5,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.TAB,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.LEFT_CONTROL,0,128,255);
+    LogiLED.LogiLedSetLightingForKeyWithKeyName(LogiLED.RIGHT_CONTROL,0,128,255);
   }
+  applyPlayerColor();
   main_game.process();
 }
 
- public void eventProcess() {
+public void eventProcess() {
   if (scene!=pscene) {
     changeScene=true;
   } else if (!nowMenu.equals(pMenu)) {
@@ -670,7 +719,7 @@ public void Result(){
   }
 }
 
- public void updateFPS() {
+public void updateFPS() {
   Times.add(System.currentTimeMillis()-pTime);
   while (Times.size()>60) {
     Times.remove(0);
@@ -681,25 +730,14 @@ public void Result(){
 
 @Override
 public void exit(){
-  Future f=exec.submit(()->saveJSONObject(conf,SavePath+"config.json"));
-  try {
-    f.get();
-  }
-  catch(ConcurrentModificationException e) {
-    e.printStackTrace();
-  }
-  catch(InterruptedException|ExecutionException F) {
-    F.printStackTrace();
-  }
-  catch(NullPointerException g) {
-  }
-  finally{
-    exec.shutdown();
+  LogiLED.LogiLedShutdown();
+  exec.execute(()->{
+    saveJSONObject(conf,SavePath+"config.json");
     super.exit();
-  }
+  });
 }
 
- public void updatePreValue() {
+public void updatePreValue() {
   pMagnification=vectorMagnification;
   windowResized=false;
   keyRelease=false;
@@ -713,9 +751,9 @@ public void exit(){
   EntityDataX.clear();
 }
 
- public void Shader(){
+public void Shader(){
   if(FXAA){
-    FXAAShader.set("resolution",width,height);
+    FXAAShader.set("resolution",(float)width,(float)height);
     FXAAShader.set("input_texture",g);
     if(scene==2){
       applyShader(FXAAShader);
@@ -723,27 +761,41 @@ public void exit(){
       filter(FXAAShader);
     }
   }
-  Oscillo.set("resolution",width,height);
-  Oscillo.set("time",second()+millis()*0.001);
-  Oscillo.set("input_texture",g);
-  if(frameCount>10)
-  switch(oscilloState){
-    case 1:
-      Oscillo.set("resolution",width,height);
-      Oscillo.set("time",second()+millis()*0.001);
-      Oscillo.set("input_texture",g);
-      filter(Oscillo);
-      break;
-    case 2:
-      Oscillo_Otsu.set("resolution",width,height);
-      Oscillo_Otsu.set("time",second()+millis()*0.001);
-      Oscillo_Otsu.set("input_texture",g);
-      filter(Oscillo_Otsu);
-      break;
+  if(frameCount>10){
+    switch(oscilloState){
+      case 1:
+        Oscillo.set("resolution",(float)width,(float)height);
+        Oscillo.set("time",second()+millis()*0.001);
+        filter(Oscillo);
+        break;
+      case 2:
+        Oscillo_Otsu.set("resolution",(float)width,(float)height);
+        Oscillo_Otsu.set("time",second()+millis()*0.001);
+        filter(Oscillo_Otsu);
+        break;
+    }
   }
 }
 
- public void printFPS() {
+void initStageExplanation(){
+  JSONObject ex=loadJSONObject(StageConfPath+"Stage_ex.json");
+  JSONArray Stages=conf.getJSONArray("Stage");
+  for(int i=0;i<Stages.size();i++){
+    StringBuilder weapons=new StringBuilder(ex.getJSONObject(Stages.getString(i)).getJSONArray("weapon").toStringArray().length==0?"\n  -":"");
+    Arrays.asList(ex.getJSONObject(Stages.getString(i)).getJSONArray("weapon").toStringArray()).forEach(s->weapons.append("\n  "+s));
+    if(conf.getJSONObject("Record").hasKey(Stages.getString(i))){
+      JSONObject o=conf.getJSONObject("Record").getJSONObject(Stages.getString(i));
+      float time=o.getInt("time");
+      stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")).replace("$",weapons.toString())+
+        "\n\nRecord\n  Time: "+nf(floor(time/60),floor(time/6000)>=1?0:2,0)+":"+nf(floor(time%60),2,0)+
+        "\n  Score: "+o.getInt("score"));
+    }else{
+      stageList.addExplanation(Stages.getString(i),ex.getJSONObject(Stages.getString(i)).getString(conf.getString("Language")).replace("$",weapons.toString()));
+    }
+  }
+}
+
+public void printFPS() {
   pushMatrix();
   resetMatrix();
   textAlign(LEFT);
@@ -756,18 +808,12 @@ public void exit(){
   popMatrix();
 }
 
- public void applyShader(PShader s){
-  pushMatrix();
-  resetMatrix();
-  noStroke();
-  shader(s);
-  image(g,0,0);
+public void applyShader(PShader s){
+  filter(s);
   blendMode(BLEND);
-  resetShader();
-  popMatrix();
 }
 
- public void applyShader(PShader s,PGraphics g){
+public void applyShader(PShader s,PGraphics g){
   g.pushMatrix();
   g.resetMatrix();
   g.noStroke();
@@ -778,7 +824,7 @@ public void exit(){
   g.popMatrix();
 }
 
- public PMatrix3D getMatrixLocalToWindow(PGraphics g) {
+public PMatrix3D getMatrixLocalToWindow(PGraphics g) {
   PMatrix3D projection = ((PGraphics2D)g).projection;
   PMatrix3D modelview = ((PGraphics2D)g).modelview;
 
@@ -792,7 +838,7 @@ public void exit(){
   return viewport;
 }
 
- public PVector unProject(float winX, float winY) {
+public PVector unProject(float winX, float winY) {
   PMatrix3D mat = getMatrixLocalToWindow(g);
   mat.invert();
 
@@ -808,7 +854,7 @@ public void exit(){
   return result;
 }
 
- public PVector unProject(float winX, float winY,PGraphics g) {
+public PVector unProject(float winX, float winY,PGraphics g) {
   PMatrix3D mat = getMatrixLocalToWindow(g);
   mat.invert();
 
@@ -824,7 +870,7 @@ public void exit(){
   return result;
 }
 
- public PVector Project(float winX, float winY) {
+public PVector Project(float winX, float winY) {
   PMatrix3D mat = getMatrixLocalToWindow(g);
 
   float[] in = {winX, winY, 1.0f, 1.0f};
@@ -839,7 +885,7 @@ public void exit(){
   return result;
 }
 
- public PVector Project(float winX, float winY,PGraphics g) {
+public PVector Project(float winX, float winY,PGraphics g) {
   PMatrix3D mat = getMatrixLocalToWindow(g);
 
   float[] in = {winX, winY, 1.0f, 1.0f};
@@ -854,11 +900,11 @@ public void exit(){
   return result;
 }
 
- public <T> T[] createArray(T... val){
+public <T> T[] createArray(T... val){
   return val;
 }
 
- public <P extends Collection,C extends Collection> boolean containsList(P p,C c){
+public <P extends Collection,C extends Collection> boolean containsList(P p,C c){
   boolean ret=false;
   for(Object o:c){
     if(p.contains(o)){
@@ -869,7 +915,7 @@ public void exit(){
   return ret;
 }
 
- public void updateUniform2f(String uniformName,float uniformValue1,float uniformValue2){
+public void updateUniform2f(String uniformName,float uniformValue1,float uniformValue2){
   int loc=gl4.glGetUniformLocation(compute_program,uniformName);
   gl4.glUniform2f(loc,uniformValue1,uniformValue2);
   if (loc!=-1){
@@ -877,43 +923,47 @@ public void exit(){
   }
 }
 
- public boolean onMouse(float x, float y, float dx, float dy) {
+public boolean onMouse(float x, float y, float dx, float dy) {
   return x<=mouseX&mouseX<=x+dx&y<=mouseY&mouseY<=y+dy;
 }
 
- public boolean onBox(PVector p1,PVector p2,PVector v){
+public boolean onBox(PVector p1,PVector p2,PVector v){
   return p2.x<=p1.x&&p1.x<=p2.x+v.x&&p2.y<=p1.y&&p1.y<=p2.y+v.y;
 }
 
- public PVector unProject(PVector v){
+public PVector unProject(PVector v){
   return unProject(v.x,v.y);
 }
 
- public PVector Project(PVector v){
+public PVector Project(PVector v){
   return Project(v.x,v.y);
 }
 
- public PVector unProject(PVector v,PGraphics g){
+public PVector unProject(PVector v,PGraphics g){
   return unProject(v.x,v.y,g);
 }
 
- public PVector Project(PVector v,PGraphics g){
+public PVector Project(PVector v,PGraphics g){
   return Project(v.x,v.y,g);
 }
 
- public float Sigmoid(float t) {
+public float Sigmoid(float t) {
   return 1f/(1+pow(2.7182818f, -t));
 }
 
- public float ESigmoid(float t) {
+public float ESigmoid(float t) {
   return pow(2.718281828f, 5-t)/pow(pow(2.718281828f, 5-t)+1, 2);
 }
 
- public int sign(float f) {
+float easeOutExpo(float x){
+  return x == 1 ? 1 : 1 - pow(2, -10 * x);
+}
+
+public int sign(float f) {
   return f>0?1:f<0?-1:0;
 }
 
- public void line(PVector s,PVector v){
+public void line(PVector s,PVector v){
   line(s.x,s.y,s.x+v.x,s.y+v.y);
 }
 
@@ -921,67 +971,67 @@ public void vertex(PGraphics g,PVector p){
   g.vertex(p.x,p.y);
 }
 
- public float dist(PVector a, PVector b) {
+public float dist(PVector a, PVector b) {
   return dist(a.x, a.y, b.x, b.y);
 }
 
- public float sqDist(PVector s, PVector e){
+public float sqDist(PVector s, PVector e){
   return (s.x-e.x)*(s.x-e.x)+(s.y-e.y)*(s.y-e.y);
 }
 
- public boolean qDist(PVector s, PVector e, float d) {
+public boolean qDist(PVector s, PVector e, float d) {
   return ((s.x-e.x)*(s.x-e.x)+(s.y-e.y)*(s.y-e.y))<=d*d;
 }
 
- public boolean qDist(PVector s1, PVector e1, PVector s2, PVector e2) {
+public boolean qDist(PVector s1, PVector e1, PVector s2, PVector e2) {
   return ((s1.x-e1.x)*(s1.x-e1.x)+(s1.y-e1.y)*(s1.y-e1.y))<=((s2.x-e2.x)*(s2.x-e2.x)+(s2.y-e2.y)*(s2.y-e2.y));
 }
 
- public float atan2(PVector from,PVector to){
+public float atan2(PVector from,PVector to){
   return atan2(to.y-from.y,to.x-from.x);
 }
 
- public float cross(PVector v1, PVector v2) {
+public float cross(PVector v1, PVector v2) {
   return v1.x*v2.y-v2.x*v1.y;
 }
 
- public float dot(PVector v1, PVector v2) {
+public float dot(PVector v1, PVector v2) {
   return v1.x*v2.x+v1.y*v2.y;
 }
 
- public PVector normalize(PVector s, PVector e) {
+public PVector normalize(PVector s, PVector e) {
   float f=s.dist(e);
   return new PVector((e.x-s.x)/f, (e.y-s.y)/f);
 }
 
- public PVector normalize(PVector v) {
+public PVector normalize(PVector v) {
   float f=sqrt(sq(v.x)+sq(v.y));
   return new PVector(v.x/f, v.y/f);
 }
 
- public PVector createVector(PVector s, PVector e) {
+public PVector createVector(PVector s, PVector e) {
   return e.copy().sub(s);
 }
 
- public PVector clampOnRectangle(PVector p,PVector pos,PVector dist){
+public PVector clampOnRectangle(PVector p,PVector pos,PVector dist){
   PVector clamp = new PVector();
   clamp.x = constrain(p.x,pos.x,pos.x+dist.x );
   clamp.y = constrain(p.y,pos.y,pos.x+dist.y );
   return clamp;
 }
 
- public boolean circleRectangleCollision(PVector c,float r,PVector pos,PVector dist){
+public boolean circleRectangleCollision(PVector c,float r,PVector pos,PVector dist){
   PVector clamped = clampOnRectangle(c,pos,dist);
   return qDist(c,clamped,r);
 }
 
- public boolean circleOrientedRectangleCollision(PVector c,float r,PVector pos,PVector dist,float rotate){
+public boolean circleOrientedRectangleCollision(PVector c,float r,PVector pos,PVector dist,float rotate){
   PVector distance = c.copy().sub(pos);
   distance.rotate(-rotate);
   return circleRectangleCollision(distance,r,new PVector(0,0),dist);
 }
 
- public boolean SegmentOrientedRectangleCollision(PVector s,PVector v,PVector pos,PVector dist,float rotate){
+public boolean SegmentOrientedRectangleCollision(PVector s,PVector v,PVector pos,PVector dist,float rotate){
   PVector dist1 = s.copy().sub(pos);
   dist1.rotate(-rotate);
   PVector dist2 = s.copy().add(v).sub(pos);
@@ -992,7 +1042,7 @@ public void vertex(PGraphics g,PVector p){
          SegmentCollision(dist1,vec,new PVector(0,0),new PVector(0,dist.y))||SegmentCollision(dist1,vec,new PVector(0,0).add(dist.x,0),new PVector(0,dist.y));
 }
 
- public boolean CircleCollision(PVector c,float size,PVector s,PVector v){
+public boolean CircleCollision(PVector c,float size,PVector s,PVector v){
     PVector vecAP=createVector(s,c);
     PVector normalAB=normalize(v);//vecAB->b.vel
     float lenAX=dot(normalAB,vecAP);
@@ -1007,7 +1057,7 @@ public void vertex(PGraphics g,PVector p){
     return dist<size*0.5f;
 }
 
- public PVector CircleMovePosition(PVector c,float size,PVector s,PVector v){
+public PVector CircleMovePosition(PVector c,float size,PVector s,PVector v){
     PVector vecAP=createVector(s,c);
     PVector normalAB=normalize(v);
     float lenAX=dot(normalAB,vecAP);
@@ -1027,7 +1077,7 @@ public void vertex(PGraphics g,PVector p){
     }
 }
 
- public boolean CapsuleCollision(PVector p1,PVector v1,PVector p2,PVector v2,float r){
+public boolean CapsuleCollision(PVector p1,PVector v1,PVector p2,PVector v2,float r){
   if(SegmentCollision(p1,v1,p2,v2)){
     return true;
   }else{
@@ -1039,7 +1089,7 @@ public void vertex(PGraphics g,PVector p){
   }
 }
 
- public boolean SegmentCollision(PVector s1, PVector v1, PVector s2, PVector v2) {
+public boolean SegmentCollision(PVector s1, PVector v1, PVector s2, PVector v2) {
   PVector v=new PVector(s2.x-s1.x, s2.y-s1.y);
   float crs_v1_v2=cross(v1, v2);
   if (crs_v1_v2==0) {
@@ -1055,7 +1105,7 @@ public void vertex(PGraphics g,PVector p){
   return true;
 }
 
- public boolean LineCollision(PVector s1, PVector v1, PVector l2, PVector v2) {
+public boolean LineCollision(PVector s1, PVector v1, PVector l2, PVector v2) {
   PVector v=new PVector(l2.x-s1.x, l2.y-s1.y);
   float crs_v1_v2=cross(v1, v2);
   if (crs_v1_v2==0) {
@@ -1068,7 +1118,7 @@ public void vertex(PGraphics g,PVector p){
   return true;
 }
 
- public PVector SegmentCrossPoint(PVector s1, PVector v1, PVector s2, PVector v2) {
+public PVector SegmentCrossPoint(PVector s1, PVector v1, PVector s2, PVector v2) {
   PVector v=new PVector(s2.x-s1.x, s2.y-s1.y);
   float crs_v1_v2=cross(v1, v2);
   if (crs_v1_v2==0) {
@@ -1084,7 +1134,7 @@ public void vertex(PGraphics g,PVector p){
   return s1.add(v1.copy().mult(t1));
 }
 
- public PVector LineCrossPoint(PVector s1, PVector v1, PVector l2, PVector v2) {
+public PVector LineCrossPoint(PVector s1, PVector v1, PVector l2, PVector v2) {
   PVector v=new PVector(l2.x-s1.x, l2.y-s1.y);
   float crs_v1_v2=cross(v1, v2);
   if (crs_v1_v2==0) {
@@ -1097,7 +1147,7 @@ public void vertex(PGraphics g,PVector p){
   return s1.add(v1.copy().mult(t));
 }
 
- public PVector getCrossPoint(PVector pos,PVector vel,PVector C,float r) {
+public PVector getCrossPoint(PVector pos,PVector vel,PVector C,float r) {
   
   float a=vel.y;
   float b=-vel.x;
@@ -1145,11 +1195,11 @@ public void vertex(PGraphics g,PVector p){
   }
 }
 
- public int toColor(Color c) {
+public int toColor(Color c) {
   return color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
 }
 
- public int toRGB(Color c) {
+public int toRGB(Color c) {
   return color(c.getRed(),c.getGreen(),c.getBlue(),255);
 }
 
@@ -1157,15 +1207,15 @@ public float grayScale(int c){
   return ((c>>16)&0xFF)*0.298912f+((c>>8)&0xFF)*0.586611f+(c&0xFF)*0.114478;
 }
 
- public Color toAWTColor(int c) {
+public Color toAWTColor(int c) {
   return new Color((c>>16)&0xFF,(c>>8)&0xFF,c&0xFF,(c>>24)&0xFF);
 }
 
- public Color mult(Color C, float c) {
+public Color mult(Color C, float c) {
   return new Color(round(C.getRed()*c),round(C.getGreen()*c),round(C.getBlue()*c),C.getAlpha());
 }
 
- public Color cloneColor(Color c) {
+public Color cloneColor(Color c) {
   return new Color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());
 }
 
@@ -1196,7 +1246,7 @@ public boolean isParent(Entity e,Entity f){
   return true;
 }
 
- public void keyPressed(processing.event.KeyEvent e){
+public void keyPressed(processing.event.KeyEvent e){
   keyPressTime=0;
   keyPress=true;
   ModifierKey=e.getKeyCode();
@@ -1208,7 +1258,7 @@ public boolean isParent(Entity e,Entity f){
   if(key==ESC)key=255;
 }
 
- public void keyReleased(processing.event.KeyEvent e){
+public void keyReleased(processing.event.KeyEvent e){
   keyPressTime=0;
   keyRelease=true;
   ModifierKey=-1;
@@ -1216,7 +1266,7 @@ public boolean isParent(Entity e,Entity f){
   PressedKey.remove(str(e.getKey()).toLowerCase());
 }
 
- public void mouseWheel(processing.event.MouseEvent e){
+public void mouseWheel(processing.event.MouseEvent e){
   mouseWheel=true;
   mouseWheelCount+=e.getCount();
 }

@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"confusion",
+    "achievement":"Clear_Stage1"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

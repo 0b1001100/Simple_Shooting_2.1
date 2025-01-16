@@ -2,6 +2,8 @@ package SSGUI.input;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import SSGUI.Component.Direction;
 import SSGUI.input.controller.Controller_Button;
@@ -12,6 +14,7 @@ import SSGUI.input.controller.configuration.Controller_Configuration;
 import SSGUI.input.controller.configuration.Dualshock_Configuration;
 import SSGUI.input.controller.configuration.Xbox_Configuration;
 import net.java.games.input.Component;
+import net.java.games.input.ControllerEnvironment;
 import net.java.games.input.DirectAndRawInputEnvironmentPlugin;
 import processing.core.PApplet;
 import processing.opengl.PSurfaceJOGL;
@@ -35,6 +38,7 @@ public class Controller extends Device {
     sliders=new ArrayList<>();
     buttons=new ArrayList<>();
     config=new Dualshock_Configuration(this);
+    Logger.getLogger(ControllerEnvironment.class.getPackage().getName()).setLevel(Level.OFF);
     Thread.ofVirtual().start(()->{
       while(true){
         ArrayList<net.java.games.input.Controller>controllers=new ArrayList<>(Arrays.asList(new DirectAndRawInputEnvironmentPlugin().getControllers()));

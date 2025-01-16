@@ -187,7 +187,7 @@ class EnemyWeapon extends Weapon{
   
   EnemyWeapon(Enemy e){
     super(e);
-    parentEnemy=e;
+    parent=parentEnemy=e;
     setPower(1);
     setSpeed(3.5f);
     setDuration(120);
@@ -448,7 +448,7 @@ class TauBlaster extends PlayerWeapon{
     setPower(1.2f+getItemCount("attack")*0.25);
     setBulletNumber(4);
     setColor(new Color(255,105,20));
-    setCoolTime(30);
+    setCoolTime(45);
     setDiffuse(radians(20));
   }
 }
@@ -465,6 +465,54 @@ class PhotonPulse extends PlayerWeapon{
     setHeatUP(0.45f);
     setDiffuse(0f);
     setCoolTime(10);
+  }
+}
+
+class Surge extends PlayerWeapon{
+  int level;
+  float charge_time;
+  float charge=0;
+  
+  Surge(Entity e,int level){
+    super(e);
+    this.level=level;
+    charge_time=60.0+20.0*(level-1);
+    setSpeed(20);
+    setPower(3f+level+getItemCount("attack")*0.25);
+    setDuration(40);
+    setAutoShot(false);
+    setColor(new Color(255,128,0));
+    setHeatUP(0.45f);
+    setDiffuse(0f);
+  }
+  
+  void charge(){
+    charge+=vectorMagnification;
+    charge=min(charge,charge_time);
+  }
+  
+  float getChargePercent(){
+    return charge/charge_time;
+  }
+  
+  int getChargeLevel(){
+    return floor(charge*level/charge_time);
+  }
+  
+  void shot(){
+    int c_level=getChargeLevel();
+    if(c_level>0){
+      addBullet(c_level);
+    }
+    charge=0;
+  }
+  
+  @Override
+  void addBullet(int l){
+    int n=ceil(((float)l)/3.0);
+    bulletNumber=n;
+    setPower(3f+pow(l,1.5)+getItemCount("attack")*0.25);
+    for(int i=0;i<n;i++)NextEntities.add(new SurgeBullet((Myself)parent,i,level));
   }
 }
 
@@ -555,6 +603,11 @@ abstract class AttackWeapon extends SubWeapon{
       time=0;
     }
   }
+  
+  void shot(){
+    parent=player;
+    super.shot();
+  }
 }
 
 class G_ShotWeapon extends AttackWeapon{
@@ -635,6 +688,7 @@ class MirrorWeapon extends AttackWeapon{
   @Override
   public void shot(){
     offset=random(0,TWO_PI);
+    parent=player;
     super.shot();
   }
   
@@ -790,6 +844,7 @@ class LightningWeapon extends AttackWeapon{
   @Override
   public void shot(){
     super.shot();
+    parent=player;
     ++offset;
     offset%=12;
   }

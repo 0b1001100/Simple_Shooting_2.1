@@ -26,7 +26,7 @@ public enum Direction {
   private final int binary;
 
   /**
-   * @param b a binary data.
+   * @param b A binary data.
    */
   private Direction(int b){
     binary=b;
@@ -46,9 +46,33 @@ public enum Direction {
       case 0b010100->Down_Left;
       case 0b000010->Front;
       case 0b000001->Behind;
+      case 0b111100->All;
       case 0b111111->All;
       case 0b000000->None;
-      default->null;
+      default->None;
+    };
+  }
+
+  public static Direction binalyDirectionOf(int binary){
+    int horizonal=binary&0b110000;
+    horizonal=(horizonal==0b110000)?0b00:horizonal;
+    int vertical=(binary<<2)&0b110000;
+    vertical=(vertical==0b110000)?0b00:vertical;
+    int FB=(binary<<4)&0b110000;
+    FB=(FB==0b110000)?0b00:FB;
+    binary=horizonal|(vertical>>2)|(FB>>4);
+    return switch(binary){
+      case 0b001000->Up;
+      case 0b000100->Down;
+      case 0b100000->Right;
+      case 0b010000->Left;
+      case 0b101000->Up_Right;
+      case 0b011000->Up_Left;
+      case 0b100100->Down_Right;
+      case 0b010100->Down_Left;
+      case 0b000010->Front;
+      case 0b000001->Behind;
+      default->None;
     };
   }
 
@@ -69,10 +93,14 @@ public enum Direction {
     return (binary&d.getBinary())>0;
   }
 
+  public int or(Direction a,Direction b){
+    return a.binary|b.binary;
+  }
+
   public static float getAngle(Direction d){
     return switch(d){
-      case Horizonal->Float.NaN;
-      case Vertical->Float.NaN;
+      case Horizonal->0f;
+      case Vertical->0f;
       case Up->(float)Math.PI*0.5f;
       case Down->(float)Math.PI*1.5f;
       case Right->0f;
@@ -81,41 +109,24 @@ public enum Direction {
       case Up_Left->(float)Math.PI*0.75f;
       case Down_Right->(float)Math.PI*1.75f;
       case Down_Left->(float)Math.PI*1.25f;
-      case Front->Float.NaN;
-      case Behind->Float.NaN;
-      case All->Float.NaN;
-      case None->Float.NaN;
+      case Front->0f;
+      case Behind->0f;
+      case All->0f;
+      case None->0f;
     };
   }
 
   public static float getAngle(int binary){
-    if((binary&0b111100)==0b000000)return Float.NaN;
-    float angle_x=Float.NaN;
-    float angle_y=Float.NaN;
-    int y=binary&0b001100;
-    Direction yd=binalyOf(y);
-    if(yd!=Vertical){
-      angle_y=switch(y){
-        case 0b000100->(float)Math.PI*0.5f;
-        case 0b001000->(float)Math.PI*1.5f;
-        default->Float.NaN;
-      };
+    Direction d=binalyDirectionOf(binary);
+    return getAngle(d);
+  }
+
+  public static Direction sumDirection(int... binaries){
+    int result=0b000000;
+    for(int binary:binaries){
+      result|=binary;
     }
-    int x=binary&0b110000;
-    Direction xd=binalyOf(x);
-    if(xd!=Horizonal){
-      angle_x=switch(x){
-        case 0b100000->(!Float.isNaN(angle_y)&&angle_y>Math.PI)?(float)Math.PI*2.0f:0f;
-        case 0b010000->(float)Math.PI;
-        default->Float.NaN;
-      };
-    }
-    if(Float.isNaN(angle_x)){
-      return angle_y;
-    }else if(Float.isNaN(angle_y)){
-      return angle_x;
-    }
-    return (angle_x+angle_y)*0.5f;
+    return binalyOf(result);
   }
 
   public static Direction angleTo4Direction(float angle){

@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"ArcCOS",
+    "achievement":"Clear_StageE1"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"vivid",
+    "achievement":"Clear_Stage2"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{

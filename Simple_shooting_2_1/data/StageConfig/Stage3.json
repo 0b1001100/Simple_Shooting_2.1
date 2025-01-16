@@ -1,5 +1,10 @@
 [
   {
+    "type":"setting",
+    "bgm":"battle",
+    "achievement":"Clear_Stage3"
+  },
+  {
     "time":1,
     "type":"auto",
     "param":{
